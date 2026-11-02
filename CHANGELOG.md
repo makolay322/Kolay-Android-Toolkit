@@ -4,6 +4,8 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Modül sürümleri `
 (görünen sürüm `1.0.x` yama sayısıyla artar; dahili `versionCode` her yayında +1 olur ve kullanıcıya gösterilmez).
 
 ## 1.000
+### Değişti (1.024)
+- Namaz Vakitleri: sabah namazından sonra güneş doğana kadar “Sıradaki vakit” artık **Güneş** saatini gösterir (geri sayım ve listedeki vurgu dahil); widget da bu arada güneşin doğuş saatini köşede **g** harfiyle gösterir.
 ### Değişti (1.023)
 - Uygulamanın renkleri (düğmeler, vurgular, ikon kutuları, arka plan ve kartlar) artık uygulama ikonuyla aynı kaynaktan, Android'in duvar kâğıdına göre ürettiği sistem renklerinden geliyor (Android 12+); duvar kâğıdı değişince uygulama da değişir. Ana sayfa ve Ayarlar'daki ikon kutuları vurgu renginin birbirine yakın üç tonu arasında sırayla değişir. Kırmızı/yeşil/sarı uyarı renkleri sabit kaldı; Android 10–11'de eski sabit renkler sürer.
 ### Değişti (1.022)

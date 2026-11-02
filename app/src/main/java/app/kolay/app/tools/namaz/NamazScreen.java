@@ -159,12 +159,12 @@ final class NamazScreen extends Screen {
         tomorrow = c.host.prayerTimes(now.get(Calendar.YEAR), now.get(Calendar.MONTH) + 1, now.get(Calendar.DAY_OF_MONTH));
     }
 
-    /** {index, instant, day} of the next prayer start (sunrise skipped); day 0 = today, 1 = tomorrow. */
+    /** {index, instant, day} of the next time (sunrise included); day 0 = today, 1 = tomorrow. */
     private long[] next(long now) {
         for (int d = 0; d < 2; d++) {
             long[] t = d == 0 ? today : tomorrow;
             if (t == null) return null;
-            for (int i = 0; i < 6; i++) if (i != 1 && t[i] > now) return new long[]{i, t[i], d};
+            for (int i = 0; i < 6; i++) if (t[i] > now) return new long[]{i, t[i], d};   // sunrise included
         }
         return null;
     }

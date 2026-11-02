@@ -70,12 +70,12 @@ final class Prayer {
         return times(c, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH));
     }
 
-    /** The next prayer start after {@code now} (sunrise is not a prayer and is skipped): {index, epoch ms}, or null. */
+    /** The next time after {@code now}, sunrise included (it is shown so the end of Sabah is visible): {index, epoch ms}, or null. */
     static long[] next(Context c, long now) {
         for (int d = 0; d <= 1; d++) {
             long[] t = timesAt(c, now, d);
             if (t == null) return null;
-            for (int i = 0; i < 6; i++) if (i != PrayerCalc.SUNRISE && t[i] > now) return new long[]{i, t[i]};
+            for (int i = 0; i < 6; i++) if (t[i] > now) return new long[]{i, t[i]};
         }
         return null;
     }

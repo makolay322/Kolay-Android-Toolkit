@@ -14,7 +14,7 @@ import android.widget.RemoteViews;
 /**
  * Home-screen widget: only the next prayer's time, 24-hour, as pastel-gradient light text with no background. It adapts to its
  * size: tap = new color palette; one line when wide, hours above minutes otherwise, always scaled to fill the widget. A small lowercase
- * letter in the top-right corner names the prayer the time belongs to (s, ö, i, a, y).
+ * letter in the top-right corner names the time it belongs to (s, g, ö, i, a, y; g = sunrise).
  */
 public class PrayerWidget extends AppWidgetProvider {
     private static final String ACTION_PALETTE = "app.kolay.shell.PALETTE";
@@ -28,8 +28,8 @@ public class PrayerWidget extends AppWidgetProvider {
         {0xFFFFB8B8, 0xFFFFC9E8, 0xFFD4C2FF},   // coral - pink - violet
         {0xFFFFD6A5, 0xFFFFB5C8, 0xFFC4B5FF},   // sand - blush - lavender
     };
-    /** Corner letter per prayer index (Prayer.NAMES order; sunrise is never shown). */
-    private static final String[] LETTERS = {"s", "", "ö", "i", "a", "y"};
+    /** Corner letter per time index (Prayer.NAMES order; g = Güneş, sunrise). */
+    private static final String[] LETTERS = {"s", "g", "ö", "i", "a", "y"};
 
     @Override public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
         Prayer.refresh(c);   // keeps the alarms armed even if the app was never opened after an install
@@ -76,7 +76,7 @@ public class PrayerWidget extends AppWidgetProvider {
             new Intent(c, PrayerWidget.class).setAction(ACTION_PALETTE),
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
         v.setImageViewBitmap(R.id.img, draw(c, t, letter, w, h, stacked));
-        v.setContentDescription(R.id.root, n == null ? "Namaz vakitleri" : "Sıradaki namaz vakti: " + Prayer.NAMES[(int) n[0]] + " " + t);
+        v.setContentDescription(R.id.root, n == null ? "Namaz vakitleri" : "Sıradaki vakit: " + Prayer.NAMES[(int) n[0]] + " " + t);
         m.updateAppWidget(id, v);
     }
 
