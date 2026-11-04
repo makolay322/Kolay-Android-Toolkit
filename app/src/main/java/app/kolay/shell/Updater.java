@@ -98,7 +98,7 @@ final class Updater {
         String name = mf.optString("versionName", String.valueOf(vc));
         String url = mf.getString("url"), sha = mf.getString("sha256").toLowerCase(), sig = mf.getString("signature");
         long size = mf.getLong("size");
-        if (!Config.isReleaseUrl(url)) throw new SecurityException("beklenmeyen indirme adresi");
+        if (!url.startsWith(Config.REPO_BASE + "releases/download/")) throw new SecurityException("beklenmeyen indirme adresi");
         if (size <= 0 || size > Config.MAX_APK_BYTES) throw new IOException("geçersiz boyut");
         if (vc <= installedVersion(ctx)) { clearStaged(ctx); return "Güncel (" + installedName(ctx) + ")"; }
         if (ready(ctx) && prefs(ctx).getLong("staged_vc", 0) == vc) return "Yeni sürüm hazır: " + name;

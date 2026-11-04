@@ -4,7 +4,7 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 (görünen sürüm `1.NNN`; dahili `versionCode` her yayında +1 olur ve kullanıcıya gösterilmez).
 
 ## Depo adı
-- Depo `kolay` adından **`Kolay-Android-Toolkit`** olarak değişti. Uygulama yeni adresten güncellenir; eski adla yayınlanmış sürümler için manifest bağlantıları geçiş boyunca eski adla yazılır (bkz. [docs/UPDATE_PROTOCOL.md](docs/UPDATE_PROTOCOL.md)). Uygulama adı, paket adı (`app.kolay`) ve `Kolay.apk` dosya adı aynı kaldı.
+- Depo `kolay` adından **`Kolay-Android-Toolkit`** olarak değişti; güncelleme adresleri yönlendirmesiz yeni adı kullanır. Uygulama başlığı (başlatıcı etiketi ve ana sayfa) da bu ad oldu. **1.026 ve öncesi kurulumlar kendiliğinden güncellenemez; son sürüm APK'sı bir kez elle yüklenmeli** (ayarlar ve anahtar korunur). Paket adı (`app.kolay`) ve `Kolay.apk` dosya adı aynı kaldı.
 - Eski yayın notları sadeleştirildi.
 
 ## 1.014 ve sonrası

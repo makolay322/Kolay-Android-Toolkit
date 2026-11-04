@@ -68,9 +68,7 @@ openssl dgst -sha256 -verify "$TMP/pub.pem" -signature "$TMP/sig.der" "$APK" >/d
 PUB=$(openssl ec -in "$KEY" -pubout -outform DER 2>/dev/null | base64 | tr -d '\n')
 grep -q "$PUB" app/src/main/java/app/kolay/shell/Config.java || { echo "signing key is not in Config.UPDATE_PUBLIC_KEYS"; exit 1; }
 
-# Download links use the repository's former name (Config.LEGACY_REPO_BASE): installs from before the rename only accept
-# that prefix; GitHub redirects it to the current repository. New installs accept both. Drop once none is left.
-URL="https://github.com/makolay322/kolay/releases/download/v$VN/Kolay.apk"
+URL="https://github.com/$REPO/releases/download/v$VN/Kolay.apk"
 # versionCode/url/size/sha256/signature: read by Kolay ≥ 1.014 (the app itself).
 # "api":5 and the shell* fields: only for installs still on the old two-APK design (shell ≤ 1.013). Their updater sees
 # api 5 > 4, downloads no module, and offers this APK through "Kabuğu indir ve yükle". Keep both until no such install is left.

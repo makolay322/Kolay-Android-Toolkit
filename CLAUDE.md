@@ -21,7 +21,7 @@ Manifest/izin/ikon değişikliği artık ayrı "kabuk güncellemesi" istemez: he
 5. `versionCode` yalnızca artar (`tools/release.sh` yönetir). Geri alma = eski kodla **daha yüksek** sürüm yayınlamak.
 6. İmza anahtarları depo dışında: hepsi `~/.kolay/` altında; güncelleme anahtarı (`update_key.pem` → Secret `UPDATE_KEY_PEM`) ve APK keystore'u (`release.keystore` → Secret'lar `KEYSTORE_B64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) ayrıca GitHub Secrets'ta durur (cihaza bağlı kalmadan, CI'da imzalamak için; sahibi bilerek onayladı, 2026-10-31). Asla commit etme, asla çıktıya yazma; iş akışını (`release.yml`) anahtarı yazdıracak/yükletecek biçimde değiştirme.
 7. `main`'e `app/**` (veya Gradle dosyaları, `tools/release.sh`) değişikliği push etmek **otomatik olarak yeni sürüm yayınlar** (`.github/workflows/release.yml`). Yarım iş main'e girmesin; sürüm elle de çıkarılabilir (`tools/release.sh`).
-8. Ağ yalnızca HTTPS; güncelleme adresi `Config.REPO_BASE` (ya da eski ad `Config.LEGACY_REPO_BASE`, bkz. docs/UPDATE_PROTOCOL.md) ile başlamalı, indirme sunucusu `Config.trustedHost` ile sınırlı.
+8. Ağ yalnızca HTTPS; güncelleme adresi `Config.REPO_BASE` ile başlamalı, indirme sunucusu `Config.trustedHost` ile sınırlı.
 9. OCR metni diske/loga yazılmaz. Loglara kişisel veri koyma.
 10. Gradle bağımlılık doğrulaması açık (`gradle/verification-metadata.xml`); bağımlılık eklersen `./gradlew --write-verification-metadata sha256 :app:assembleRelease` ile güncelle ve farkı gözle incele.
 

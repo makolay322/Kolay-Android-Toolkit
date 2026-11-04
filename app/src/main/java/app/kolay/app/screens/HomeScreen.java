@@ -30,8 +30,10 @@ public final class HomeScreen extends Screen {
         head.addView(logo, ll);
         LinearLayout titles = new LinearLayout(c.a);
         titles.setOrientation(LinearLayout.VERTICAL);
-        TextView name = Ui.text(c, "Kolay", 26, p.ink, 700);
+        TextView name = Ui.text(c, "Kolay-Android-Toolkit", 20, p.ink, 700);
         name.setLetterSpacing(-0.02f);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         titles.addView(name);
         head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
         head.addView(Ui.iconButton(c, Icon.Kind.SETTINGS, "Ayarlar", () -> c.nav.push(new SettingsScreen())));

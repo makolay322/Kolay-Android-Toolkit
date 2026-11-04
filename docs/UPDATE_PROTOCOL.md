@@ -20,7 +20,7 @@ Cihaz yalnızca şu sabit adresi sorgular (GitHub "latest" yönlendirmesi, API a
   "size": 10765450,
   "sha256": "<Kolay.apk SHA-256, küçük harf hex>",
   "signature": "<base64(DER ECDSA-SHA256 imza), Kolay.apk baytları üzerinde>",
-  "url": "https://github.com/makolay322/kolay/releases/download/v1.014/Kolay.apk",
+  "url": "https://github.com/makolay322/Kolay-Android-Toolkit/releases/download/v1.028/Kolay.apk",
   "api": 5,
   "shellVersionCode": 24, "shellVersionName": "1.014", "shellSize": 10765450,
   "shellSha256": "<aynı>", "shellSignature": "<aynı>", "shellUrl": "<aynı>"
@@ -30,14 +30,12 @@ Cihaz yalnızca şu sabit adresi sorgular (GitHub "latest" yönlendirmesi, API a
 - `api` ve `shell*` alanları **eski kurulumlar** içindir (kabuk ≤ 1.013, iki APK düzeni). Onların güncelleyicisi `api` 5 > 4 görünce modül
   indirmez, "daha yeni bir kabuk gerektiriyor" der ve `shell*` alanlarıyla Ayarlar'da “Kabuğu indir ve yükle” düğmesini açar; bu düğme
   aynı `Kolay.apk`'yı kurar. Böylece eski kurulumlar tek dokunuşla yeni düzene geçer. Kaldırmak için o sürümde kalan cihaz olmamalı.
-- **Depo adı değişikliği (`kolay` → `Kolay-Android-Toolkit`):** manifest bağlantıları bilerek eski adla (`makolay322/kolay`) yazılır; adı değişmeden önceki sürümler yalnızca o öneki kabul eder.
-  GitHub eski adresi yeni depoya yönlendirir (hem manifest hem indirme). Yeni sürümler iki öneki de kabul eder. Bu yönlendirme, eski adla yeni bir depo
-  açılmadığı sürece çalışır: **`makolay322/kolay` adıyla yeni depo açma.** Eski kurulum kalmayınca `tools/release.sh` yeni adı yazacak şekilde güncellenebilir.
+- **Depo adı (`kolay` → `Kolay-Android-Toolkit`):** yönlendirme yoktur; manifest ve indirme bağlantıları yalnızca yeni adı kullanır. Adı değişmeden önceki sürümler (≤ 1.026) yeni bağlantıyı kabul etmez; onlar bir kez elle yüklenmelidir. 1.027 hem eski hem yeni öneki tanır.
 - `signature` **dosya baytlarını** imzalar (manifest alanlarını değil). `versionCode` APK'nın içinde olduğundan imzalı veriye dahildir.
 
 ## Cihaz tarafı adımlar (`Updater.run`)
 1. Manifest'i indir (≤64 KB).
-2. `url`, `Config.REPO_BASE` (veya eski ad `Config.LEGACY_REPO_BASE`) + `"releases/download/"` ile başlamalı; yönlendirmeden sonra son sunucu `github.com` veya `*.githubusercontent.com` ve HTTPS olmalı. `size` ≤ 120 MB.
+2. `url`, `Config.REPO_BASE + "releases/download/"` ile başlamalı; yönlendirmeden sonra son sunucu `github.com` veya `*.githubusercontent.com` ve HTTPS olmalı. `size` ≤ 120 MB.
 3. `versionCode` ≤ yüklü sürüm ise "Güncel"; indirilmiş eski dosya silinir.
 4. Geçici dosyaya indir (beklenen boyutu aşarsa kes). Sırayla: SHA-256 → ECDSA imzası (`Config.UPDATE_PUBLIC_KEYS` içindeki **herhangi** bir anahtarla) →
    `getPackageArchiveInfo`: paket adı `app.kolay`, `versionCode` manifestle aynı, imza sertifikası yüklü uygulamayla aynı.

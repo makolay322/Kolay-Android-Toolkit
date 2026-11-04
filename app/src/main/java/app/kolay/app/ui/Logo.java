@@ -40,7 +40,7 @@ public final class Logo extends View {
         o.addCircle(O_X, O_Y, O_R, Path.Direction.CW);
         o.addCircle(O_X, O_Y, O_IN, Path.Direction.CW);
         k.setFillType(Path.FillType.EVEN_ODD);
-        setContentDescription("Kolay");
+        setContentDescription("Kolay-Android-Toolkit");
     }
 
     @Override protected void onMeasure(int w, int h) {
