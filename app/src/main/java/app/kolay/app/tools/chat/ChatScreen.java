@@ -8,7 +8,7 @@ import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import app.kolay.app.screens.SettingsScreen;
-import app.kolay.app.tools.Gemini;
+import app.kolay.app.tools.Llm;
 import app.kolay.app.ui.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +48,7 @@ final class ChatScreen extends Screen {
     }
 
     @Override public void onReturn() {
-        if (input == null && Gemini.hasKey(c.host)) build();   // key was just entered in Settings
+        if (input == null && Llm.hasKey(c.host)) build();   // key was just entered in Settings
     }
 
     private void build() {
@@ -58,7 +58,7 @@ final class ChatScreen extends Screen {
         View fresh = Ui.iconButton(c, Icon.Kind.REFRESH, "Yeni sohbet", this::reset);
         page.addView(new Header(c, "Sohbet", "Konuşma kaydedilmez", () -> c.nav.pop(), fresh).view);
 
-        if (!Gemini.hasKey(c.host)) {
+        if (!Llm.hasKey(c.host)) {
             fresh.setVisibility(View.GONE);
             input = null;
             page.addView(Ui.state(c, Icon.Kind.KEY, "Anahtar gerekli",
@@ -151,7 +151,7 @@ final class ChatScreen extends Screen {
         final List<String[]> window = window();
         c.io.execute(() -> {
             String reply = null, err = null;
-            try { reply = tidy(Gemini.chat(c.host, window, SYSTEM, 0.7)); }
+            try { reply = tidy(Llm.chat(c.host, window, SYSTEM, 0.7)); }
             catch (Exception e) { err = e.getMessage() == null ? "Bağlantı kurulamadı" : e.getMessage(); }
             final String r = reply, e = err;
             c.ui.post(() -> {

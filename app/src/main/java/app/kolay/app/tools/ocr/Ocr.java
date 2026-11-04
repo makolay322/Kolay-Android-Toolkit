@@ -1,6 +1,6 @@
 package app.kolay.app.tools.ocr;
 
-import app.kolay.app.screens.SettingsScreen;
+import app.kolay.app.tools.Llm;
 import app.kolay.shell.Host;
 
 import android.content.Context;
@@ -12,18 +12,12 @@ import android.graphics.ImageDecoder;
 import android.graphics.Paint;
 import android.net.Uri;
 import com.googlecode.tesseract.android.TessBaseAPI;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.*;
 
 /** Photos -> Tesseract (deu) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
 final class Ocr {
     private static final int MAX_SIDE = 2400;
-    private static final String MODEL = "gemini-flash-lite-latest";
     private static final String PROMPT =
         "Aşağıda, Almanca bir tıbbi belgenin (rapor, epikriz, bulgu, reçete, faks vb.) sayfalarının Tesseract OCR çıktıları var. "
         + "Sayfalar KARIŞIK sırada gönderilmiş olabilir; her biri '=== SAYFA n ===' satırıyla başlar. "
@@ -89,8 +83,17 @@ final class Ocr {
 
     synchronized void close() { if (tess != null) { tess.recycle(); tess = null; } }
 
-    /** Tüm sayfalar: her biri Tesseract + sansür, ardından tek Gemini isteği (sıralama + düzeltme). */
-    synchronized String run(java.util.List<Uri> uris, Progress pr) throws Exception {
+    /** Result of the medical mode: the text to show, and (only when it is the unpolished local text) the masked, page-marked text for a later polish. */
+    static final class Out {
+        final String text, pending;
+        Out(String text, String pending) { this.text = text; this.pending = pending; }
+    }
+
+    /**
+     * All pages: Tesseract + masking for each, then one cleanup request (page order + fixes). Offline, without a key or on any
+     * error the local text is returned as it is, without a note; {@link Out#pending} then lets the user polish it later.
+     */
+    synchronized Out run(java.util.List<Uri> uris, Progress pr) throws Exception {
         StringBuilder all = new StringBuilder(), plain = new StringBuilder();
         TessBaseAPI a = tess();
         java.util.List<String> raws = new java.util.ArrayList<>();
@@ -110,11 +113,21 @@ final class Ocr {
             all.append("=== SAYFA ").append(i + 1).append(" ===\n").append(masked).append("\n\n");
             plain.append(masked).append("\n\n");
         }
-        if (all.length() == 0) return "";
+        if (all.length() == 0) return new Out("", null);
         if (cancelled) throw new InterruptedIOException("iptal");
+        String local = plain.toString().trim();
+        if (!Llm.hasKey(host)) return new Out(local, all.toString());
         pr.on("Metin cilalanıyor…", 0.78f);
-        try { return gemini(all.toString()); }
-        catch (Exception e) { return plain.toString().trim() + "\n\n[Cilalama başarısız: " + e.getMessage() + " — ham OCR gösteriliyor]"; }
+        try {
+            String polished = polish(host, all.toString());
+            if (!polished.isEmpty()) return new Out(polished, null);
+        } catch (Exception ignored) { }   // offline or failed: fall back to the local text
+        return new Out(local, all.toString());
+    }
+
+    /** Medical mode cleanup of already masked, page-marked text. Throws on a missing key or network error. */
+    static String polish(Host host, String marked) throws Exception {
+        return Llm.generate(host, PROMPT + marked, 0.0, 32768);
     }
 
     /** General mode: Tesseract only, automatic page layout, no masking and no network. Pages are joined with a blank line. */
@@ -149,27 +162,6 @@ final class Ocr {
     static String cleanGeneral(Host host, String text) throws Exception {
         // same on-device masking as the medical mode: names, birth dates, addresses and IBANs never leave the phone
         String masked = Mask.apply(text, Mask.collect(java.util.Collections.singletonList(text))).trim();
-        return app.kolay.app.tools.Gemini.generate(host, GENERAL_PROMPT + masked, 0.2).trim();
-    }
-
-    private String gemini(String text) throws Exception {
-        String key = host.secret(SettingsScreen.LLM_SECRET);
-        if (key.isEmpty()) throw new IOException("API anahtarı girilmemiş (Ayarlar)");
-        JSONObject body = new JSONObject()
-            .put("contents", new JSONArray().put(new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", PROMPT + text)))))
-            .put("generationConfig", new JSONObject().put("temperature", 0).put("maxOutputTokens", 32768));
-        HttpURLConnection c = (HttpURLConnection) new URL("https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent").openConnection();
-        c.setRequestMethod("POST"); c.setDoOutput(true); c.setConnectTimeout(10000); c.setReadTimeout(60000);
-        c.setRequestProperty("Content-Type", "application/json");
-        c.setRequestProperty("x-goog-api-key", key);
-        try (OutputStream o = c.getOutputStream()) { o.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
-        int code = c.getResponseCode();
-        InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream();
-        String resp = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        if (code >= 400) throw new IOException("HTTP " + code);
-        JSONArray parts = new JSONObject(resp).getJSONArray("candidates").getJSONObject(0).getJSONObject("content").getJSONArray("parts");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length(); i++) sb.append(parts.getJSONObject(i).optString("text"));
-        return sb.toString().trim();
+        return Llm.generate(host, GENERAL_PROMPT + masked, 0.2).trim();
     }
 }

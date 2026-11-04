@@ -6,7 +6,7 @@ Telefonda çalışan, **kendini GitHub'dan güncelleyen kişisel araç kutusu**.
 
 | Araç | Ne yapar |
 |---|---|
-| **OCR** | Belge fotoğraflarını cihazda okur (Tesseract). *Tıbbi* modda kişisel verileri cihazda maskeler, sayfaları sıraya dizip temizlenmiş metin verir; *Genel* modda ham metin ve isteğe bağlı cilalama. |
+| **OCR** | Belge fotoğraflarını cihazda okur (Tesseract). *Tıbbi* modda kişisel verileri cihazda maskeler, sayfaları sıraya dizip temizlenmiş metin verir (internet yoksa yerel metni olduğu gibi verir, “Cilala” ile sonradan gönderilebilir); *Genel* modda ham metin ve isteğe bağlı cilalama. |
 | **Helal Sorgu** | Barkoddan (Open Food Facts) ya da etiket fotoğrafından içindekileri alır, Hanefi ölçütleriyle *helal / haram / şüpheli* değerlendirmesi yapar. |
 | **Cuma Mesajı** | Diyanet'in *Hadislerle İslâm* eserinden seçilmiş, öğüt içeren 274 hadisten biriyle rastgele, yatay 3:2 Cuma görseli çizer; kaydet / paylaş. |
 | **Sohbet** | Ufak tefek işler için sohbet kutusu (cilalama servisiyle): soru sor, metin düzelttir, çevirt, özetlet. Konuşma kaydedilmez; ekrandan çıkınca silinir. |

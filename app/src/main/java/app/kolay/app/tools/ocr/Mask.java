@@ -3,7 +3,7 @@ package app.kolay.app.tools.ocr;
 import java.util.*;
 import java.util.regex.*;
 
-/** Yerel kişisel veri sansürü (Gemini'ye gitmeden önce). Saf Java: Mac'te de test edilebilir. */
+/** Yerel kişisel veri sansürü (buluta gitmeden önce). Saf Java: Mac'te de test edilebilir. */
 final class Mask {
     private static final String TOK = "[A-ZÄÖÜ][A-Za-zÄÖÜäöüß'’&-]{1,}";
     private static final String CAP = "[A-ZÄÖÜ][a-zäöüß]+(?:-[A-ZÄÖÜ][a-zäöüß]+)*";

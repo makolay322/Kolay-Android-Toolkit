@@ -13,9 +13,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /** Minimal Gemini calls (text, single prompt or multi-turn chat) using the key from Settings. Nothing is logged or stored. */
-public final class Gemini {
+public final class Llm {
     private static final String MODEL = "gemini-flash-lite-latest";
-    private Gemini() {}
+    private Llm() {}
 
     public static String generate(Host host, String prompt) throws Exception {
         return generate(host, prompt, 0.2);
@@ -23,8 +23,13 @@ public final class Gemini {
 
     /** Text in, text out. Low {@code temperature} for tasks that must stay faithful (verdicts, translation). */
     public static String generate(Host host, String prompt, double temperature) throws Exception {
+        return generate(host, prompt, temperature, 8192);
+    }
+
+    /** As above with a larger output budget (long documents). */
+    public static String generate(Host host, String prompt, double temperature, int maxTokens) throws Exception {
         JSONArray parts = new JSONArray().put(new JSONObject().put("text", prompt));
-        return call(host, new JSONArray().put(new JSONObject().put("parts", parts)), null, temperature, 8192, 120000);
+        return call(host, new JSONArray().put(new JSONObject().put("parts", parts)), null, temperature, maxTokens, 120000);
     }
 
     /**

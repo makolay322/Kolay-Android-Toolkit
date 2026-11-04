@@ -7,10 +7,10 @@ import android.content.Intent;
 import android.text.InputType;
 import android.view.*;
 import android.widget.*;
-import app.kolay.app.tools.Gemini;
+import app.kolay.app.tools.Llm;
 import app.kolay.app.ui.*;
 
-/** Link field -> transcript (original language) -> Gemini Turkish summary, all on one screen. Nothing is stored. */
+/** Link field -> transcript (original language) -> Turkish summary, all on one screen. Nothing is stored. */
 final class YoutubeScreen extends Screen {
     private static final int MAX_CHARS = 400_000;
     private static final String PROMPT =
@@ -113,7 +113,7 @@ final class YoutubeScreen extends Screen {
                 Transcript.Result t = Transcript.fetch(id);
                 post(() -> Ui.swapText(status, "Özetleniyor… (" + t.lang + " transkript)"));
                 String text = t.text.length() > MAX_CHARS ? t.text.substring(0, MAX_CHARS) : t.text;
-                out = Gemini.generate(c.host, String.format(PROMPT, t.lang) + text);
+                out = Llm.generate(c.host, String.format(PROMPT, t.lang) + text);
                 if (out.isEmpty()) err = "Özet üretilemedi";
             } catch (Exception e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); }
             final String o = out, e = err;

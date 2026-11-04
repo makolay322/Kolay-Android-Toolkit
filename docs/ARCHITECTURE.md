@@ -38,7 +38,7 @@ tools/ocr/               OCR (tıbbi/genel mod): OcrTool, Picker/Progress/Result
 tools/qr/                QR Kod: QrTool, QrScreen (okuyucu arayüzü), QrMakeScreen + QrPayload (QR oluşturma: metin, Wi-Fi, vCard), QrCamera (camera2; kipler QR / PRODUCT barkod / TEXT fotoğraf), QrDecoder (ZXing)
 tools/halal/             Helal Sorgu: HelalTool, ScanScreen/LabelScreen (CamScreen tabanı), Off (Open Food Facts), LabelOcr, Halal (istem + karar), WorkScreen, VerdictScreen
 tools/friday/            Cuma Mesajı: FridayTool, FridayScreen (önizleme/kaydet/paylaş), FridayArt (Canvas ile arka plan + yazı), Hadiths (`assets/hadiths.tsv` okuyucu)
-tools/chat/              Sohbet: ChatTool, ChatScreen (balonlar + alt yazı çubuğu; geçmiş yalnızca bellekte, Gemini.chat ile çok turlu istek)
+tools/chat/              Sohbet: ChatTool, ChatScreen (balonlar + alt yazı çubuğu; geçmiş yalnızca bellekte, Llm.chat ile çok turlu istek)
 tools/kible/             Kıble: Qibla (büyük daire açısı/uzaklık, saf Java), KibleScreen (dönme vektörü sensörü + manyetik sapma, kadran çizimi)
 tools/namaz/             Namaz Vakitleri: NamazTool, NamazScreen (saatler, geri sayım, hatırlatıcı anahtarı, widget düğmesi, konum alma)
 tools/apps/              Uygulama Güncelle: AppsTool, AppsScreen (liste + sıra), Sources (APKPure/APKMirror/LiteAPKs), Browser (WebView), Installer
@@ -92,6 +92,6 @@ Not: gömülü OCR verisi yalnızca `deu`; Türkçe özel harfler (ş ğ ı) yan
 
 ## Araç düzeni ve genel OCR
 - `Tool.compact()` true olan araçlar (QR, Fotoğraf Sıkıştır, YouTube Özeti) ana sayfada karo ızgarasının altında ince yatay şeritler olarak gösterilir.
-- Tıbbi OCR: iki mod, anahtarla seçilir. Varsayılan "Tıbbi"; "Genel" mod yerel OCR sonucunu tıbbi bağlam varsaymadan gösterir, Kopyala yanında isteğe bağlı "Gemini ile temizle" (gevşek istem) sunar. OCR metni diske yazılmaz.
+- Tıbbi OCR: iki mod, anahtarla seçilir. Varsayılan "Tıbbi"; "Genel" mod yerel OCR sonucunu tıbbi bağlam varsaymadan gösterir, Kopyala yanında isteğe bağlı "Cilala" (gevşek istem) sunar. "Tıbbi" modda internet yoksa (veya anahtar girilmemişse ya da istek başarısızsa) sonuç, hiçbir not eklenmeden yerel OCR (maskelenmiş) metni olarak verilir ve aynı "Cilala" düğmesi sonradan gönderme imkânı verir. Ortak bulut istemcisi `tools/Llm`. OCR metni diske yazılmaz.
 - Helal Sorgu: iki eşit mod, **Barkod** (açılış modu) ve **İçindekiler** (etiket fotoğrafı + OCR); üstteki seçiciyle değişir (ekran yer değiştirir, yığına eklenmez). İki moddan da geri tuşu ana sayfaya döner; sonuç ekranında geri ana sayfaya, “Yeni sorgu” aynı moda götürür. Barkod bulunamazsa otomatik OCR'a geçilmez.
 - YouTube Özeti paylaşım hedefi: manifestte `activity-alias .YoutubeShare` ("YouTube Özet", `ACTION_SEND text/plain`); `Entry` paylaşılan bağlantıyı alıp özeti doğrudan başlatır.

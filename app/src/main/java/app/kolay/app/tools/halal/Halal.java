@@ -1,6 +1,6 @@
 package app.kolay.app.tools.halal;
 
-import app.kolay.app.tools.Gemini;
+import app.kolay.app.tools.Llm;
 import app.kolay.shell.Host;
 import java.util.Locale;
 
@@ -43,7 +43,7 @@ final class Halal {
 
     static Verdict judge(Host host, String productName, String ingredients) throws Exception {
         String ing = ingredients.length() > MAX_CHARS ? ingredients.substring(0, MAX_CHARS) : ingredients;
-        String out = Gemini.generate(host, String.format(PROMPT, productName.isEmpty() ? "(adı bilinmiyor)" : productName) + ing, 0.0);
+        String out = Llm.generate(host, String.format(PROMPT, productName.isEmpty() ? "(adı bilinmiyor)" : productName) + ing, 0.0);
         if (out.isEmpty()) throw new java.io.IOException("Değerlendirme üretilemedi");
         int nl = out.indexOf('\n');
         String first = (nl < 0 ? out : out.substring(0, nl)).replaceAll("[^\\p{L}]", "").toUpperCase(new Locale("tr"));

@@ -59,25 +59,24 @@ final class ProgressScreen extends Screen {
     }
 
     private void work() {
-        String result; boolean ok = true;
+        String result, pending = null; boolean ok = true;
         try {
-            result = (s.general ? ocr.runPlain(pages, (msg, f) -> c.ui.post(() -> {
+            Ocr.Progress pr = (msg, f) -> c.ui.post(() -> {
                 if (stopped) return;
                 Ui.swapText(status, msg); shown = Math.max(shown, f); bar.set(shown);
-            })) : ocr.run(pages, (msg, f) -> c.ui.post(() -> {
-                if (stopped) return;
-                Ui.swapText(status, msg); shown = Math.max(shown, f); bar.set(shown);
-            })));
+            });
+            if (s.general) result = ocr.runPlain(pages, pr);
+            else { Ocr.Out o = ocr.run(pages, pr); result = o.text; pending = o.pending; }
             if (result.isEmpty()) result = "Metin bulunamadı.";
         } catch (Exception e) {
             result = "Hata: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); ok = false;
         } finally { ocr.close(); }
-        final String text = result; final boolean good = ok;
+        final String text = result, marked = pending; final boolean good = ok;
         c.ui.post(() -> {
             if (stopped) return;
             stopped = true;
             bar.set(1f);
-            c.nav.replace(new ResultScreen(s, text, (System.currentTimeMillis() - t0) / 1000, pages.size(), good));
+            c.nav.replace(new ResultScreen(s, text, (System.currentTimeMillis() - t0) / 1000, pages.size(), good, marked));
         });
     }
 

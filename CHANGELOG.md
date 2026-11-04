@@ -4,6 +4,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Modül sürümleri `
 (görünen sürüm `1.0.x` yama sayısıyla artar; dahili `versionCode` her yayında +1 olur ve kullanıcıya gösterilmez).
 
 ## 1.000
+### Değişti (1.025)
+- **OCR (Tıbbi mod):** internet yoksa, anahtar girilmemişse veya cilalama başarısız olursa sonuç artık hiçbir not eklenmeden doğrudan yerel (maskelenmiş) OCR metni olarak gelir; sonuç ekranındaki **Cilala** düğmesiyle metin sonradan gönderilip sıralanıp düzeltilebilir (“Yerel metni göster” ile geri dönülür). Başarılı durumda davranış aynı.
+- OCR koduna ve ekranlarına hizmet adı girmez; ortak bulut istemcisi `Llm` olarak yeniden adlandırıldı.
 ### Değişti (1.024)
 - Namaz Vakitleri: sabah namazından sonra güneş doğana kadar “Sıradaki vakit” artık **Güneş** saatini gösterir (geri sayım ve listedeki vurgu dahil); widget da bu arada güneşin doğuş saatini köşede **g** harfiyle gösterir.
 ### Değişti (1.023)
