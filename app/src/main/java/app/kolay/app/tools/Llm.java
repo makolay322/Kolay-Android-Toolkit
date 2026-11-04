@@ -59,8 +59,10 @@ public final class Llm {
         c.setRequestProperty("x-goog-api-key", key);
         try (OutputStream o = c.getOutputStream()) { o.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
         int code = c.getResponseCode();
-        InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream();
-        String resp = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        String resp;
+        try (InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream()) {
+            resp = is == null ? "" : new String(is.readAllBytes(), StandardCharsets.UTF_8);   // error stream is null when the body is empty
+        } finally { c.disconnect(); }
         if (code == 429) throw new IOException("Kullanım sınırı doldu; biraz sonra tekrar dene");
         if (code == 401 || code == 403 || (code == 400 && resp.contains("API key")))
             throw new IOException("Anahtar kabul edilmedi (HTTP " + code + "); Ayarlar'dan kontrol et");

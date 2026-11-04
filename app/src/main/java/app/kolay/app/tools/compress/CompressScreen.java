@@ -114,11 +114,14 @@ final class CompressScreen extends Screen {
                 // ImageDecoder applies EXIF rotation, so the copy's orientation tag is reset to normal below.
                 Bitmap bm = ImageDecoder.decodeBitmap(ImageDecoder.createSource(c.a.getContentResolver(), src),
                         (d, info, s) -> d.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE));
-                Bitmap flat = Bitmap.createBitmap(bm.getWidth(), bm.getHeight(), Bitmap.Config.ARGB_8888);
-                Canvas cv = new Canvas(flat);
-                cv.drawColor(0xFFFFFFFF);   // JPEG has no alpha
-                cv.drawBitmap(bm, 0, 0, null);
-                bm.recycle();
+                Bitmap flat = bm;
+                if (bm.hasAlpha()) {   // JPEG has no alpha: flatten onto white (only then; a second full-size copy can run out of memory)
+                    flat = Bitmap.createBitmap(bm.getWidth(), bm.getHeight(), Bitmap.Config.ARGB_8888);
+                    Canvas cv = new Canvas(flat);
+                    cv.drawColor(0xFFFFFFFF);
+                    cv.drawBitmap(bm, 0, 0, null);
+                    bm.recycle();
+                }
                 ContentValues cvs = new ContentValues();
                 cvs.put(MediaStore.Images.Media.DISPLAY_NAME, "Kolay_" + System.currentTimeMillis() + ".jpg");
                 cvs.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
@@ -138,7 +141,8 @@ final class CompressScreen extends Screen {
             } catch (Throwable t) {
                 if (out != null) try { c.a.getContentResolver().delete(out, null, null); } catch (Exception ignored) { }
                 out = null;
-                error = t.getMessage() == null ? "Sıkıştırma başarısız" : t.getMessage();
+                error = t instanceof OutOfMemoryError ? "Fotoğraf bu cihaz için çok büyük"
+                        : t.getMessage() == null ? "Sıkıştırma başarısız" : t.getMessage();
             }
             final Uri result = out; final String err = error; final long b = before, a = after;
             c.ui.post(() -> { busy = false; if (!destroyed) showResult(result, err, b, a); });

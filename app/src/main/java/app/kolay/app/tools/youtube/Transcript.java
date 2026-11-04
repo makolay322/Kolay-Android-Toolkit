@@ -90,8 +90,10 @@ final class Transcript {
             try (OutputStream o = c.getOutputStream()) { o.write(json.getBytes(StandardCharsets.UTF_8)); }
         }
         int code = c.getResponseCode();
-        InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream();
-        String resp = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        String resp;
+        try (InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream()) {
+            resp = is == null ? "" : new String(is.readAllBytes(), StandardCharsets.UTF_8);   // error stream is null when the body is empty
+        } finally { c.disconnect(); }
         if (code >= 400) throw new IOException("YouTube HTTP " + code);
         return resp;
     }

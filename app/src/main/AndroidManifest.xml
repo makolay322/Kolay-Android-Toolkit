@@ -58,6 +58,8 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.TIME_SET"/>
                 <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
+                <!-- exact-alarm permission granted later: re-arm so the pending alarms become exact -->
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"/>
             </intent-filter>
         </receiver>
         <service android:name=".UpdateJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE"/>
