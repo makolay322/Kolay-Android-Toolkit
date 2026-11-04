@@ -4,7 +4,12 @@ package app.kolay.shell;
 final class Config {
     private Config() {}
 
-    static final String REPO_BASE = "https://github.com/makolay322/kolay/";
+    static final String REPO_BASE = "https://github.com/makolay322/Kolay-Android-Toolkit/";
+    /**
+     * The repository's former name. Manifests keep announcing download links under it so installs that predate the
+     * rename (which only accept their own, old base) can still update; GitHub redirects those links to the new name.
+     */
+    static final String LEGACY_REPO_BASE = "https://github.com/makolay322/kolay/";
     static final String MANIFEST_URL = REPO_BASE + "releases/latest/download/manifest.json";
     static final String RELEASES_PAGE = REPO_BASE + "releases/latest";
 
@@ -16,6 +21,11 @@ final class Config {
     static final String[] UPDATE_PUBLIC_KEYS = {
         "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQZPGcGyvCzIR+FRxJbQNId/ga2Zx/EUB63tCpB9m5FsqMLYLPpDwxYjyJBmk2Jl4N6aYtLRHck0x3TV2AHbltQ==",
     };
+
+    /** An APK link announced by the manifest: a release download under the current or the former repository name. */
+    static boolean isReleaseUrl(String url) {
+        return url.startsWith(REPO_BASE + "releases/download/") || url.startsWith(LEGACY_REPO_BASE + "releases/download/");
+    }
 
     /** Hosts a download may be served from (GitHub releases redirect to the second one). */
     static boolean trustedHost(String host) {

@@ -8,7 +8,7 @@ Yayın hattı tamamen GitHub'dadır; hiçbir makine gerekmez:
 - **Eski Release temizliği:** Actions → *purge-releases* (elle).
 - **Gereken Secret'lar:** `UPDATE_KEY_PEM`, `KEYSTORE_B64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` (Settings → Secrets and variables → Actions). Keystore Secret'ları eksikse `release` işi durur (imzasız/farklı imzalı APK telefondaki kurulumun üzerine yüklenemez).
 - **Yerelde ne kaldı:** yalnızca anahtar yedeği (`~/.kolay`, parola yöneticisi/şifreli disk) ve APK'yı telefona ilk kez kurmak. Yerel `tools/release.sh` acil durum yedeğidir.
-- **Dikkat:** Release/anahtar iş akışlarını (`.github/workflows/`) ve `tools/release.sh`'ı değiştiren her PR'ı dikkatle incele; Secret'ları bunlar kullanır. `main` dalını korumalı tut (zorunlu PR, 2FA).
+- **Dikkat:** Release/anahtar iş akışlarını (`.github/workflows/`) ve `tools/release.sh`'ı değiştiren her commit'i dikkatle incele; Secret'ları bunlar kullanır. `main` dalını korumalı tut (2FA).
 
 ## Anahtarlar
 Asıl kaynak **depo dışında**, `~/.kolay/` (izin 700); CI için kopyaları GitHub Secrets'ta durur. **GitHub Secrets yalnızca yazılır, geri okunamaz**: yerel dosyalar yedeksiz kaybolursa tek kopya CI'da kalır ve elinize geri gelmez. Aşağıdakileri **yedekle** (şifreli taşınabilir disk / parola yöneticisi).

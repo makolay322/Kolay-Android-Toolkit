@@ -9,7 +9,7 @@ import android.view.*;
 import android.view.animation.*;
 import android.widget.*;
 
-/** Small view factory + motion helpers. Programmatic UI: no XML resources inside a payload. */
+/** Small view factory + motion helpers. Programmatic UI (no XML layouts). */
 public final class Ui {
     private Ui() {}
 

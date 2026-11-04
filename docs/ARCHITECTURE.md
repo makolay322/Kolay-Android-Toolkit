@@ -30,7 +30,7 @@ Otomatik geri dönüş (kötü sürümü kara listeye alma) eski düzenle birlik
 
 ## Arayüz katmanı (`app.kolay.app`)
 ```
-Entry                    Module uygulaması: tema, Nav kökü, ana sayfa, geri tuşu, ömür döngüsü
+Entry                    Uygulama girişi: tema, Nav kökü, ana sayfa, geri tuşu, ömür döngüsü
 ui/                      Palette, Ctx, Ui, Icon, Nav, Screen, Header, Arc, Bar, Toggle  → docs/UI.md
 screens/                 HomeScreen, SettingsScreen
 tools/Tool, Tools        araç arayüzü + kayıt listesi                                   → docs/ADDING_A_TOOL.md
@@ -43,7 +43,7 @@ tools/kible/             Kıble: Qibla (büyük daire açısı/uzaklık, saf Jav
 tools/namaz/             Namaz Vakitleri: NamazTool, NamazScreen (saatler, geri sayım, hatırlatıcı anahtarı, widget düğmesi, konum alma)
 tools/apps/              Uygulama Güncelle: AppsTool, AppsScreen (liste + sıra), Sources (APKPure/APKMirror/LiteAPKs), Browser (WebView), Installer
 ```
-UI tamamen programatiktir (XML kaynak yok; tarihsel olarak modül ayrı yüklendiği için böyleydi, tutarlılık için böyle kalır). XML kaynakları yalnızca ikon, widget ve açılış teması içindir.
+UI tamamen programatiktir (XML düzen yok; tutarlılık için böyle kalır). XML kaynakları yalnızca ikon, widget ve açılış teması içindir.
 
 ## OCR akışı
 1. `PickerScreen`: MediaStore'dan son 90 fotoğraf; seçim `Session.selected` içinde.

@@ -8,7 +8,7 @@ import android.service.quicksettings.TileService;
 
 /** Quick-settings tile: one tap in the pull-down panel collapses it and opens the QR reader. Holds no logic of its own. */
 public class QrTileService extends TileService {
-    /** Read by the payload (Activity.getIntent) to open its QR screen right after the home screen. */
+    /** Read by the app (Activity.getIntent) to open its QR screen right after the home screen. */
     static final String ACTION_QR = "app.kolay.action.QR_SCAN";
 
     @Override public void onStartListening() {

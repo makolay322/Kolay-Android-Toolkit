@@ -22,7 +22,7 @@ Yeni araç eklemek: [docs/ADDING_A_TOOL.md](docs/ADDING_A_TOOL.md).
 
 ## Kurulum
 
-1. [Releases](https://github.com/makolay322/kolay/releases/latest) sayfasından **`Kolay.apk`** dosyasını indirip yükle.
+1. [Releases](https://github.com/makolay322/Kolay-Android-Toolkit/releases/latest) sayfasından **`Kolay.apk`** dosyasını indirip yükle.
 2. Uygulamayı aç → sağ üstte **Ayarlar** → *Gemini API anahtarı* alanına anahtarı yapıştır → **Kaydet**. Anahtar yalnızca
    cilalama, özet ve helal değerlendirmesi için gerekir; diğer araçlar anahtarsız çalışır.
 3. Sonraki sürümler kendiliğinden iner ve doğrulanır; ana sayfada “Yeni sürüm hazır” bandına dokununca kurulur (Android 12+'da

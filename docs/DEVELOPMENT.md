@@ -7,7 +7,7 @@
 
 ## İlk kurulum (yeni makine)
 ```bash
-git clone https://github.com/makolay322/kolay && cd kolay
+git clone https://github.com/makolay322/Kolay-Android-Toolkit && cd Kolay-Android-Toolkit
 echo "sdk.dir=$ANDROID_HOME" > local.properties
 ./gradlew :app:assembleRelease          # ilk seferde Gradle ve bağımlılıkları indirir
 ```

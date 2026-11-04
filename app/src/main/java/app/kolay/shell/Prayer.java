@@ -17,7 +17,7 @@ import java.util.TimeZone;
 
 /**
  * Prayer times for the saved location, the home-screen widget and the "time is about to run out" reminder.
- * Lives in the shell because the widget and the alarm must work while the app (and so the payload) is not running.
+ * Lives in the shell because the widget and the alarm must work while the app is not running.
  * Only coordinates are stored (city-level accuracy is plenty); nothing leaves the device.
  */
 final class Prayer {
