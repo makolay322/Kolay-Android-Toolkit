@@ -1,8 +1,18 @@
-# Kolay
+<p align="center"><img src="docs/assets/banner.svg" alt="Kolay Android Toolkit" width="100%"></p>
 
-Telefonda çalışan, **kendini GitHub'dan güncelleyen kişisel araç kutusu**. Tek bir Android uygulaması (Android 10+), tek APK.
+<p align="center">
+  <a href="https://github.com/makolay322/Kolay-Android-Toolkit/releases/latest"><img alt="Son sürüm" src="https://img.shields.io/github/v/release/makolay322/Kolay-Android-Toolkit?label=son%20s%C3%BCr%C3%BCm&color=1596B0"></a>
+  <img alt="Android 10+" src="https://img.shields.io/badge/Android-10%2B-3DDC84?logo=android&logoColor=white">
+  <img alt="Tek APK" src="https://img.shields.io/badge/tek-APK-A64DB8">
+  <img alt="Güncelleme imzalı" src="https://img.shields.io/badge/g%C3%BCncelleme-ECDSA%20imzal%C4%B1-4C6FD9">
+</p>
 
-## Araçlar
+**Kolay**, telefonda çalışan kişisel bir araç kutusudur: OCR, helal sorgu, namaz vakitleri, kıble, QR ve dahası — tek bir Android uygulaması (Android 10+), tek APK.
+Yeni sürümleri GitHub'dan kendi indirir, **imzasını doğrular** ve kendini günceller.
+
+<p align="center"><a href="https://github.com/makolay322/Kolay-Android-Toolkit/releases/latest"><b>⬇ Kolay.apk'yı indir</b></a></p>
+
+## ✨ Araçlar
 
 | Araç | Ne yapar |
 |---|---|
@@ -20,7 +30,7 @@ Telefonda çalışan, **kendini GitHub'dan güncelleyen kişisel araç kutusu**.
 Ana sayfadaki “Ko” logosu günün saatine göre renk değiştirir; O harfi birkaç saniyede bir madeni para gibi kendi ekseninde döner.
 Yeni araç eklemek: [docs/ADDING_A_TOOL.md](docs/ADDING_A_TOOL.md).
 
-## Kurulum
+## 📲 Kurulum
 
 1. [Releases](https://github.com/makolay322/Kolay-Android-Toolkit/releases/latest) sayfasından **`Kolay.apk`** dosyasını indirip yükle.
 2. Uygulamayı aç → sağ üstte **Ayarlar** → *Gemini API anahtarı* alanına anahtarı yapıştır → **Kaydet**. Anahtar yalnızca
@@ -32,7 +42,7 @@ Yeni araç eklemek: [docs/ADDING_A_TOOL.md](docs/ADDING_A_TOOL.md).
 
 API anahtarı yalnızca telefonda, Android Keystore ile şifreli tutulur. Bu depoda **hiçbir sır yoktur**.
 
-## Nasıl çalışır (kısaca)
+## ⚙️ Nasıl çalışır
 
 ```
  main'e push ──► GitHub Actions (release.yml) ──► Release vX: Kolay.apk + manifest.json
@@ -48,7 +58,7 @@ API anahtarı yalnızca telefonda, Android Keystore ile şifreli tutulur. Bu dep
 `main`'e yapılan her push GitHub Actions'ta derlenir, imzalanır ve yeni sürüm olarak yayınlanır (`1.014`, `1.015`, …).
 Ayrıntı: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Güvenlik özeti
+## 🔒 Güvenlik
 
 - Güncelleme dosyaları GitHub'da durur ama **yalnızca sahibinin anahtarıyla imzalıdır**; uygulama imzayı ve APK sertifikasını doğrulamadan güncellemeyi kurmaz.
 - OCR'da kişisel veriler buluta gitmeden önce cihazda maskelenir; OCR metni diske yazılmaz.
@@ -57,7 +67,7 @@ Ayrıntı: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Tam model: [SECURITY.md](SECURITY.md).
 
-## Geliştirme ve işletme
+## 🛠 Geliştirme ve işletme
 
 | Konu | Doküman |
 |---|---|
@@ -70,7 +80,7 @@ Tam model: [SECURITY.md](SECURITY.md).
 | Başka oturumlar / yapay zekâ için çalışma kuralları | [CLAUDE.md](CLAUDE.md) |
 | Sürüm notları | [CHANGELOG.md](CHANGELOG.md) |
 
-## Hızlı komutlar
+## ⌨️ Hızlı komutlar
 
 ```bash
 ./gradlew :app:assembleRelease     # APK; JDK 17 + Android SDK gerekir
@@ -78,3 +88,6 @@ tools/release.sh [sürümAdı]        # elle sürüm (normalde main'e push yeter
 ```
 
 Üçüncü taraf bileşenler: [NOTICE.md](NOTICE.md).
+
+---
+<p align="center"><img src="docs/assets/logo.svg" alt="Ko" width="90"><br><sub>Kolay · <a href="NOTICE.md">üçüncü taraf bileşenler</a> · <a href="SECURITY.md">güvenlik</a></sub></p>
