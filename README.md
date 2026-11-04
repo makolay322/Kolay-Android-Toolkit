@@ -7,8 +7,16 @@
   <img alt="Güncelleme imzalı" src="https://img.shields.io/badge/g%C3%BCncelleme-ECDSA%20imzal%C4%B1-4C6FD9">
 </p>
 
-**Kolay**, telefonda çalışan kişisel bir araç kutusudur: OCR, helal sorgu, namaz vakitleri, kıble, QR ve dahası — tek bir Android uygulaması (Android 10+), tek APK.
-Yeni sürümleri GitHub'dan kendi indirir, **imzasını doğrular** ve kendini günceller.
+<p align="center">
+  <a href="#-araçlar">Araçlar</a> ·
+  <a href="#-kurulum">Kurulum</a> ·
+  <a href="#-güvenlik">Güvenlik</a> ·
+  <a href="#-geliştirme-ve-işletme">Geliştirme</a> ·
+  <a href="CHANGELOG.md">Sürüm notları</a>
+</p>
+
+> **Kolay**, telefonda çalışan kişisel bir araç kutusudur: OCR, helal sorgu, namaz vakitleri, kıble, QR ve dahası — tek bir Android uygulaması (Android 10+), tek APK.
+> Yeni sürümleri GitHub'dan kendi indirir, **imzasını doğrular** ve kendini günceller.
 
 <p align="center"><a href="https://github.com/makolay322/Kolay-Android-Toolkit/releases/latest"><b>⬇ Kolay.apk'yı indir</b></a></p>
 
@@ -38,9 +46,12 @@ Yeni araç eklemek: [docs/ADDING_A_TOOL.md](docs/ADDING_A_TOOL.md).
 3. Sonraki sürümler kendiliğinden iner ve doğrulanır; ana sayfada “Yeni sürüm hazır” bandına dokununca kurulur (Android 12+'da
    genellikle onaysız; uygulama kapanır, yeniden açınca yeni sürüm çalışır). Uygulama kapalıyken arka planda kendiliğinden de kurulur.
 
-1.013 veya daha eski bir kurulumdan geçiş: Ayarlar → **“Kabuğu indir ve yükle”** bir kez yeni tek APK'yı kurar; ayarlar ve anahtar korunur.
+> [!NOTE]
+> **1.026 veya daha eski** kurulumlar depo adı değiştiği için kendiliğinden güncellenemez; yeni APK'yı bir kez elle kurmak yeter, ayarlar ve anahtar korunur (ayrıntı: [CHANGELOG](CHANGELOG.md)).
+> 1.013 veya daha eskiyse önce Ayarlar → **“Kabuğu indir ve yükle”** kullanılır.
 
-API anahtarı yalnızca telefonda, Android Keystore ile şifreli tutulur. Bu depoda **hiçbir sır yoktur**.
+> [!TIP]
+> API anahtarı yalnızca telefonda, Android Keystore ile şifreli tutulur. Bu depoda **hiçbir sır yoktur**.
 
 ## ⚙️ Nasıl çalışır
 
