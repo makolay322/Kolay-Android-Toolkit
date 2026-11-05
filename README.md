@@ -26,6 +26,7 @@
 |---|---|
 | **OCR** | Belge fotoğraflarını cihazda okur (Tesseract; dil verisi Almanca/Türkçe/İngilizce ilk kullanımda indirilir). *Tıbbi* modda kişisel verileri cihazda maskeler, sayfaları sıraya dizip temizlenmiş metin verir (internet yoksa yerel metni olduğu gibi verir, “Cilala” ile sonradan gönderilebilir); *Genel* modda ham metin ve isteğe bağlı cilalama. |
 | **Belge Tarayıcı** | Kamerayla (otomatik sayfa algılama, istenirse sabit tutunca kendiliğinden çekim) ya da galeriden çok sayfalı tarama; köşelerden kırpma, döndürme, filtre (Otomatik, Gri, Siyah-Beyaz, Gölge giderme). PDF (isteğe bağlı aranabilir, OCR metin katmanlı) ya da JPEG olarak kaydet / paylaş. Tamamen cihazda. |
+| **Ağ Tarayıcı** | Wi-Fi'daki eSCL / AirScan (Mopria) tarayıcıdan camdan ya da besleyiciden (çift taraflı) tarama; tarayıcı ağda bulunur ya da adresi girilir. Sayfalar Belge Tarayıcı'daki gibi düzenlenip PDF/JPEG kaydedilir. Yalnızca yerel ağ; önce HTTPS (sertifika ilk bağlantıda sabitlenir). |
 | **Helal Sorgu** | Barkoddan (Open Food Facts) ya da etiket fotoğrafından içindekileri alır, Hanefi ölçütleriyle *helal / haram / şüpheli* değerlendirmesi yapar. |
 | **Cuma Mesajı** | Diyanet'in *Hadislerle İslâm* eserinden seçilmiş, öğüt içeren 274 hadisten biriyle rastgele, yatay 3:2 Cuma görseli çizer; kaydet / paylaş. |
 | **Sohbet** | Ufak tefek işler için sohbet kutusu (cilalama servisiyle): soru sor, metin düzelttir, çevirt, özetlet. Konuşma kaydedilmez; ekrandan çıkınca silinir. |

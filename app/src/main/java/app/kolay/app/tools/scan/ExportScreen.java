@@ -304,7 +304,7 @@ final class ExportScreen extends Screen {
         body.addView(col, new FrameLayout.LayoutParams(-1, -1));
         Ui.appear(col, 0);
 
-        TextView fresh = Ui.button(c, "Yeni tarama", Ui.Style.TONAL, Icon.Kind.CAMERA);
+        TextView fresh = Ui.button(c, "Yeni tarama", Ui.Style.TONAL, s.camera ? Icon.Kind.CAMERA : Icon.Kind.NETSCAN);
         fresh.setOnClickListener(v -> {
             for (ScanSession.Page pg : new ArrayList<>(s.pages)) s.remove(pg);
             s.defaultFilter = Imaging.Filter.AUTO;
@@ -318,7 +318,7 @@ final class ExportScreen extends Screen {
         Ui.haptic(col, HapticFeedbackConstants.CONFIRM);
     }
 
-    /** Leaves the whole scanner (the camera screen at the bottom pops itself once it is on top again). */
+    /** Leaves the whole scanner: back to the root of the flow (camera or network scanner), which is popped right after. */
     private void close() {
         for (ScanSession.Page pg : new ArrayList<>(s.pages)) s.remove(pg);
         s.closing = true;

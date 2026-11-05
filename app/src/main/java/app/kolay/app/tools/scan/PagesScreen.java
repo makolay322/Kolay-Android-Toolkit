@@ -6,7 +6,7 @@ import android.widget.*;
 import app.kolay.app.ui.*;
 
 /** The scanned pages: order (up / down), crop, filter, delete; then save. Back returns to the camera with the pages kept. */
-final class PagesScreen extends Screen {
+public final class PagesScreen extends Screen {
     private final ScanSession s;
     private Header header;
     private LinearLayout list;
@@ -15,7 +15,7 @@ final class PagesScreen extends Screen {
     private TextView save;
     private ScanSession.Page confirmDelete;
 
-    PagesScreen(ScanSession s) { this.s = s; }
+    public PagesScreen(ScanSession s) { this.s = s; }
 
     @Override public View create() {
         LinearLayout page = new LinearLayout(c.a);
@@ -62,7 +62,8 @@ final class PagesScreen extends Screen {
         list.removeAllViews();
         body.removeAllViews();
         if (n == 0) {
-            LinearLayout st = Ui.state(c, Icon.Kind.DOCSCAN, "Sayfa kalmadı", "Kameraya dönüp yeni sayfa çekebilirsin.", "Kameraya dön", () -> c.nav.pop());
+            LinearLayout st = s.camera ? Ui.state(c, Icon.Kind.DOCSCAN, "Sayfa kalmadı", "Kameraya dönüp yeni sayfa çekebilirsin.", "Kameraya dön", () -> c.nav.pop())
+                : Ui.state(c, Icon.Kind.NETSCAN, "Sayfa kalmadı", "Tarayıcıya dönüp yeni sayfa tarayabilirsin.", "Tarayıcıya dön", () -> c.nav.pop());
             body.addView(st, new FrameLayout.LayoutParams(-1, -1));
             return;
         }

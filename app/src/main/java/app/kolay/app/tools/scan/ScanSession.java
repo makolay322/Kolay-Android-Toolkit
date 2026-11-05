@@ -18,7 +18,7 @@ import java.util.List;
  * and their edit state. Page fields and the list are touched on the main thread only; background work reads copies and
  * posts results back. {@link #destroy} removes every file and bitmap.
  */
-final class ScanSession {
+public final class ScanSession {
     /** Preview renders (list, strip, filter choice) stay around this size. */
     static final long THUMB_PX = 360_000L;
     private static final long DETECT_PX = 1_200_000L;
@@ -38,17 +38,19 @@ final class ScanSession {
     final Ctx c;
     final File dir;
     final List<Page> pages = new ArrayList<>();
-    Imaging.Filter defaultFilter = Imaging.Filter.AUTO;
-    /** The camera screen at the bottom of the flow (for "back to camera" / leaving). */
-    Screen root;
+    public Imaging.Filter defaultFilter = Imaging.Filter.AUTO;
+    /** The screen at the bottom of the flow (camera or network scanner; for "back to the source" / leaving). */
+    public Screen root;
     /** Called on the main thread whenever a page's preview or state changed. */
-    Runnable onChange;
-    /** Set when the flow is being left from a later screen: the camera must not start again on the way out. */
-    boolean closing;
+    public Runnable onChange;
+    /** Set when the flow is being left from a later screen: the root must not start again on the way out. */
+    public boolean closing;
+    /** False for the network scanner: texts say "scanner" instead of "camera". */
+    public boolean camera = true;
     private int seq;
     private boolean destroyed;
 
-    ScanSession(Ctx c) {
+    public ScanSession(Ctx c) {
         this.c = c;
         File parent = new File(c.a.getCacheDir(), "scan");
         deleteTree(parent);  // leftovers of earlier flows (e.g. the app was killed); only one flow exists at a time
@@ -56,9 +58,25 @@ final class ScanSession {
         dir.mkdirs();
     }
 
-    boolean destroyed() { return destroyed; }
+    public boolean destroyed() { return destroyed; }
 
-    private File newFile() { return new File(dir, "p" + (++seq) + ".jpg"); }
+    public int count() { return pages.size(); }
+
+    /** A new file name in this flow's cache folder; any thread. */
+    public synchronized File newFile() { return new File(dir, "p" + (++seq) + ".jpg"); }
+
+    /**
+     * Main thread: a page from a flatbed / feeder scanner, already written to {@code f} (from {@link #newFile}). The whole
+     * picture is the page, so no outline detection; filter = {@link #defaultFilter}.
+     */
+    public void addScanned(File f) {
+        if (destroyed) { c.io.execute(f::delete); return; }
+        Page p = new Page(f, defaultFilter);
+        p.ready = true;
+        pages.add(p);
+        changed();
+        render(p);
+    }
 
     /** Camera still: written to the cache on a background thread, then outlined. {@code hint} = live outline (may be null). */
     void addJpeg(byte[] jpeg, float[] hint) {
@@ -163,7 +181,7 @@ final class ScanSession {
     private void changed() { if (!destroyed && onChange != null) onChange.run(); }
 
     /** Main thread. Bitmaps and files go; safe to call twice. */
-    void destroy() {
+    public void destroy() {
         if (destroyed) return;
         destroyed = true;
         onChange = null;

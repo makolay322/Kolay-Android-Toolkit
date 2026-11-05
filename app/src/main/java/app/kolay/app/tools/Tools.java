@@ -7,6 +7,7 @@ import app.kolay.app.tools.friday.FridayTool;
 import app.kolay.app.tools.halal.HelalTool;
 import app.kolay.app.tools.kible.KibleTool;
 import app.kolay.app.tools.namaz.NamazTool;
+import app.kolay.app.tools.netscan.NetScanTool;
 import app.kolay.app.tools.ocr.OcrTool;
 import app.kolay.app.tools.qr.QrTool;
 import app.kolay.app.tools.scan.ScanTool;
@@ -19,6 +20,7 @@ public final class Tools {
     public static final Tool[] ALL = {
         new OcrTool(),
         new ScanTool(),
+        new NetScanTool(),
         new ChatTool(),
         new YoutubeTool(),
         new CompressTool(),

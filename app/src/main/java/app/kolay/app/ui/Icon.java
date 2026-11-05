@@ -6,7 +6,7 @@ import android.graphics.drawable.Drawable;
 /** Stroke icons on a 24-unit grid, drawn with paths so they stay crisp at any size and take any color. */
 public final class Icon extends Drawable {
     public enum Kind { BACK, CHEVRON, CHECK, COPY, SHARE, SETTINGS, SCAN, KEY, REFRESH, LINK, QR, FLASH, BARCODE, CAMERA, CRESCENT, CLOCK,
-        IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND, DOCSCAN, TRASH, CROP, PLUS }
+        IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND, DOCSCAN, TRASH, CROP, PLUS, NETSCAN }
 
     private final Kind kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -148,6 +148,13 @@ public final class Icon extends Drawable {
                 path.moveTo(7.5f, 20.5f); path.lineTo(5.5f, 20.5f); path.quadTo(3.5f, 20.5f, 3.5f, 18.5f); path.lineTo(3.5f, 16.5f);
                 path.addRoundRect(7.5f, 6.5f, 16.5f, 17.5f, 1.5f, 1.5f, Path.Direction.CW);
                 path.moveTo(10, 10); path.lineTo(14, 10); path.moveTo(10, 13); path.lineTo(14, 13);
+                break;
+            case NETSCAN:   // flatbed scanner with a scan line, Wi-Fi arcs above
+                path.addRoundRect(3.5f, 13.5f, 20.5f, 20, 2.5f, 2.5f, Path.Direction.CW);
+                path.moveTo(7, 17); path.lineTo(13.5f, 17);
+                path.addArc(new RectF(9, 8, 15, 14), 225, 90);
+                path.addArc(new RectF(6, 5, 18, 17), 225, 90);
+                path.addCircle(12, 11, 0.6f, Path.Direction.CW);
                 break;
             case TRASH:
                 path.moveTo(4.5f, 6.5f); path.lineTo(19.5f, 6.5f);
