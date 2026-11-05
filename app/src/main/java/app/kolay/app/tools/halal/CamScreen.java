@@ -125,8 +125,8 @@ abstract class CamScreen extends Screen implements QrCamera.Listener {
 
     @Override public void onShown() { shown = true; ensureCamera(); }
     @Override public void onResume() { if (shown) ensureCamera(); }
-    @Override public void onPause() { cam.stop(); paintTorch(false); }
-    /** Before pushing another screen on top (which gets the lifecycle calls from then on). */
+    @Override public void onPause() { pauseCamera(); }
+    /** Also before pushing another screen on top (which gets the lifecycle calls from then on). */
     protected final void pauseCamera() { cam.stop(); paintTorch(false); }
     @Override public void onReturn() { ensureCamera(); }
     @Override public void onDestroy() { cam.stop(); }

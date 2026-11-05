@@ -90,7 +90,8 @@ public final class Imaging {
         Bitmap b = decode(src, maxPixels);
         Bitmap w;
         try { w = warp(b, quad, maxPixels); } finally { b.recycle(); }
-        Bitmap r = rotate(w, rotation);
+        Bitmap r;
+        try { r = rotate(w, rotation); } catch (OutOfMemoryError e) { w.recycle(); throw e; }   // free it before the retry
         if (r != w) w.recycle();
         try { apply(r, f); } catch (OutOfMemoryError e) { r.recycle(); throw e; }
         return r;

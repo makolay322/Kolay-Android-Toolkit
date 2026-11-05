@@ -28,6 +28,7 @@ final class Lan {
     }
 
     static final class NotLan extends IOException {
+        private static final long serialVersionUID = 1L;
         NotLan() { super("Bu adres yerel ağda değil"); }
     }
 

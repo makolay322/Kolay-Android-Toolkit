@@ -28,7 +28,7 @@ public final class ScanSession {
         float[] quad = QuadDetector.full();   // normalised, upright original; TL, TR, BR, BL
         int rotation;                         // clockwise, applied after straightening
         Imaging.Filter filter;
-        Bitmap thumb;                         // processed preview, main thread
+        Bitmap thumb;                         // processed preview, main thread; never recycled while the flow lives (see render)
         int version;                          // bumped on every edit; stale renders are dropped
         boolean ready;                        // page outline detected (or given up)
         boolean broken;                       // the picture could not be read
@@ -48,7 +48,7 @@ public final class ScanSession {
     /** False for the network scanner: texts say "scanner" instead of "camera". */
     public boolean camera = true;
     private int seq;
-    private boolean destroyed;
+    private volatile boolean destroyed;   // also read by the background writers
 
     public ScanSession(Ctx c) {
         this.c = c;
@@ -86,6 +86,7 @@ public final class ScanSession {
         c.io.execute(() -> {
             try (OutputStream o = new FileOutputStream(p.file)) { o.write(jpeg); }
             catch (IOException e) { c.ui.post(() -> markBroken(p)); return; }
+            if (gone(p)) return;
             detect(p, hint);
         });
     }
@@ -101,10 +102,19 @@ public final class ScanSession {
                     byte[] b = new byte[65536]; int n;
                     while ((n = in.read(b)) > 0) o.write(b, 0, n);
                 } catch (Exception e) { c.ui.post(() -> markBroken(p)); return; }
+                if (gone(p)) return;
                 detect(p, null);
             });
         }
         changed();
+    }
+
+    /** Background, after writing a page file: the flow ended meanwhile, so the file must not outlive the cleanup. */
+    private boolean gone(Page p) {
+        if (!destroyed) return false;
+        p.file.delete();
+        dir.delete();   // only succeeds when empty, i.e. the cleanup already ran
+        return true;
     }
 
     private void markBroken(Page p) {
@@ -133,7 +143,11 @@ public final class ScanSession {
         });
     }
 
-    /** Main thread: (re)renders the preview of {@code p} in the background. */
+    /**
+     * Main thread: (re)renders the preview of {@code p} in the background. A replaced or removed preview is left to the
+     * GC instead of being recycled: screens further down the stack (the camera's page strip) may still show it until
+     * they rebuild, and drawing a recycled bitmap crashes.
+     */
     void render(Page p) {
         final int v = p.version;
         final float[] q = p.quad.clone();
@@ -147,10 +161,8 @@ public final class ScanSession {
             c.ui.post(() -> {
                 if (destroyed || p.version != v || !pages.contains(p)) { if (out != null) out.recycle(); return; }
                 if (out == null) { p.broken = true; changed(); return; }
-                Bitmap old = p.thumb;
                 p.thumb = out;
                 changed();
-                if (old != null) old.recycle();   // after the views were told to show the new one
             });
         });
     }
@@ -162,7 +174,7 @@ public final class ScanSession {
         pages.remove(p);
         p.version++;
         changed();
-        if (p.thumb != null) { p.thumb.recycle(); p.thumb = null; }
+        p.thumb = null;   // not recycled: see render
         File f = p.file;
         c.io.execute(f::delete);
     }
@@ -180,7 +192,11 @@ public final class ScanSession {
 
     private void changed() { if (!destroyed && onChange != null) onChange.run(); }
 
-    /** Main thread. Bitmaps and files go; safe to call twice. */
+    /**
+     * Main thread, when the root screen of the flow is destroyed (its view is gone, so the previews can be recycled).
+     * Bitmaps and files go; safe to call twice. The files are deleted on a thread of their own: the shared pool may be
+     * shut down right after this (activity finishing), which would drop a queued task.
+     */
     public void destroy() {
         if (destroyed) return;
         destroyed = true;
@@ -188,8 +204,7 @@ public final class ScanSession {
         for (Page p : pages) if (p.thumb != null) { p.thumb.recycle(); p.thumb = null; }
         pages.clear();
         File d = dir;
-        try { c.io.execute(() -> deleteTree(d)); }
-        catch (Exception e) { deleteTree(d); }   // pool already shut down (activity finishing)
+        new Thread(() -> deleteTree(d), "scan-cleanup").start();
     }
 
     static void deleteTree(File f) {

@@ -7,7 +7,7 @@ Kolay **tek bir APK**'dır (`app.kolay`, Gradle modülü `app/`); 1.014'ten önc
 
 | Paket (`app/src/main/java/…`) | Rol |
 |---|---|
-| `app.kolay.shell` | Platform katmanı: `MainActivity`, `Updater` (kendi kendini güncelleme), `UpdateJob`, `SecretStore`, `Verify`, `Config`, namaz motoru/widget/alarmlar, QR kutucuğu. **Paket ve sınıf adları değişmez**: başlatıcı kısayolu, yerleştirilmiş widget ve hızlı ayar kutucuğu bileşen adına bağlıdır, adı değişirse güncellemede kaybolur. |
+| `app.kolay.shell` | Platform katmanı: `MainActivity`, `Updater` (kendi kendini güncelleme), `UpdateJob`, `SecretStore`, `Verify`, `Config`, `TessData` (OCR dil verisi indirme), namaz motoru/widget/alarmlar, QR kutucuğu. **Paket ve sınıf adları değişmez**: başlatıcı kısayolu, yerleştirilmiş widget ve hızlı ayar kutucuğu bileşen adına bağlıdır, adı değişirse güncellemede kaybolur. |
 | `app.kolay.app` | Arayüz ve araçlar: `Entry`, `ui/`, `screens/`, `tools/`. Normal geliştirme burada. |
 
 `Host` (`app.kolay.shell.Host`) iki katman arasındaki iç arayüzdür; aynı derlemede olduğu için serbestçe değişebilir.

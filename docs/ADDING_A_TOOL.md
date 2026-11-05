@@ -36,11 +36,13 @@ final class NotScreen extends Screen {
 | Yeni sayfa aç | `c.nav.push(screen)` | sağdan kayarak girer |
 | Geri dön | `c.nav.pop()` | sağa kayarak çıkar |
 | Akış içinde değiştir | `c.nav.replace(screen)` | çapraz solma + hafif ölçek |
+| Akışın köküne dön | `c.nav.popTo(screen)` | aradaki ekranlar animasyonsuz kalkar, en üstteki `pop` gibi çıkar |
 Geçiş sürerken gelen istek kuyruğa alınır (son istek kazanır). Geri tuşu: ekranda `onBack()` `true` dönerse tüketilir, yoksa `pop()`.
 
 ## Kurallar
 - Renk/ölçü sabit yazma: `c.p` (Palette) ve `c.dp()`; açık/koyu tema otomatik uyar. ([UI.md](UI.md))
 - Uzun işleri `c.io` havuzunda yap, arayüze `c.ui.post(...)` ile dön. Ekran yok edilince (`onDestroy`) işi iptal et / sonucu yok say.
+- Yığında alttaki bir ekranın hâlâ gösterebileceği bir `Bitmap`'i `recycle()` etme: `pop` sırasında o ekran yeniden çizilir ve geri dönüştürülmüş bitmap uygulamayı çökertir (bırak, GC toplasın).
 - Sır gerekiyorsa `c.host.secret("ad")` / Ayarlar'a bir giriş alanı ekle. **Kodda veya depoda sır tutma.**
 - Çıktıyı/kullanıcı verisini diske veya loga yazma (gerekçeli ve belgelenmiş istisna yoksa).
 - Yeni izin gerekiyorsa `app/src/main/AndroidManifest.xml`'e ekle; sonraki sürümle birlikte gelir (ayrı kurulum gerekmez). Gereksiz izin isteme.

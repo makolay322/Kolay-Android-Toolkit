@@ -201,6 +201,7 @@ final class DocCamera {
         private CaptureRequest.Builder req;
         private boolean wantTorch, withAnalysis = analysisSize != null;
         private long lastDetect;
+        private byte[] frame;   // luma copy of the analysed frame, reused (detection thread only)
         private volatile int shots;
 
         Run() { th.start(); dth.start(); h = new Handler(th.getLooper()); dh = new Handler(dth.getLooper()); }
@@ -350,11 +351,12 @@ final class DocCamera {
                 Image.Plane y = img.getPlanes()[0];
                 int w = img.getWidth(), hgt = img.getHeight(), stride = y.getRowStride();
                 ByteBuffer buf = y.getBuffer();
-                byte[] data = new byte[Math.min(buf.remaining(), stride * hgt)];
-                buf.get(data, 0, data.length);
+                int len = Math.min(buf.remaining(), stride * hgt);
+                if (frame == null || frame.length < len) frame = new byte[len];
+                buf.get(frame, 0, len);
                 img.close(); img = null;   // free the buffer before the (longer) analysis
-                if (data.length < stride * (hgt - 1) + w) return;
-                float[] q = QuadDetector.rotate(detector.detect(data, stride, w, hgt), sensor);
+                if (len < stride * (hgt - 1) + w) return;
+                float[] q = QuadDetector.rotate(detector.detect(frame, stride, w, hgt), sensor);
                 main.post(() -> { if (cur == this && detect) l.onQuad(q); });
             } catch (Exception ignored) {
                 // a bad frame must not end scanning

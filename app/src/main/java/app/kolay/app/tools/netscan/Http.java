@@ -60,6 +60,7 @@ final class Http {
 
     /** The request was cut off by {@link #abort}. */
     static final class Aborted extends IOException {
+        private static final long serialVersionUID = 1L;
         Aborted() { super("cancelled"); }
     }
 

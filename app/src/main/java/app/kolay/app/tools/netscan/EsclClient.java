@@ -32,15 +32,17 @@ final class EsclClient {
 
     /** The certificate differs from the pinned one, or a pinned scanner is reachable only without HTTPS. */
     static final class TrustProblem extends IOException {
+        private static final long serialVersionUID = 1L;
         final boolean mismatch;
         TrustProblem(boolean mismatch) { super(mismatch ? "certificate changed" : "https unavailable"); this.mismatch = mismatch; }
     }
 
     static final class Busy extends IOException {
+        private static final long serialVersionUID = 1L;
         Busy() { super("Tarayıcı meşgul"); }
     }
 
-    private static final int READ_MS = 15_000, POST_MS = 30_000, DOC_MS = 60_000, DELETE_MS = 5_000;
+    private static final int READ_MS = 15_000, POST_MS = 30_000, DOC_MS = 60_000, DELETE_MS = 5_000, CLOSE_MS = 5_000;
     private static final long MAX_DOC = 300L << 20;
     private static final int MAX_WAITS = 60, MAX_TIMEOUTS = 2, POST_RETRIES = 5;
 
@@ -142,47 +144,63 @@ final class EsclClient {
 
     /**
      * One job: create it, then fetch NextDocument until the scanner says there is no more (feeder) or one page arrived
-     * (platen). Returns the number of documents. On cancel / error the job is deleted on the scanner (best effort).
+     * (platen). Returns the number of documents. Afterwards the job is deleted on the scanner in every case (best effort):
+     * on cancel / error that stops it; after a finished job it is harmless and frees scanners that keep jobs open.
      */
     int scan(String xml, boolean feeder, Pages pages) throws IOException {
         http.reset();
         String job = startJob(xml);
-        int n = 0, waits = 0, timeouts = 0;
         try {
-            while (true) {
-                if (http.aborted()) throw new Http.Aborted();
-                File f = pages.file();
-                OutputStream[] open = new OutputStream[1];
-                Http.Response r;
-                try {
-                    r = call(http, "GET", job + "/NextDocument", null, DOC_MS,
-                        (code, type) -> code == 200 ? (open[0] = new FileOutputStream(f)) : null, MAX_DOC);
-                } catch (SocketTimeoutException t) {
-                    f.delete();
-                    if (++timeouts > MAX_TIMEOUTS) throw new IOException("Tarayıcı zamanında yanıt vermedi");
-                    continue;
-                } catch (IOException x) {
-                    f.delete();
-                    throw x;
-                } finally {
-                    if (open[0] != null) open[0].close();
-                }
-                if (r.code == 200) {
-                    pages.got(f, r.header("content-type"));
-                    n++; waits = 0; timeouts = 0;
-                    if (!feeder) return n;
-                    continue;
-                }
-                f.delete();
-                if (r.code == 404 || r.code == 410) return n;
-                if (r.code == 503 && ++waits <= MAX_WAITS) { pause(1000); continue; }
-                if (r.code == 409 || r.code == 503) throw new Busy();
-                throw new IOException("Sayfa alınamadı (HTTP " + r.code + ")");
-            }
-        } catch (IOException x) {
+            int n = fetch(job, feeder, pages);
+            if (!feeder) closePlaten(job);
+            return n;
+        } finally {
             try { call(new Http(tofu), "DELETE", job, null, DELETE_MS, null, Http.SMALL); } catch (IOException ignored) { }
-            throw x;
         }
+    }
+
+    private int fetch(String job, boolean feeder, Pages pages) throws IOException {
+        int n = 0, waits = 0, timeouts = 0;
+        while (true) {
+            if (http.aborted()) throw new Http.Aborted();
+            File f = pages.file();
+            OutputStream[] open = new OutputStream[1];
+            Http.Response r;
+            try {
+                r = call(http, "GET", job + "/NextDocument", null, DOC_MS,
+                    (code, type) -> code == 200 ? (open[0] = new FileOutputStream(f)) : null, MAX_DOC);
+            } catch (SocketTimeoutException t) {
+                f.delete();
+                if (++timeouts > MAX_TIMEOUTS) throw new IOException("Tarayıcı zamanında yanıt vermedi");
+                continue;
+            } catch (IOException x) {
+                f.delete();
+                throw x;
+            } finally {
+                if (open[0] != null) open[0].close();
+            }
+            if (r.code == 200) {
+                pages.got(f, r.header("content-type"));
+                n++; waits = 0; timeouts = 0;
+                if (!feeder) return n;
+                continue;
+            }
+            f.delete();
+            if (r.code == 404 || r.code == 410) return n;
+            if (r.code == 503 && ++waits <= MAX_WAITS) { pause(1000); continue; }
+            if (r.code == 409 || r.code == 503) throw new Busy();
+            throw new IOException("Sayfa alınamadı (HTTP " + r.code + ")");
+        }
+    }
+
+    /**
+     * Platen: the job holds one page, but eSCL ends a job with a 404 on NextDocument and some scanners stay busy until
+     * they were asked once more. One short request; whatever comes back (404, an error, a timeout, even another page)
+     * means done, and an extra page is discarded (kept in memory at most {@link Http#SMALL}, never written).
+     */
+    private void closePlaten(String job) {
+        if (http.aborted()) return;
+        try { call(http, "GET", job + "/NextDocument", null, CLOSE_MS, null, Http.SMALL); } catch (IOException ignored) { }
     }
 
     private void pause(long ms) throws IOException {

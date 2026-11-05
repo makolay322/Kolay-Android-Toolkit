@@ -16,7 +16,7 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 - OCR aracının *Genel* modunda dil seçimi (birden çok dil birlikte, ör. Almanca + Türkçe; son seçim hatırlanır). Helal Sorgu etiket okuması Türkçe veri yüklüyse Almanca + Türkçe okur.
 - Yeni izin yok (galeri içe aktarma sistem seçicisiyle; ağda tarayıcı bulma ek izin istemez).
 ### Değişti (1.029)
-- Almanca OCR verisi artık APK'da değil, gerektiğinde indiriliyor: APK yaklaşık **0,77 MB küçüldü** (4,82 → 4,05 MB, yerel derleme). Önceki sürümlerin telefona kopyaladığı Almanca veri korunur ve kullanılmaya devam eder; yeni kurulumda OCR ilk kullanımda indirme önerir.
+- Almanca OCR verisi artık APK'da değil, gerektiğinde indiriliyor: APK yaklaşık **0,77 MB küçüldü** (yerel derleme: 4,82 → 4,05 MB; yeni araçlarla birlikte 4,09 MB). Önceki sürümlerin telefona kopyaladığı Almanca veri korunur ve kullanılmaya devam eder; yeni kurulumda OCR ilk kullanımda indirme önerir.
 ### Değişti (1.025)
 - **OCR (Tıbbi mod):** internet yoksa, anahtar girilmemişse veya cilalama başarısız olursa sonuç artık hiçbir not eklenmeden doğrudan yerel (maskelenmiş) OCR metni olarak gelir; sonuç ekranındaki **Cilala** düğmesiyle metin sonradan gönderilip sıralanıp düzeltilebilir (“Yerel metni göster” ile geri dönülür). Başarılı durumda davranış aynı.
 - OCR koduna ve ekranlarına hizmet adı girmez; ortak bulut istemcisi `Llm` olarak yeniden adlandırıldı.
