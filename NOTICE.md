@@ -4,7 +4,7 @@
 |---|---|---|
 | [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) | Apache-2.0 | OCR motoru |
 | [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android) | Apache-2.0 | Android bağlayıcısı |
-| [tessdata_fast `deu`](https://github.com/tesseract-ocr/tessdata_fast) | Apache-2.0 | Almanca dil verisi (`app/src/main/assets/tessdata/`) |
+| [tessdata_fast `deu`, `tur`, `eng`](https://github.com/tesseract-ocr/tessdata_fast) | Apache-2.0 | Almanca, Türkçe, İngilizce dil verisi. APK'da yok (1.029'dan beri); uygulama ilk kullanımda sabitlenmiş commit `87416418657359cb625c412a48b6e1d6d41c29bd`'den indirir, boyut + SHA-256 denetler (`app.kolay.shell.TessData`). |
 | Leptonica | BSD-2-Clause | Tesseract4Android ile gelir |
 
 Bu deponun kendi kodu için henüz bir lisans seçilmedi; seçilene kadar tüm hakları saklıdır.

@@ -11,4 +11,6 @@ final class Session {
     final Map<Uri, Bitmap> thumbs = new HashMap<>();
     /** false = medical mode (default: masking + page ordering + cleanup), true = general mode (local OCR only; cleanup on request). */
     boolean general;
+    /** General mode OCR languages (Tesseract combo, remembered); the medical mode always reads German. */
+    String langs = "deu";
 }

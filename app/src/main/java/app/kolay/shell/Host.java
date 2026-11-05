@@ -2,6 +2,9 @@ package app.kolay.shell;
 
 import android.app.Activity;
 import java.io.File;
+import java.io.IOException;
+import java.util.function.BooleanSupplier;
+import java.util.function.LongConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -19,8 +22,25 @@ public interface Host {
     /** Stores a secret; a null/blank value deletes it. */
     void setSecret(String name, String value);
 
-    /** Directory whose "tessdata/" subfolder holds deu.traineddata (what TessBaseAPI.init expects). */
+    /** Directory whose "tessdata/" subfolder holds the *.traineddata files (what TessBaseAPI.init expects). */
     File tessDataParent();
+
+    // ---- OCR language data (downloaded on demand from a pinned tessdata_fast commit, size + SHA-256 checked) ----
+
+    /** The downloadable OCR languages, Tesseract codes ("deu", "tur", "eng"). */
+    String[] tessLanguages();
+    boolean tessInstalled(String lang);
+    /** Bytes on disk, 0 when not installed. */
+    long tessInstalledSize(String lang);
+    /** Bytes a download takes, 0 for an unknown language. */
+    long tessDownloadSize(String lang);
+    /**
+     * Blocking: call off the main thread. {@code progress} receives the bytes so far (on the calling thread),
+     * {@code cancelled} is polled between chunks. The file is placed only after its size and SHA-256 match.
+     */
+    void tessDownload(String lang, LongConsumer progress, BooleanSupplier cancelled) throws IOException;
+    /** @return false when the file could not be removed (e.g. it is being downloaded). */
+    boolean tessDelete(String lang);
 
     /** Installed version name, e.g. "1.014". */
     String versionName();

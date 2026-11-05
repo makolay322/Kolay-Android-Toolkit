@@ -9,6 +9,7 @@ import app.kolay.app.tools.kible.KibleTool;
 import app.kolay.app.tools.namaz.NamazTool;
 import app.kolay.app.tools.ocr.OcrTool;
 import app.kolay.app.tools.qr.QrTool;
+import app.kolay.app.tools.scan.ScanTool;
 import app.kolay.app.tools.youtube.YoutubeTool;
 
 /** The toolbox contents, in display order. Add a line here to add a tool. */
@@ -17,6 +18,7 @@ public final class Tools {
 
     public static final Tool[] ALL = {
         new OcrTool(),
+        new ScanTool(),
         new ChatTool(),
         new YoutubeTool(),
         new CompressTool(),

@@ -8,6 +8,13 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 - Eski yayın notları sadeleştirildi.
 
 ## 1.014 ve sonrası
+### Eklendi (1.029)
+- **Belge Tarayıcı** aracı: kamerayla çok sayfalı tarama; sayfa kenarı canlı algılanır ve önizlemede çizilir, isteğe bağlı **otomatik çekim** (çerçeve ~1 sn sabit kalınca), fener, sayfa şeridi. Galeriden çoklu seçimle içe aktarma (görüntüler de otomatik kırpılır). Kırpma ekranında 4 sürüklenebilir köşe ve büyüteç, “Tümü”, “Algıla”, “Döndür”. Sayfa listesinde sıralama, silme, yeniden kırpma ve filtre: Orijinal, Otomatik, Gri, Siyah-Beyaz, Gölge giderme (bir sayfaya ya da tümüne). Kayıt: **PDF** (`Documents/Kolay`) ya da sayfa başına **JPEG** (`Pictures/Kolay`); isteğe bağlı OCR ile **aranabilir PDF** (görünmez metin katmanı) ve metni kopyala / paylaş. Varsayılan dosya adı `Tarama_yyyyMMdd_HHmm`. Her şey cihazda; sayfa görüntüleri yalnızca tarama sürerken uygulamanın önbelleğinde durur.
+- **OCR dilleri** ekranı: Almanca, Türkçe ve İngilizce dil verisi (tessdata_fast, sabit sürüm) ilk kullanımda indirilir; boyut ve SHA-256 doğrulanır, dil başına boyut görünür, silinebilir.
+- OCR aracının *Genel* modunda dil seçimi (birden çok dil birlikte, ör. Almanca + Türkçe; son seçim hatırlanır). Helal Sorgu etiket okuması Türkçe veri yüklüyse Almanca + Türkçe okur.
+- Yeni izin yok (galeri içe aktarma sistem seçicisiyle).
+### Değişti (1.029)
+- Almanca OCR verisi artık APK'da değil, gerektiğinde indiriliyor: APK yaklaşık **0,77 MB küçüldü** (4,82 → 4,05 MB, yerel derleme). Önceki sürümlerin telefona kopyaladığı Almanca veri korunur ve kullanılmaya devam eder; yeni kurulumda OCR ilk kullanımda indirme önerir.
 ### Değişti (1.025)
 - **OCR (Tıbbi mod):** internet yoksa, anahtar girilmemişse veya cilalama başarısız olursa sonuç artık hiçbir not eklenmeden doğrudan yerel (maskelenmiş) OCR metni olarak gelir; sonuç ekranındaki **Cilala** düğmesiyle metin sonradan gönderilip sıralanıp düzeltilebilir (“Yerel metni göster” ile geri dönülür). Başarılı durumda davranış aynı.
 - OCR koduna ve ekranlarına hizmet adı girmez; ortak bulut istemcisi `Llm` olarak yeniden adlandırıldı.

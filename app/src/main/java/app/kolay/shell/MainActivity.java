@@ -8,7 +8,9 @@ import android.provider.Settings;
 import android.util.Log;
 import app.kolay.app.Entry;
 import java.io.*;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 
 /**
  * The only activity. Prepares the platform pieces (key store, OCR data, updater) and hands the window to the UI
@@ -26,7 +28,7 @@ public class MainActivity extends Activity {
         super.onCreate(saved);
         secrets = new SecretStore(this);
         Updater.cleanupLegacy(this);
-        try { ensureTessdata(); } catch (IOException e) { Log.e(TAG, "tessdata", e); }
+        try { ensureTessdata(); } catch (RuntimeException e) { Log.e(TAG, "tessdata", e); }
         ui = new Entry();
         ui.onCreate(new HostImpl(), saved);
         UpdateJob.schedule(this);
@@ -34,24 +36,12 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * deu.traineddata ships (compressed) in the APK's assets; Tesseract needs it as a plain file. Copied again whenever the
-     * app version changes, so a new file in a release reaches the phone.
+     * OCR language data is downloaded on demand ({@link TessData}). Until 1.028 deu.traineddata was copied here from the APK;
+     * that copy is the same file and stays (it counts as installed). Only certainly incomplete leftovers are removed.
      */
-    private void ensureTessdata() throws IOException {
-        File dir = new File(getFilesDir(), "tessdata");
-        File f = new File(dir, "deu.traineddata");
-        android.content.SharedPreferences p = getSharedPreferences("tessdata", MODE_PRIVATE);
-        long vc = Updater.installedVersion(this);
-        if (!f.isFile() || p.getLong("copied_for", -1) != vc) {
-            dir.mkdirs();
-            File tmp = new File(dir, "deu.tmp");
-            try (InputStream in = getAssets().open("tessdata/deu.traineddata"); OutputStream o = new FileOutputStream(tmp)) {
-                byte[] b = new byte[65536]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n);
-            }
-            f.delete();
-            if (!tmp.renameTo(f)) throw new IOException("tessdata could not be placed");
-            p.edit().putLong("copied_for", vc).apply();
-        }
+    private void ensureTessdata() {
+        TessData.cleanup(this);
+        deleteSharedPreferences("tessdata");   // bookkeeping of the old copy step
     }
 
     private final class HostImpl implements Host {
@@ -59,6 +49,14 @@ public class MainActivity extends Activity {
         @Override public String secret(String n) { return secrets.get(n); }
         @Override public void setSecret(String n, String v) { secrets.set(n, v); }
         @Override public File tessDataParent() { return getFilesDir(); }
+        @Override public String[] tessLanguages() { return TessData.LANGS.clone(); }
+        @Override public boolean tessInstalled(String l) { return TessData.installed(MainActivity.this, l); }
+        @Override public long tessInstalledSize(String l) { return TessData.installedSize(MainActivity.this, l); }
+        @Override public long tessDownloadSize(String l) { return TessData.downloadSize(l); }
+        @Override public void tessDownload(String l, LongConsumer progress, BooleanSupplier cancelled) throws IOException {
+            TessData.download(getApplicationContext(), l, progress, cancelled);
+        }
+        @Override public boolean tessDelete(String l) { return TessData.delete(MainActivity.this, l); }
         @Override public String versionName() { return Updater.installedName(MainActivity.this); }
         @Override public String updateStatus() { return Updater.status(MainActivity.this); }
         @Override public boolean updateReady() { return Updater.ready(MainActivity.this); }
@@ -103,6 +101,11 @@ public class MainActivity extends Activity {
     @Override public void onRequestPermissionsResult(int req, String[] p, int[] r) {
         super.onRequestPermissionsResult(req, p, r);
         ui.onPermissionResult(req, p, r);
+    }
+
+    @Override protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        ui.onActivityResult(req, res, data);
     }
 
     @Override public void onBackPressed() { if (!ui.onBackPressed()) super.onBackPressed(); }

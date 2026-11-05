@@ -62,6 +62,11 @@ public final class Entry {
         if (s != null) s.onPermission(req, perms, results);
     }
 
+    public void onActivityResult(int req, int res, Intent data) {
+        Screen s = c.nav.top();
+        if (s != null) s.onActivityResult(req, res, data);
+    }
+
     public boolean onBackPressed() {
         Screen s = c.nav.top();
         if (s != null && s.onBack()) return true;

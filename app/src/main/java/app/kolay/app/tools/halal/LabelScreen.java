@@ -3,6 +3,7 @@ package app.kolay.app.tools.halal;
 import android.graphics.Bitmap;
 import android.view.*;
 import android.widget.*;
+import app.kolay.app.doc.TessScreen;
 import app.kolay.app.tools.qr.QrCamera;
 import app.kolay.app.ui.*;
 
@@ -28,6 +29,11 @@ final class LabelScreen extends CamScreen {
         shoot = Ui.button(c, "Fotoğrafla ve sorgula", Ui.Style.PRIMARY, Icon.Kind.CAMERA);
         shoot.setOnClickListener(v -> {
             Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY);
+            if (!c.host.tessInstalled("deu")) {   // OCR data is downloaded after install: offer it before the photo
+                pauseCamera();
+                c.nav.push(new TessScreen("deu", null));
+                return;
+            }
             shoot.setEnabled(false);
             shoot.setText("Çekiliyor…");
             cam.capture();

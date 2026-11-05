@@ -6,7 +6,7 @@ import android.graphics.drawable.Drawable;
 /** Stroke icons on a 24-unit grid, drawn with paths so they stay crisp at any size and take any color. */
 public final class Icon extends Drawable {
     public enum Kind { BACK, CHEVRON, CHECK, COPY, SHARE, SETTINGS, SCAN, KEY, REFRESH, LINK, QR, FLASH, BARCODE, CAMERA, CRESCENT, CLOCK,
-        IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND }
+        IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND, DOCSCAN, TRASH, CROP, PLUS }
 
     private final Kind kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -140,6 +140,28 @@ public final class Icon extends Drawable {
                 break;
             case SEND:      // arrow pointing up
                 path.moveTo(12, 19); path.lineTo(12, 5.5f); path.moveTo(6.5f, 11); path.lineTo(12, 5.5f); path.lineTo(17.5f, 11);
+                break;
+            case DOCSCAN:   // a page with text lines inside scanner corner brackets
+                path.moveTo(3.5f, 7.5f); path.lineTo(3.5f, 5.5f); path.quadTo(3.5f, 3.5f, 5.5f, 3.5f); path.lineTo(7.5f, 3.5f);
+                path.moveTo(16.5f, 3.5f); path.lineTo(18.5f, 3.5f); path.quadTo(20.5f, 3.5f, 20.5f, 5.5f); path.lineTo(20.5f, 7.5f);
+                path.moveTo(20.5f, 16.5f); path.lineTo(20.5f, 18.5f); path.quadTo(20.5f, 20.5f, 18.5f, 20.5f); path.lineTo(16.5f, 20.5f);
+                path.moveTo(7.5f, 20.5f); path.lineTo(5.5f, 20.5f); path.quadTo(3.5f, 20.5f, 3.5f, 18.5f); path.lineTo(3.5f, 16.5f);
+                path.addRoundRect(7.5f, 6.5f, 16.5f, 17.5f, 1.5f, 1.5f, Path.Direction.CW);
+                path.moveTo(10, 10); path.lineTo(14, 10); path.moveTo(10, 13); path.lineTo(14, 13);
+                break;
+            case TRASH:
+                path.moveTo(4.5f, 6.5f); path.lineTo(19.5f, 6.5f);
+                path.moveTo(9.5f, 6.5f); path.lineTo(9.5f, 4.5f); path.lineTo(14.5f, 4.5f); path.lineTo(14.5f, 6.5f);
+                path.moveTo(6.5f, 6.5f); path.lineTo(7.5f, 19); path.quadTo(7.6f, 20, 8.6f, 20); path.lineTo(15.4f, 20);
+                path.quadTo(16.4f, 20, 16.5f, 19); path.lineTo(17.5f, 6.5f);
+                path.moveTo(10.5f, 10); path.lineTo(10.5f, 16.5f); path.moveTo(13.5f, 10); path.lineTo(13.5f, 16.5f);
+                break;
+            case CROP:
+                path.moveTo(7, 3.5f); path.lineTo(7, 17); path.lineTo(20.5f, 17);
+                path.moveTo(3.5f, 7); path.lineTo(17, 7); path.lineTo(17, 20.5f);
+                break;
+            case PLUS:
+                path.moveTo(12, 5); path.lineTo(12, 19); path.moveTo(5, 12); path.lineTo(19, 12);
                 break;
             case LINK:
                 path.moveTo(10, 14); path.lineTo(14, 10);

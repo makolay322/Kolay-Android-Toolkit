@@ -10,7 +10,7 @@ Uygulama artık kendini günceller: Android 12+ bir uygulamanın kendi güncelle
 
 | Paket | İçerik |
 |---|---|
-| `app.kolay.shell` | Platform: `MainActivity`, `Host` (iç arayüz), `Updater` + `UpdateJob` + `InstallResultReceiver` (kendi kendini güncelleme), `SecretStore`, `Verify`, `Config`; namaz motoru (`PrayerCalc`, `Prayer`, `PrayerWidget`, `PrayerReceiver`), `QrTileService`. Tesseract `.so` + `assets/tessdata/deu.traineddata`, ZXing. |
+| `app.kolay.shell` | Platform: `MainActivity`, `Host` (iç arayüz), `Updater` + `UpdateJob` + `InstallResultReceiver` (kendi kendini güncelleme), `SecretStore`, `Verify`, `Config`; namaz motoru (`PrayerCalc`, `Prayer`, `PrayerWidget`, `PrayerReceiver`), `QrTileService`, `TessData` (OCR dil verisi indirme/doğrulama). Tesseract `.so`, ZXing; dil verisi APK'da yok (1.029'dan beri indirilir). |
 | `app.kolay.app` | Arayüz ve araçlar: `Entry`, `ui/*` (tasarım sistemi), `screens/*`, `tools/*`. |
 
 `app.kolay.shell` adı tarihseldir ve **değiştirilmez**: manifestteki bileşen adları (başlatıcı etkinliği, widget, hızlı ayar kutucuğu,
@@ -20,7 +20,7 @@ paylaşım hedefi) bu pakettedir; ad değişirse güncellemede ana ekran kısayo
 ```
 onCreate
  ├─ Updater.cleanupLegacy()   eski düzenin artıkları (files/payloads, "registry" tercihleri) bir kez silinir
- ├─ ensureTessdata()          deu.traineddata assets'ten dosyaya (boyut değiştiyse)
+ ├─ ensureTessdata()          files/tessdata/ hazırlanır; yalnızca yarım kalmış eski indirmeler silinir (yüklü veriye dokunulmaz)
  ├─ new Entry().onCreate(host) arayüz: tema, gezinme, ana sayfa; QR kutucuğu / paylaşım hedefi eylemleri
  ├─ UpdateJob.schedule()      12 saatte bir arka plan denetimi (+ ekran kapalıyken kurulum)
  └─ Updater.checkAsync()      en çok 6 saatte bir; yeni sürüm indirilirse ana sayfada "Yeni sürüm hazır" bandı
@@ -34,6 +34,8 @@ Entry                    Uygulama girişi: tema, Nav kökü, ana sayfa, geri tu�
 ui/                      Palette, Ctx, Ui, Icon, Nav, Screen, Header, Arc, Bar, Toggle  → docs/UI.md
 screens/                 HomeScreen, SettingsScreen
 tools/Tool, Tools        araç arayüzü + kayıt listesi                                   → docs/ADDING_A_TOOL.md
+doc/                     Belge/OCR ortak altyapısı: Langs + LangBar (dil kombinasyonu, hatırlanan seçim), TessScreen (dil verisi yöneticisi), OcrEngine (Tesseract, kelime kutuları), QuadDetector (sayfa kenarı algılama), Imaging (çözme, perspektif düzeltme, filtreler), PdfWriter (JPEG sayfalı, isteğe bağlı görünmez metin katmanlı PDF), MediaOut (MediaStore'a kayıt)
+tools/scan/              Belge Tarayıcı: ScanTool, ScanSession (sayfalar + önbellek dosyaları), DocCamera (camera2: önizleme + analiz akışı + JPEG), CameraScreen, PagesScreen, CropScreen, FilterScreen, ExportScreen
 tools/ocr/               OCR (tıbbi/genel mod): OcrTool, Picker/Progress/ResultScreen, Ocr, Mask, Session
 tools/qr/                QR Kod: QrTool, QrScreen (okuyucu arayüzü), QrMakeScreen + QrPayload (QR oluşturma: metin, Wi-Fi, vCard), QrCamera (camera2; kipler QR / PRODUCT barkod / TEXT fotoğraf), QrDecoder (ZXing)
 tools/halal/             Helal Sorgu: HelalTool, ScanScreen/LabelScreen (CamScreen tabanı), Off (Open Food Facts), LabelOcr, Halal (istem + karar), WorkScreen, VerdictScreen
@@ -47,7 +49,7 @@ UI tamamen programatiktir (XML düzen yok; tutarlılık için böyle kalır). XM
 
 ## OCR akışı
 1. `PickerScreen`: MediaStore'dan son 90 fotoğraf; seçim `Session.selected` içinde.
-2. `ProgressScreen` → `Ocr.run(pages)`: her sayfa gri tonlama + hafif kontrast, ≤2400 px, Tesseract (`deu`, PSM single column).
+2. `ProgressScreen` → `Ocr.run(pages)`: her sayfa gri tonlama + hafif kontrast, ≤2400 px, Tesseract (`deu`, PSM single column). Genel modda dil seçilebilir (`LangBar`; ör. `deu+tur`, son seçim hatırlanır, otomatik sayfa düzeni). Gerekli dil yüklü değilse önce `TessScreen` açılır, “Devam” okumayı başlatır.
 3. `Mask.collect` tüm sayfalardan isim adaylarını toplar; `Mask.apply` her sayfada maskeler (`[NAME]`, `[GEBURTSDATUM]`, `[ADRESSE]`, `[ORT]`, `[IBAN]`).
 4. Maskeli metin **tek istekte** buluta gider: sayfaları doğru sıraya dizer + OCR hatalarını düzeltir + çöpü temizler, içerik eklemez/çıkarmaz.
 5. `ResultScreen`: kopyala / paylaş. Hiçbir şey diske yazılmaz.
@@ -66,7 +68,21 @@ Bulut isteği başarısız olursa maskeli ham OCR gösterilir (uyarı notuyla).
 3. Barkod yoksa/içindekiler boşsa/ağ yoksa `LabelScreen` (kamera `TEXT` kipi, ≤3,5 MP gri kare) → `CropScreen` (kullanıcı yalnızca içindekiler kısmını çerçeveler; çevre yazı OCR girdisini gürültülü yapar) → `LabelOcr` (Tesseract `deu`) açılır. Fotoğraf OCR biter bitmez geri dönüştürülür; metin diske yazılmaz.
 4. `Halal.judge`: içindekiler tek istekte Hanefi ölçütleriyle değerlendirilir (sıcaklık 0). Çıktının 1. satırı `HELAL | HARAM | ŞÜPHELİ`, gerisi gerekçe. Belirsiz/bozuk liste → ŞÜPHELİ.
 5. `VerdictScreen`: renkli karar + gerekçe + kullanılan içindekiler. "Fetva değildir" notu sabittir.
-Not: gömülü OCR verisi yalnızca `deu`; Türkçe özel harfler (ş ğ ı) yanlış okunabilir, istem bunu bağlamdan düzeltmesini ister.
+Not: `LabelOcr` `deu` ister (yoksa çekimden önce `TessScreen` açılır), `tur` yüklüyse `deu+tur` okur; yalnızca `deu` ile Türkçe özel harfler (ş ğ ı) yanlış okunabilir, istem bunu bağlamdan düzeltmesini ister.
+
+## OCR dil verisi (`TessData`, `doc/TessScreen`)
+- APK yalnızca Tesseract motorunu taşır; `deu`, `tur`, `eng` (`tessdata_fast`) ilk kullanımda `files/tessdata/` altına indirilir. Kaynak `raw.githubusercontent.com/tesseract-ocr/tessdata_fast/<commit>/` — commit SHA'sı, her dosyanın boyutu ve SHA-256'sı `TessData`'da sabittir. İndirme `Updater.download` ile (yalnızca HTTPS, yönlendirme sonrası `Config.trustedHost`, boyut sınırı, iptal) geçici adla yapılır; özet tutarsa atomik olarak yerine taşınır.
+- 1.028'e kadar APK'dan kopyalanan `deu.traineddata` aynı dosyadır, olduğu yerde kalır ve "yüklü" sayılır. Açılışta yalnızca bir saatten eski `*.download` artıkları silinir.
+- `TessScreen`: dil başına durum (yüklü/boyut), ilerlemeli indirme, iki dokunuşla silme. `required` verilirse eksikler tamamlanınca “Devam” çıkar ve çağıranın işi sürer. Ekrandan çıkmak indirmeyi iptal eder.
+- `Host.tessInstalled / tessDownload / tessDelete …` arayüzden platforma tek yoldur.
+
+## Belge Tarayıcı akışı (`tools/scan`)
+1. `CameraScreen` (akışın kökü): `DocCamera` arka kamerayı üç akışla açar — önizleme (`TextureView`, karenin tamamı görünür), ~640 px YUV analiz akışı, ≤ ~13 MP JPEG. Cihaz üç akışı reddederse analiz akışı düşer (elle çekim sürer). Analiz kendi iş parçacığında ~10 kare/sn `QuadDetector`'a gider: ≤360 px'e küçültme → 5×5 Gauss → Sobel → Canny (NMS + histerezis) → Hough doğruları → iki yaklaşık paralel doğru çiftinden, çevresinin kenar piksellerince en çok desteklendiği dörtgen (dışbükey, açılar ~44–136°, alan ≥ %10). Sonuç yumuşatılıp önizleme üstünde çizilir. “Otomatik çekim” açıksa çerçeve ~1 sn sabit kalınca çeker; aynı sayfayı yeniden çekmemek için çerçeve kaybolana ya da belirgin değişene kadar bekler. Çekim yönü `OrientationEventListener` ile `JPEG_ORIENTATION`'a yansır. Fener, deklanşör sesi, sayfa şeridi, “Bitti (n)”. Kamera ekran üstteyken ve uygulama öndeyken çalışır.
+2. Galeri: sistem seçicisi (`ACTION_GET_CONTENT`, çoklu seçim; ek izin yok). Sonuç `MainActivity.onActivityResult → Entry → Screen.onActivityResult` ile gelir. Seçilen görüntüler önbelleğe kopyalanır (okuma izni geçicidir).
+3. Her sayfa `ScanSession`'da: özgün dosya `cache/scan/<oturum>/pN.jpg`, normalleştirilmiş 4 köşe, döndürme, filtre. Arka planda ~1,2 MP kopyada kenar algılanır (bulunamazsa canlı çerçeve, o da yoksa tüm görüntü), sonra önizleme (~0,36 MP) çizilir.
+4. `PagesScreen`: sırala (yukarı/aşağı), kırp, filtre, sil (iki dokunuş). `CropScreen`: 4 sürüklenebilir köşe + büyüteç, “Tümü”, “Algıla”, “Döndür”. `FilterScreen`: Orijinal / Otomatik (kanal başına seviye: beyaz dengesi + kontrast) / Gri / Siyah-Beyaz (küçük kopyada integral görüntüyle yerel ortalama, Bradley eşiği) / Gölge giderme (küçük kopyada genişletme + bulanıklaştırma ile arka plan tahmini, kanal başına bölme); bu sayfaya ya da tüm sayfalara.
+5. `ExportScreen`: PDF / JPEG, dosya adı (`Tarama_yyyyMMdd_HHmm`), OCR aç/kapa + dil seçimi (eksikse `TessScreen`). Her sayfa tam çözünürlükte (≤ 12 MP; bellek yetmezse ¼'ü) çözülür → `Matrix.setPolyToPoly` ile düzeltilir → döndürülür → filtrelenir; filtreler satır bantlarıyla çalışır (Java yığınında yalnızca küçük diziler). PDF: `PdfWriter` sayfa JPEG'ini olduğu gibi gömer (DCTDecode; `PdfDocument` görüntüyü kayıpsız yeniden kodladığı ve tam saydam metni attığı için kullanılmaz), OCR açıksa kelime kutularına görünmez metin (render modu 3, ToUnicode eşlemli Helvetica) koyar → `Documents/Kolay` (MediaStore; olmazsa `Download/Kolay`). JPEG: sayfa başına `Pictures/Kolay`. Kayıtlar `IS_PENDING` ile yazılır, hata/iptalde silinir. Sonra Paylaş, “Metni kopyala / paylaş” (yalnızca bellekten), “Yeni tarama”, “Bitti”.
+6. Akıştan çıkınca (kök ekran yok edilince) önbellek klasörü ve bitmap'ler silinir; uygulama öldürülmüşse bir sonraki taramada temizlenir.
 
 ## Cuma Mesajı akışı
 - `FridayArt.render(seed, hadis, kaynak)`: görsel tamamen Canvas ile çizilir (görsel dosyası yok): gradyan, geometrik desen (yıldız/daire), hilâl, yıldızlar, cami silueti, yarı saydam panelde hadis. Aynı seed aynı arka planı verir; seed'in yarısı siyah (koyu) temadır. Boyut yalnızca yatay 3:2, 1500×1000 (`FridayArt.W/H`): başlık üstte ortada, hilal üst köşede (başlığın yanında, üstüne binmez), hadis paneli ortada, cami silueti altta.

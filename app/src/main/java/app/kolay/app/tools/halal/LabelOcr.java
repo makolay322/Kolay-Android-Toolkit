@@ -9,7 +9,7 @@ import app.kolay.shell.Host;
 import com.googlecode.tesseract.android.TessBaseAPI;
 import java.io.IOException;
 
-/** One ingredient-label photo -> plain text with the bundled Tesseract data. The text is returned to the caller and kept nowhere else. */
+/** One ingredient-label photo -> plain text with the downloaded Tesseract data (deu, + tur when installed). The text is returned to the caller and kept nowhere else. */
 final class LabelOcr {
     private static final int MAX_SIDE = 2400;
     private LabelOcr() {}
@@ -18,7 +18,10 @@ final class LabelOcr {
         Bitmap img = prepare(photo);
         TessBaseAPI api = new TessBaseAPI();
         try {
-            if (!api.init(host.tessDataParent().getAbsolutePath(), "deu")) throw new IOException("Tesseract başlatılamadı");
+            // German is required (LabelScreen offers the download); Turkish is added when present, for ş ğ ı on Turkish labels
+            String lang = host.tessInstalled("tur") ? "deu+tur" : "deu";
+            if (!host.tessInstalled("deu")) throw new IOException("OCR dil verisi (Almanca) yüklü değil");
+            if (!api.init(host.tessDataParent().getAbsolutePath(), lang)) throw new IOException("Tesseract başlatılamadı");
             api.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
             api.setVariable("user_defined_dpi", "300");
             api.setImage(img);

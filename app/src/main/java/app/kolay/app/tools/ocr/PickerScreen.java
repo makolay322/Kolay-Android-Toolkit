@@ -11,6 +11,9 @@ import android.provider.MediaStore;
 import android.util.Size;
 import android.view.*;
 import android.widget.*;
+import app.kolay.app.doc.LangBar;
+import app.kolay.app.doc.Langs;
+import app.kolay.app.doc.TessScreen;
 import app.kolay.app.ui.*;
 import java.util.ArrayList;
 
@@ -25,6 +28,7 @@ final class PickerScreen extends Screen {
     private FrameLayout content;
     private GridView grid;
     private FrameLayout modeBar;
+    private LangBar langBar;
     private boolean askedOnce;
 
     PickerScreen(Session s) { this.s = s; }
@@ -36,6 +40,9 @@ final class PickerScreen extends Screen {
         page.addView(header.view);
         modeBar = new FrameLayout(c.a);
         page.addView(modeBar, Ui.lp(-1, c.dp(44), c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), c.dp(10)));
+        // general mode only: which languages to read (medical documents are always German)
+        langBar = new LangBar(c, s.langs, v -> { s.langs = v; Langs.remember(c.a, "ocr", v); });
+        page.addView(langBar.view, Ui.lp(-1, -2, c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), c.dp(10)));
         paintModeBar();
 
         content = new FrameLayout(c.a);
@@ -50,6 +57,9 @@ final class PickerScreen extends Screen {
 
     /** Back from the app settings with the permission granted: show the photos. */
     @Override public void onResume() { if (askedOnce && grid == null && granted()) showGrid(); }
+
+    /** Back from the language download screen. */
+    @Override public void onReturn() { langBar.refresh(); }
 
     @Override public void onPermission(int req, String[] perms, int[] r) {
         if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) showGrid();
@@ -71,6 +81,7 @@ final class PickerScreen extends Screen {
 
     /** Tıbbi (default) | Genel. Switching only changes how the selected pages are processed afterwards. */
     private void paintModeBar() {
+        langBar.view.setVisibility(s.general ? View.VISIBLE : View.GONE);
         modeBar.removeAllViews();
         modeBar.addView(Ui.segmented(c, new String[]{"Tıbbi belge", "Genel metin"}, null, s.general ? 1 : 0, i -> {
             s.general = i == 1;
@@ -127,7 +138,10 @@ final class PickerScreen extends Screen {
         read.setElevation(c.dp(6));
         read.setOnClickListener(v -> {
             Ui.haptic(v, HapticFeedbackConstants.CONFIRM);
-            c.nav.replace(new ProgressScreen(s, new ArrayList<>(s.selected)));
+            String need = s.general ? s.langs : "deu";
+            Runnable go = () -> c.nav.replace(new ProgressScreen(s, new ArrayList<>(s.selected)));
+            if (Langs.ready(c.host, need)) go.run();
+            else c.nav.push(new TessScreen(need, go));   // language data first; "Devam" then starts reading
         });
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, c.dp(Ui.H_BAR), Gravity.BOTTOM);
         lp.setMargins(c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), c.dp(Ui.GUTTER));

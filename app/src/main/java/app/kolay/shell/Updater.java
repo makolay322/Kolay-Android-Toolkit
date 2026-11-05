@@ -205,7 +205,11 @@ final class Updater {
         } finally { c.disconnect(); }
     }
 
-    static void download(String u, File to, long expected) throws IOException {
+    static void download(String u, File to, long expected) throws IOException { download(u, to, expected, null, null); }
+
+    /** As above; {@code progress} receives the bytes so far, {@code cancelled} is polled between chunks (both may be null). */
+    static void download(String u, File to, long expected, java.util.function.LongConsumer progress,
+                         java.util.function.BooleanSupplier cancelled) throws IOException {
         HttpURLConnection c = open(u);
         try {
             if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
@@ -213,7 +217,11 @@ final class Updater {
             long total = 0;
             try (InputStream in = c.getInputStream(); OutputStream o = new FileOutputStream(to)) {
                 byte[] b = new byte[65536]; int n;
-                while ((n = in.read(b)) > 0) { total += n; if (total > expected) throw new IOException("dosya beklenenden büyük"); o.write(b, 0, n); }
+                while ((n = in.read(b)) > 0) {
+                    if (cancelled != null && cancelled.getAsBoolean()) throw new InterruptedIOException("iptal");
+                    total += n; if (total > expected) throw new IOException("dosya beklenenden büyük"); o.write(b, 0, n);
+                    if (progress != null) progress.accept(total);
+                }
             }
             if (total != expected) throw new IOException("indirme eksik (" + total + "/" + expected + ")");
         } finally { c.disconnect(); }

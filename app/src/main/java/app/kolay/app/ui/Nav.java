@@ -67,6 +67,22 @@ public final class Nav {
         return true;
     }
 
+    /**
+     * Back to {@code target} in one step: the screens between it and the top are removed without animation, the top one
+     * leaves like a normal pop. No-op when {@code target} is not on the stack or already on top.
+     */
+    public void popTo(Screen target) {
+        if (busy) { pending = () -> popTo(target); return; }
+        int i = stack.indexOf(target);
+        if (i < 0 || i == stack.size() - 1) return;
+        while (stack.size() > i + 2) {
+            Screen s = stack.remove(i + 1);
+            root.removeView(s.view);
+            s.onDestroy();
+        }
+        pop();
+    }
+
     public void replace(Screen next) {
         if (busy) { pending = () -> replace(next); return; }
         busy = true;

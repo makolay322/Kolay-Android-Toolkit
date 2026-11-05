@@ -1,0 +1,183 @@
+package app.kolay.app.tools.scan;
+
+import android.graphics.Bitmap;
+import app.kolay.app.doc.Imaging;
+import app.kolay.app.doc.QuadDetector;
+import app.kolay.app.ui.Ctx;
+import app.kolay.app.ui.Screen;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * One scanning flow: the pages (original pictures in the app's private cache, never anywhere else until the user exports)
+ * and their edit state. Page fields and the list are touched on the main thread only; background work reads copies and
+ * posts results back. {@link #destroy} removes every file and bitmap.
+ */
+final class ScanSession {
+    /** Preview renders (list, strip, filter choice) stay around this size. */
+    static final long THUMB_PX = 360_000L;
+    private static final long DETECT_PX = 1_200_000L;
+
+    static final class Page {
+        final File file;
+        float[] quad = QuadDetector.full();   // normalised, upright original; TL, TR, BR, BL
+        int rotation;                         // clockwise, applied after straightening
+        Imaging.Filter filter;
+        Bitmap thumb;                         // processed preview, main thread
+        int version;                          // bumped on every edit; stale renders are dropped
+        boolean ready;                        // page outline detected (or given up)
+        boolean broken;                       // the picture could not be read
+        Page(File f, Imaging.Filter filter) { file = f; this.filter = filter; }
+    }
+
+    final Ctx c;
+    final File dir;
+    final List<Page> pages = new ArrayList<>();
+    Imaging.Filter defaultFilter = Imaging.Filter.AUTO;
+    /** The camera screen at the bottom of the flow (for "back to camera" / leaving). */
+    Screen root;
+    /** Called on the main thread whenever a page's preview or state changed. */
+    Runnable onChange;
+    /** Set when the flow is being left from a later screen: the camera must not start again on the way out. */
+    boolean closing;
+    private int seq;
+    private boolean destroyed;
+
+    ScanSession(Ctx c) {
+        this.c = c;
+        File parent = new File(c.a.getCacheDir(), "scan");
+        deleteTree(parent);  // leftovers of earlier flows (e.g. the app was killed); only one flow exists at a time
+        dir = new File(parent, Long.toString(System.nanoTime()));
+        dir.mkdirs();
+    }
+
+    boolean destroyed() { return destroyed; }
+
+    private File newFile() { return new File(dir, "p" + (++seq) + ".jpg"); }
+
+    /** Camera still: written to the cache on a background thread, then outlined. {@code hint} = live outline (may be null). */
+    void addJpeg(byte[] jpeg, float[] hint) {
+        Page p = new Page(newFile(), defaultFilter);
+        pages.add(p);
+        changed();
+        c.io.execute(() -> {
+            try (OutputStream o = new FileOutputStream(p.file)) { o.write(jpeg); }
+            catch (IOException e) { c.ui.post(() -> markBroken(p)); return; }
+            detect(p, hint);
+        });
+    }
+
+    /** Gallery pictures: copied into the cache (the read grant may end), then outlined. */
+    void addUris(List<android.net.Uri> uris) {
+        for (android.net.Uri u : uris) {
+            Page p = new Page(newFile(), defaultFilter);
+            pages.add(p);
+            c.io.execute(() -> {
+                try (InputStream in = c.a.getContentResolver().openInputStream(u); OutputStream o = new FileOutputStream(p.file)) {
+                    if (in == null) throw new IOException("okunamadı");
+                    byte[] b = new byte[65536]; int n;
+                    while ((n = in.read(b)) > 0) o.write(b, 0, n);
+                } catch (Exception e) { c.ui.post(() -> markBroken(p)); return; }
+                detect(p, null);
+            });
+        }
+        changed();
+    }
+
+    private void markBroken(Page p) {
+        if (destroyed) return;
+        p.broken = true; p.ready = true;
+        changed();
+    }
+
+    /** Background: find the page outline on a ~1 MP copy, then render the preview. */
+    private void detect(Page p, float[] hint) {
+        float[] q = null;
+        try {
+            Bitmap b = Imaging.decode(p.file, DETECT_PX);
+            try { q = new QuadDetector().detect(b); } finally { b.recycle(); }
+        } catch (Exception | OutOfMemoryError e) {
+            c.ui.post(() -> markBroken(p));
+            return;
+        }
+        final float[] found = q != null ? q : hint;
+        c.ui.post(() -> {
+            if (destroyed) return;
+            if (found != null) p.quad = found;
+            p.ready = true;
+            p.version++;
+            render(p);
+        });
+    }
+
+    /** Main thread: (re)renders the preview of {@code p} in the background. */
+    void render(Page p) {
+        final int v = p.version;
+        final float[] q = p.quad.clone();
+        final int rot = p.rotation;
+        final Imaging.Filter f = p.filter;
+        c.io.execute(() -> {
+            Bitmap b = null;
+            try { b = Imaging.render(p.file, q, rot, f, THUMB_PX); }
+            catch (Exception | OutOfMemoryError ignored) { }
+            final Bitmap out = b;
+            c.ui.post(() -> {
+                if (destroyed || p.version != v || !pages.contains(p)) { if (out != null) out.recycle(); return; }
+                if (out == null) { p.broken = true; changed(); return; }
+                Bitmap old = p.thumb;
+                p.thumb = out;
+                changed();
+                if (old != null) old.recycle();   // after the views were told to show the new one
+            });
+        });
+    }
+
+    /** Main thread: after an edit of quad / rotation / filter. */
+    void edited(Page p) { p.version++; render(p); }
+
+    void remove(Page p) {
+        pages.remove(p);
+        p.version++;
+        changed();
+        if (p.thumb != null) { p.thumb.recycle(); p.thumb = null; }
+        File f = p.file;
+        c.io.execute(f::delete);
+    }
+
+    void move(int from, int to) {
+        if (from < 0 || to < 0 || from >= pages.size() || to >= pages.size()) return;
+        pages.add(to, pages.remove(from));
+        changed();
+    }
+
+    boolean allReady() {
+        for (Page p : pages) if (!p.ready) return false;
+        return true;
+    }
+
+    private void changed() { if (!destroyed && onChange != null) onChange.run(); }
+
+    /** Main thread. Bitmaps and files go; safe to call twice. */
+    void destroy() {
+        if (destroyed) return;
+        destroyed = true;
+        onChange = null;
+        for (Page p : pages) if (p.thumb != null) { p.thumb.recycle(); p.thumb = null; }
+        pages.clear();
+        File d = dir;
+        try { c.io.execute(() -> deleteTree(d)); }
+        catch (Exception e) { deleteTree(d); }   // pool already shut down (activity finishing)
+    }
+
+    static void deleteTree(File f) {
+        if (f == null || !f.exists()) return;
+        File[] kids = f.listFiles();
+        if (kids != null) for (File k : kids) deleteTree(k);
+        f.delete();
+    }
+}

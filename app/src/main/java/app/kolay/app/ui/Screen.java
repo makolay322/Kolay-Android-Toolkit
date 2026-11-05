@@ -17,6 +17,8 @@ public abstract class Screen {
     /** This screen is on top again because the one above it was popped. */
     public void onReturn() {}
     public void onPermission(int req, String[] perms, int[] results) {}
+    /** Result of an activity this screen started with {@code c.a.startActivityForResult} (e.g. the system image picker). */
+    public void onActivityResult(int req, int result, android.content.Intent data) {}
     /** @return true if consumed (e.g. cancelled something) instead of leaving the screen. */
     public boolean onBack() { return false; }
     public void onDestroy() {}

@@ -54,7 +54,7 @@ final class ProgressScreen extends Screen {
         if (stopped) return;
         t0 = System.currentTimeMillis();
         tick();
-        ocr = new Ocr(c.host);
+        ocr = new Ocr(c.host, s.general ? s.langs : "deu");
         c.io.execute(this::work);
     }
 

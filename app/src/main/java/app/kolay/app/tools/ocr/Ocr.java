@@ -15,7 +15,7 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 import java.io.*;
 import java.util.regex.*;
 
-/** Photos -> Tesseract (deu) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
+/** Photos -> Tesseract (medical: deu; general: the chosen languages) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
 final class Ocr {
     private static final int MAX_SIDE = 2400;
     private static final String PROMPT =
@@ -46,14 +46,16 @@ final class Ocr {
 
     private final Context ctx;
     private final Host host;
+    private final String lang;
     private TessBaseAPI tess;
 
-    Ocr(Host h) { host = h; ctx = h.activity().getApplicationContext(); }
+    /** @param lang Tesseract language combo, e.g. "deu" or "deu+tur" (must be installed) */
+    Ocr(Host h, String lang) { host = h; this.lang = lang; ctx = h.activity().getApplicationContext(); }
 
     private synchronized TessBaseAPI tess() throws IOException {
         if (tess != null) return tess;
         TessBaseAPI a = new TessBaseAPI();
-        if (!a.init(host.tessDataParent().getAbsolutePath(), "deu")) throw new IOException("Tesseract başlatılamadı");
+        if (!a.init(host.tessDataParent().getAbsolutePath(), lang)) { a.recycle(); throw new IOException("Tesseract başlatılamadı"); }
         a.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_COLUMN);
         a.setVariable("user_defined_dpi", "300");
         return tess = a;

@@ -23,6 +23,7 @@ Manifest/izin/ikon değişikliği artık ayrı "kabuk güncellemesi" istemez: he
 7. `main`'e `app/**` (veya Gradle dosyaları, `tools/release.sh`) değişikliği push etmek **otomatik olarak yeni sürüm yayınlar** (`.github/workflows/release.yml`). Yarım iş main'e girmesin; sürüm elle de çıkarılabilir (`tools/release.sh`).
 8. Ağ yalnızca HTTPS; güncelleme adresi `Config.REPO_BASE` ile başlamalı, indirme sunucusu `Config.trustedHost` ile sınırlı.
 9. OCR metni diske/loga yazılmaz. Loglara kişisel veri koyma.
+   **Tek istisna (sahibinin kararı, 1.029):** Belge Tarayıcı'da kullanıcı OCR'ı seçip açıkça *Kaydet*'e bastığında, OCR metni aranabilir PDF'in görünmez metin katmanı olarak **yalnızca o çıktı dosyasına** (MediaStore, `Documents/Kolay`; reddedilirse `Download/Kolay`) yazılır. Geçici dosya yok: PDF doğrudan çıktı akışına yazılır (`doc/PdfWriter`); önbellekte (`cache/scan/`) yalnızca sayfa görüntüleri durur ve akıştan çıkınca silinir. Metin log'a, önbelleğe, tercihlere gitmez; panoya yalnızca kullanıcı “Metni kopyala”ya basınca (hassas işaretli), paylaşım yalnızca bellekten. JPEG kaydında metin hiçbir dosyaya yazılmaz.
 10. Gradle bağımlılık doğrulaması açık (`gradle/verification-metadata.xml`); bağımlılık eklersen `./gradlew --write-verification-metadata sha256 :app:assembleRelease` ile güncelle ve farkı gözle incele.
 
 ## Yayın politikası (sahibinin kesin talimatı)
