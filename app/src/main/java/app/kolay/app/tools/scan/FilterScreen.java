@@ -55,8 +55,7 @@ final class FilterScreen extends Screen {
         TextView all = Ui.button(c, "Tüm sayfalara", Ui.Style.TONAL, Icon.Kind.LAYERS);
         all.setOnClickListener(v -> {
             Ui.haptic(v, HapticFeedbackConstants.CONFIRM);
-            s.defaultFilter = chosen;
-            for (ScanSession.Page p : s.pages) if (p.filter != chosen) { p.filter = chosen; s.edited(p); }
+            s.filterAll(chosen);
             c.nav.pop();
         });
         TextView one = Ui.button(c, "Uygula", Ui.Style.PRIMARY, Icon.Kind.CHECK);

@@ -133,7 +133,6 @@ final class FridayArt {
         float bodyTop = h * 0.928f;
         float dr = mw * 0.21f;
 
-        cv.drawRect(0, h * 0.965f, w, h, p);                       // ground
         cv.drawRect(cx - mw / 2, bodyTop, cx + mw / 2, h, p);      // prayer hall
         dome(cv, p, cx, bodyTop, dr, dr * 1.15f);                  // main dome
         dome(cv, p, cx - mw * 0.36f, bodyTop + h * 0.012f, dr * 0.55f, dr * 0.65f);

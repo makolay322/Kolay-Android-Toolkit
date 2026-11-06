@@ -167,7 +167,10 @@ public final class ScanSession {
      * GC instead of being recycled: screens further down the stack (the camera's page strip) may still show it until
      * they rebuild, and drawing a recycled bitmap crashes.
      */
-    void render(Page p) {
+    void render(Page p) { render(p, null); }
+
+    /** As {@link #render(Page)}; {@code then} runs on the main thread once this render is done (also when dropped). */
+    private void render(Page p, Runnable then) {
         final int v = p.version;
         final float[] q = p.quad.clone();
         final int rot = p.rotation;
@@ -178,16 +181,40 @@ public final class ScanSession {
             catch (Exception | OutOfMemoryError ignored) { }
             final Bitmap out = b;
             c.ui.post(() -> {
-                if (destroyed || p.version != v || !pages.contains(p)) { if (out != null) out.recycle(); return; }
-                if (out == null) { p.broken = true; changed(); return; }
-                p.thumb = out;
-                changed();
+                if (destroyed || p.version != v || !pages.contains(p)) { if (out != null) out.recycle(); }
+                else if (out == null) { p.broken = true; changed(); }
+                else { p.thumb = out; changed(); }
+                if (then != null) then.run();
             });
         });
     }
 
     /** Main thread: after an edit of quad / rotation / filter. */
     void edited(Page p) { p.version++; render(p); }
+
+    /**
+     * Main thread: filter {@code f} for every page (and for pages added later). The previews re-render one page after
+     * another (a single preview in memory at a time); the chain stops when the flow ends, and a page edited meanwhile
+     * keeps its own newer render.
+     */
+    void filterAll(Imaging.Filter f) {
+        defaultFilter = f;
+        List<Page> todo = new ArrayList<>();
+        for (Page p : pages) if (p.filter != f) {
+            p.filter = f;
+            p.version++;
+            if (p.ready && !p.broken) todo.add(p);   // pages still being outlined render with the new filter when done
+        }
+        changed();
+        renderEach(todo, 0);
+    }
+
+    private void renderEach(List<Page> todo, int i) {
+        if (destroyed || i >= todo.size()) return;
+        Page p = todo.get(i);
+        if (!pages.contains(p)) { renderEach(todo, i + 1); return; }
+        render(p, () -> renderEach(todo, i + 1));
+    }
 
     void remove(Page p) {
         pages.remove(p);

@@ -7,7 +7,16 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 - Depo `kolay` adından **`Kolay-Android-Toolkit`** olarak değişti; güncelleme adresleri yönlendirmesiz yeni adı kullanır. Uygulama başlığı (başlatıcı etiketi ve ana sayfa) da bu ad oldu. **1.026 ve öncesi kurulumlar kendiliğinden güncellenemez; son sürüm APK'sı bir kez elle yüklenmeli** (ayarlar ve anahtar korunur). Paket adı (`app.kolay`) ve `Kolay.apk` dosya adı aynı kaldı.
 - Eski yayın notları sadeleştirildi.
 
-## 1.014 ve sonrası
+## 1.001 ve sonrası (numaralandırma yeniden başladı)
+Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti (1.001)
+- **Cuma Mesajı:** görselin en altındaki ince siyah şerit (zemin) kaldırıldı; görsel altta doğrudan arka plan rengiyle biter.
+- **Belgeler → Sayfalar:** liste 3 sütunlu, daha sık bir ızgara oldu (küçük sayfa önizlemesi, altında sayfa numarası ve filtre).
+- Sıralama yukarı/aşağı düğmeleri yerine **basılı tutup sürükle-bırak** ile yapılır; liste kenarına yaklaşınca kendiliğinden kayar. Her sayfada küçük **Döndür**, **Kırp** ve **Sil** (iki dokunuş) düğmeleri kaldı.
+- Üstte tek bir **“Filtre (tümü)”** düğmesi: dokununca filtreler açılır, seçilen filtre tüm sayfalara uygulanır (sonraki sayfalar için de varsayılan olur); önizlemeler arka planda tek tek yenilenir. Tek sayfanın filtresi için sayfaya dokun (filtre ekranı açılır).
+- Alttaki dört düğme (**Sayfa ekle**, **Metne çevir**, **Tıbbi rapor**, **Kaydet**) daha küçük, simge + kısa etiketle tek satırda.
+
+## 1.014 – 1.033
 ### Değişti (1.033) — Kararlılık ve temizlik
 - Galeriden ya da paylaşımla tek seferde en çok **50 görüntü** alınır; fazlası eklenmez ve bunu bildiren bir not çıkar (çok sayıda görüntüde bellek ve bekleme sorununu önler).
 - Metne çevir / Tıbbi rapor: bir sayfa okunurken hata olursa o sayfanın görüntüsü bellekte kalmıyor.
