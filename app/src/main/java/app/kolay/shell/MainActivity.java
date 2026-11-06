@@ -57,6 +57,13 @@ public class MainActivity extends Activity {
             TessData.download(getApplicationContext(), l, progress, cancelled);
         }
         @Override public boolean tessDelete(String l) { return TessData.delete(MainActivity.this, l); }
+        @Override public boolean officePluginInstalled() { return OfficePlugin.installed(MainActivity.this); }
+        @Override public long officePluginSize() { return OfficePlugin.SIZE; }
+        @Override public void officePluginDownload(LongConsumer progress, BooleanSupplier cancelled) throws IOException {
+            OfficePlugin.download(getApplicationContext(), progress, cancelled);
+        }
+        @Override public java.nio.ByteBuffer officePluginDex() throws IOException { return OfficePlugin.dex(getApplicationContext()); }
+        @Override public boolean officePluginDelete() { return OfficePlugin.delete(MainActivity.this); }
         @Override public String versionName() { return Updater.installedName(MainActivity.this); }
         @Override public String updateStatus() { return Updater.status(MainActivity.this); }
         @Override public boolean updateReady() { return Updater.ready(MainActivity.this); }

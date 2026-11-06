@@ -42,6 +42,18 @@ public interface Host {
     /** @return false when the file could not be removed (e.g. it is being downloaded). */
     boolean tessDelete(String lang);
 
+    // ---- old-Office plugin (.doc/.xls/.ppt reader, downloaded on demand from a fixed GitHub release, size + SHA-256 pinned) ----
+
+    boolean officePluginInstalled();
+    /** Bytes the download takes (= bytes on disk once installed). */
+    long officePluginSize();
+    /** Blocking, like {@link #tessDownload}. The file is placed (read-only) only after its size and SHA-256 match. */
+    void officePluginDownload(LongConsumer progress, BooleanSupplier cancelled) throws IOException;
+    /** Blocking: the installed plugin's bytes, size + SHA-256 checked again (a mismatch deletes it and throws SecurityException). */
+    java.nio.ByteBuffer officePluginDex() throws IOException;
+    /** @return false when the file could not be removed (e.g. it is being downloaded). */
+    boolean officePluginDelete();
+
     /** Installed version name, e.g. "1.014". */
     String versionName();
 

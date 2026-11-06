@@ -87,4 +87,7 @@ Cihazlar `versionCode` düşürmez; bu yüzden **düzeltme ileriye doğrudur**:
 - Release'leri yalnızca `release.yml` veya `tools/release.sh` üretmeli; elle yüklenen dosya imzasız olacağı için cihazlarca reddedilir.
 
 ## Eski sürümleri temizleme
-Yeni sürüm yayında olduğu doğrulandıktan sonra: GitHub → Actions → *purge-releases* → *Run workflow* (veya `gh workflow run purge-releases`). Son Release dışındakilerin hepsini ve etiketlerini siler; geri alınamaz. Önce silme: cihazlar `latest` adresini kaybeder.
+Yeni sürüm yayında olduğu doğrulandıktan sonra: GitHub → Actions → *purge-releases* → *Run workflow* (veya `gh workflow run purge-releases`). Son Release ve `office-plugin-*` ön-sürümleri dışındakilerin hepsini ve etiketlerini siler; geri alınamaz. Önce silme: cihazlar `latest` adresini kaybeder.
+
+## Eski Office eklentisi (`office-plugin-N`)
+Görüntüleyicinin `.doc/.xls/.ppt` okuyucusu APK'da değil, bu depodaki **sabit etiketli bir ön-sürümde** durur (`office-plugin-1`, varlık `kolay-office-plugin.dex`). Bu Release hiçbir zaman *latest* olmamalı ve silinmemeli: `tools/release.sh` ve uygulamanın güncelleme denetimi yalnızca `releases/latest` adresini okur (ön-sürüm *latest* olamaz), *purge-releases* `office-plugin-*` etiketlerini atlar. Yeni eklenti: `tools/office-plugin/build.sh` → çıkan boyut + SHA-256'yı `OfficePlugin.java`'ya yaz, **yeni** etiketle (`office-plugin-2`, eskisi eski sürümler için kalsın) `gh release create office-plugin-2 build/office-plugin/kolay-office-plugin.dex --prerelease --latest=false` ile yayınla, sonra uygulamayı yayınla. Yayınlanmış bir eklenti varlığını yerinde değiştirme: özet tutmaz, cihazlar reddeder.

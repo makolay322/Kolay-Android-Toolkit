@@ -33,8 +33,8 @@ public final class Sheet {
         return n != null && c >= 0 && c < n.length && n[c] == 1;
     }
 
-    /** @return false once the size caps are reached (the rest is dropped and {@link #truncated} set). */
-    synchronized boolean put(int r, int c, String v, boolean num) {
+    /** @return false once the size caps are reached (the rest is dropped and {@link #truncated} set). Public for the old-Office plugin (other class loader). */
+    public synchronized boolean put(int r, int c, String v, boolean num) {
         if (v == null || v.isEmpty()) return true;
         if (r >= MAX_ROWS || c >= MAX_COLS || cells >= MAX_CELLS) { truncated = true; return false; }
         while (rows.size() <= r) { rows.add(null); nums.add(null); }

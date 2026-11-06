@@ -9,6 +9,11 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Eklendi (1.007) — Eski Office dosyaları (.doc / .xls / .ppt)
+- Belge Görüntüleyici artık eski **Word (.doc)**, **Excel (.xls)** ve **PowerPoint (.ppt)** dosyalarını da açar. Okuyucu APK'yı büyütmemek için içinde değil: böyle bir dosya ilk açıldığında boyutu yazan bir ekran çıkar, **İndir**'e basınca bir kerelik eklenti (yaklaşık 1,5 MB) ilerleme çubuğuyla iner (iptal edilebilir) ve dosya hemen açılır.
+- **.doc:** paragraflar, kalın/italik/altı çizili, başlıklar, madde işaretli ve numaralı listeler, tablolar (metin olarak). **.xls:** tüm görünür sayfalar, kayıtlı değerler (formül hesaplanmaz), tarih/sayı/yüzde Türkçe gösterimle. **.ppt:** her slayt için “Slayt N” başlığı altında metin kutuları ve madde işaretleri. Resim ve sayfa düzeni gösterilmez; .ppt içindeki tabloların metni henüz çıkmaz.
+- Güvenlik: eklenti yalnızca GitHub'dan HTTPS ile iner; boyutu ve SHA-256 özeti uygulamaya gömülüdür, her yüklemeden önce yeniden denetlenir, tutmazsa silinir ve çalıştırılmaz. Belge cihazdan çıkmaz. **Ayarlar → Eklentiler → Eski Office eklentisini sil** ile kaldırılabilir.
+
 ### Eklendi (1.006) — Dosyalar: Samba (ağ paylaşımları)
 - Dosyalar giriş sayfasında yeni **Ağ** bölümü: kayıtlı Samba sunucuları (ad, adres, isteğe bağlı port, kullanıcı/parola ya da misafir, isteğe bağlı etki alanı). Ekle, düzenle (basılı tut), sil. Kaydederken bağlantı denenir; olmazsa yine de kaydedilebilir.
 - **Ağda ara:** mDNS (`_smb._tcp`) ve bu ağdaki 445 numaralı portun hızlı taranmasıyla sunucular bulunur; dokununca form adresle dolar.

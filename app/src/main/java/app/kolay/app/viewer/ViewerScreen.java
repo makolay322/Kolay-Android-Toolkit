@@ -7,6 +7,7 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
+import app.kolay.app.doc.Langs;
 import app.kolay.app.ui.*;
 import java.io.File;
 import java.io.IOException;
@@ -305,14 +306,27 @@ final class ViewerScreen extends Screen {
 
     private void legacy(Viewer.Kind kind, String label) throws IOException {
         String ext = kind.name().toLowerCase(java.util.Locale.ROOT);
+        if (!LegacyOffice.available() && c.host.officePluginInstalled()) {
+            try {
+                LegacyOffice.load(c.host.officePluginDex());
+            } catch (SecurityException e) {   // file changed on disk: already deleted, offer a fresh download
+                post(() -> offerPlugin(label, ext, "Kayıtlı eklenti doğrulanamadı ve silindi. Yeniden indirebilirsin."));
+                return;
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+                fail("Eklenti yüklenemedi", "Eski Office eklentisi bu cihazda çalıştırılamadı. Ayarlar'dan silip yeniden indirmeyi dene.");
+                return;
+            }
+        }
+        if (!LegacyOffice.available()) { post(() -> offerPlugin(label, ext, null)); return; }
         LegacyOffice.Result r = LegacyOffice.extract(c.a, uri, ext, () -> destroyed);
         if (r.sheets != null && !r.sheets.isEmpty()) { sheets(label, r.sheets); return; }
         if (r.blocks != null) {
+            if (r.blocks.isEmpty()) { fail("Boş belge", "Bu dosyada gösterilecek metin yok."); return; }
             List<Docx.Block> blocks = r.blocks;
             post(() -> {
                 DocPane p = new DocPane(c, null, false);
                 closer = p::close;
-                header.subtitle.setText(label);
+                header.subtitle.setText(label + " · eski biçim, yalnızca metin");
                 show(p);
                 p.add(blocks);
             });
@@ -321,6 +335,67 @@ final class ViewerScreen extends Screen {
         post(() -> {
             header.subtitle.setText(label + " · eski biçim");
             show(Ui.state(c, Icon.Kind.DOC, "Eski Office biçimi", r.reason, null, null));
+        });
+    }
+
+    // ---- old-Office plugin: one-time download on request ----------------------------------------
+
+    private volatile boolean pluginCancel;
+
+    private void offerPlugin(String label, String ext, String error) {
+        header.subtitle.setText(label + " · eski biçim");
+        String size = Langs.mb(c.host.officePluginSize());
+        String body = (error != null ? error + "\n\n" : "")
+            + "Eski ." + ext + " dosyalarını açmak için bir kerelik bir eklenti (" + size + ") indirilir. "
+            + "Eklenti GitHub'daki Kolay sürüm sayfasından gelir, SHA-256 özeti doğrulanmadan kullanılmaz ve yalnızca bu "
+            + "telefonda çalışır; belgen hiçbir yere gönderilmez. Yalnızca metin gösterilir (resim ve düzen yok).";
+        show(Ui.state(c, Icon.Kind.DOWNLOAD, "Eski Office biçimi", body, error != null ? "Yeniden dene" : "İndir · " + size,
+            () -> downloadPlugin(label, ext)));
+    }
+
+    private void downloadPlugin(String label, String ext) {
+        Palette p = c.p;
+        final long total = Math.max(1, c.host.officePluginSize());
+        LinearLayout l = new LinearLayout(c.a);
+        l.setOrientation(LinearLayout.VERTICAL);
+        l.setGravity(Gravity.CENTER);
+        l.setPadding(c.dp(36), 0, c.dp(36), c.dp(48));
+        TextView title = Ui.text(c, "Eklenti indiriliyor…", 18, p.ink, 600);
+        title.setGravity(Gravity.CENTER);
+        l.addView(title);
+        Bar bar = new Bar(c.a, p.surface2, p.primary);
+        l.addView(bar, Ui.lp(-1, c.dp(6), 0, c.dp(18), 0, 0));
+        TextView status = Ui.text(c, "0 / " + Langs.mb(total), 13, p.muted, 400);
+        status.setGravity(Gravity.CENTER);
+        l.addView(status, Ui.lp(-2, -2, 0, c.dp(10), 0, 0));
+        TextView cancel = Ui.button(c, "İptal", Ui.Style.GHOST, null);
+        cancel.setMinWidth(c.dp(140));
+        cancel.setOnClickListener(v -> { pluginCancel = true; v.setEnabled(false); });
+        l.addView(cancel, Ui.lp(-2, c.dp(Ui.H_GHOST), 0, c.dp(20), 0, 0));
+        show(l);
+        pluginCancel = false;
+        c.io.execute(() -> {
+            final long[] last = {0};
+            String err = null;
+            try {
+                c.host.officePluginDownload(done -> {
+                    long now = System.currentTimeMillis();
+                    if (now - last[0] < 120 && done < total) return;
+                    last[0] = now;
+                    post(() -> { bar.set(done / (float) total); status.setText(Langs.mb(done) + " / " + Langs.mb(total)); });
+                }, () -> pluginCancel || destroyed);
+            } catch (java.io.InterruptedIOException e) {
+                err = "";
+            } catch (Exception e) {
+                err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            }
+            if (destroyed) return;
+            if (err == null) { post(() -> show(Ui.busy(c, "Açılıyor…", null))); load(); return; }
+            String e2 = err;
+            post(() -> {
+                if (e2.isEmpty()) offerPlugin(label, ext, null);
+                else offerPlugin(label, ext, "İndirilemedi: " + e2);
+            });
         });
     }
 

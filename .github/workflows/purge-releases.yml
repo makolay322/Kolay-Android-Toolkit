@@ -1,5 +1,6 @@
 name: purge-releases
-# Manual only: deletes every Release (and its tag) except the latest one. Run after a new release is confirmed live.
+# Manual only: deletes every Release (and its tag) except the latest one and the office-plugin-* prereleases (the old-Office
+# plugin the app downloads from a fixed tag; see docs/OPERATIONS.md). Run after a new release is confirmed live.
 on:
   workflow_dispatch:
 permissions:
@@ -8,7 +9,7 @@ jobs:
   purge:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete all but the latest release
+      - name: Delete all but the latest release (and the plugin releases)
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -18,5 +19,6 @@ jobs:
           echo "keeping $latest"
           gh release list --limit 200 --json tagName -q '.[].tagName' | while read -r t; do
             [ "$t" = "$latest" ] && continue
+            case "$t" in office-plugin-*) echo "keeping $t (plugin)"; continue;; esac
             echo "deleting $t"; gh release delete "$t" --cleanup-tag --yes
           done

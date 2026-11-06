@@ -68,6 +68,23 @@ public final class SettingsScreen extends Screen {
         renderUpdateButtons();
         col.addView(updateBox);
 
+        // ---- old-Office plugin (only shown once downloaded from the viewer) ----
+        if (c.host.officePluginInstalled()) {
+            col.addView(section("EKLENTİLER", false));
+            LinearLayout pl = card();
+            pl.addView(row(Icon.Kind.DOC, "Eski Office eklentisi", ".doc · .xls · .ppt · " + app.kolay.app.doc.Langs.mb(c.host.officePluginSize()), null));
+            TextView del = Ui.button(c, "Eski Office eklentisini sil", Ui.Style.TONAL, Icon.Kind.TRASH);
+            del.setOnClickListener(v -> {
+                if (!c.host.officePluginDelete()) { Toast.makeText(c.a, "Silinemedi", Toast.LENGTH_SHORT).show(); return; }
+                app.kolay.app.viewer.LegacyOffice.install(null);
+                Ui.haptic(v, HapticFeedbackConstants.CONFIRM);
+                Toast.makeText(c.a, "Eklenti silindi; gerekirse yeniden indirilir.", Toast.LENGTH_SHORT).show();
+                v.setEnabled(false); v.setAlpha(0.45f);
+            });
+            pl.addView(del, Ui.lp(-1, c.dp(Ui.H_GHOST), 0, c.dp(14), 0, 0));
+            col.addView(pl);
+        }
+
         // ---- about ----
         col.addView(section("HAKKINDA", false));
         LinearLayout ab = card();
