@@ -14,7 +14,6 @@ import android.widget.*;
 import app.kolay.app.doc.*;
 import app.kolay.app.ui.*;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
@@ -170,15 +169,9 @@ final class ExportScreen extends Screen {
         Ui.style(c, save, Ui.Style.GHOST, null);
         save.setOnClickListener(v -> cancel());
 
-        List<Job> jobs = new ArrayList<>();
-        for (ScanSession.Page pg : s.pages) if (!pg.broken) jobs.add(new Job(pg.file, pg.quad.clone(), pg.rotation, pg.filter));
+        List<ScanSession.Job> jobs = s.jobs();
         final boolean asPdf = pdf, withOcr = ocr; final String combo = langs;
         c.io.execute(() -> work(jobs, asPdf, withOcr, combo, n));
-    }
-
-    private static final class Job {
-        final File file; final float[] quad; final int rotation; final Imaging.Filter filter;
-        Job(File f, float[] q, int r, Imaging.Filter fl) { file = f; quad = q; rotation = r; filter = fl; }
     }
 
     /** PDF pages: A4 at 300 dpi (long side 3508 px), JPEG quality 90; plain JPEG export keeps the full picture. */
@@ -195,7 +188,7 @@ final class ExportScreen extends Screen {
     }
 
     /** Background thread. Writes straight into the MediaStore entries; on failure or cancel they are removed again. */
-    private void work(List<Job> jobs, boolean asPdf, boolean withOcr, String combo, String base) {
+    private void work(List<ScanSession.Job> jobs, boolean asPdf, boolean withOcr, String combo, String base) {
         ContentResolver cr = c.a.getContentResolver();
         List<Uri> made = new ArrayList<>();
         StringBuilder all = new StringBuilder();
@@ -215,8 +208,7 @@ final class ExportScreen extends Screen {
             for (int i = 0; i < n; i++) {
                 if (cancelled) throw new InterruptedIOException();
                 progress("Sayfa " + (i + 1) + "/" + n + " hazırlanıyor…", i / (float) n);
-                Job j = jobs.get(i);
-                Bitmap bmp = Imaging.render(j.file, j.quad, j.rotation, j.filter, Imaging.FULL);
+                Bitmap bmp = jobs.get(i).render(Imaging.FULL);
                 try {
                     OcrEngine.Page words = null;
                     if (engine != null) {
@@ -318,7 +310,7 @@ final class ExportScreen extends Screen {
         body.addView(col, new FrameLayout.LayoutParams(-1, -1));
         Ui.appear(col, 0);
 
-        TextView fresh = Ui.button(c, "Yeni tarama", Ui.Style.TONAL, s.camera ? Icon.Kind.CAMERA : Icon.Kind.NETSCAN);
+        TextView fresh = Ui.button(c, "Yeni tarama", Ui.Style.TONAL, Icon.Kind.DOCSCAN);
         fresh.setOnClickListener(v -> {
             for (ScanSession.Page pg : new ArrayList<>(s.pages)) s.remove(pg);
             s.defaultFilter = Imaging.Filter.AUTO;
@@ -332,12 +324,11 @@ final class ExportScreen extends Screen {
         Ui.haptic(col, HapticFeedbackConstants.CONFIRM);
     }
 
-    /** Leaves the whole scanner: back to the root of the flow (camera or network scanner), which is popped right after. */
+    /** Ends the flow: back to its root ({@link DocsScreen}), which is popped right after and discards the pages. */
     private void close() {
         for (ScanSession.Page pg : new ArrayList<>(s.pages)) s.remove(pg);
-        s.closing = true;
         c.nav.popTo(s.root);
-        c.nav.pop();   // queued behind popTo: leaves the camera screen
+        c.nav.pop();   // queued behind popTo: leaves the documents screen
     }
 
     private void share(boolean asPdf) {

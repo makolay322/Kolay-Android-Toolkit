@@ -41,6 +41,16 @@
                 <data android:mimeType="text/plain"/>
             </intent-filter>
         </activity-alias>
+        <!-- Share-sheet entry "Metne çevir": pictures from other apps go to text recognition (general mode, on the device). No PDF. -->
+        <activity-alias android:name=".OcrShare" android:targetActivity=".MainActivity" android:exported="true"
+            android:label="Metne çevir" android:icon="@mipmap/ic_launcher">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+        </activity-alias>
         <!-- Quick-settings tile (pull-down panel): opens the QR reader. The user adds it once via the panel's edit mode. -->
         <service android:name=".QrTileService" android:exported="true" android:label="QR Okuyucu"
             android:icon="@drawable/ic_qr_tile" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">

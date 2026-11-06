@@ -7,11 +7,19 @@ import android.content.Intent;
 import android.os.PersistableBundle;
 import android.view.*;
 import android.widget.*;
+import app.kolay.app.doc.LangBar;
+import app.kolay.app.doc.Langs;
+import app.kolay.app.tools.scan.ScanSession;
 import app.kolay.app.ui.*;
 
-/** The cleaned text with Copy and Share. Never stored: it only exists in memory while this screen is open. */
+/**
+ * The text with Copy and Share. Never stored: it only exists in memory while this screen is open. Back returns to the pages
+ * (the flow goes on); in general mode other languages can be chosen and the same pages read again.
+ */
 final class ResultScreen extends Screen {
-    private final Session s;
+    private final ScanSession s;
+    private final boolean general;
+    private final String langs;
     private final String raw;
     private String text;            // what is shown / copied: the local OCR text, or its cleaned version after a polish
     private boolean cleaned, cleaning;
@@ -24,13 +32,13 @@ final class ResultScreen extends Screen {
     private TextView copy;
     private static final String CLEAN_LABEL = "Cilala (maskelenip buluta gider)";
 
-    ResultScreen(Session s, String text, long secs, int pages, boolean ok, String marked) { this.s = s; this.marked = marked; this.raw = text; this.text = text; this.secs = secs; this.pages = pages; this.ok = ok; }
+    ResultScreen(ScanSession s, boolean general, String langs, String text, long secs, int pages, boolean ok, String marked) { this.s = s; this.general = general; this.langs = langs; this.marked = marked; this.raw = text; this.text = text; this.secs = secs; this.pages = pages; this.ok = ok; }
 
     @Override public View create() {
         Palette p = c.p;
         LinearLayout page = new LinearLayout(c.a);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.addView(new Header(c, "Sonuç", secs + " sn · " + pages + " sayfa", this::back).view);
+        page.addView(new Header(c, "Sonuç", secs + " sn · " + pages + " sayfa" + (general ? " · " + Langs.names(langs) : ""), this::back).view);
 
         ScrollView sv = new ScrollView(c.a);
         sv.setVerticalScrollBarEnabled(false);
@@ -49,7 +57,15 @@ final class ResultScreen extends Screen {
         page.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
 
         LinearLayout bottom = Ui.bottomBar(c);
-        if (ok && (s.general || marked != null)) {   // the text stays on the device unless this button is pressed
+        if (general) {   // other languages: read the same pages again
+            TextView again = Ui.button(c, "Seçili dillerle yeniden oku", Ui.Style.GHOST, Icon.Kind.REFRESH);
+            again.setVisibility(View.GONE);
+            again.setOnClickListener(v -> ProgressScreen.open(c, s, true, true));
+            LangBar lb = new LangBar(c, langs, v -> { Langs.remember(c.a, "ocr", v); again.setVisibility(v.equals(langs) ? View.GONE : View.VISIBLE); });
+            bottom.addView(lb.view, Ui.lp(-1, -2, 0, 0, 0, c.dp(Ui.GAP)));
+            bottom.addView(again, Ui.lp(-1, c.dp(Ui.H_GHOST), 0, 0, 0, c.dp(Ui.GAP)));
+        }
+        if (ok && (general || marked != null)) {   // the text stays on the device unless this button is pressed
             clean = Ui.button(c, CLEAN_LABEL, Ui.Style.TONAL, Icon.Kind.SPARKLE);
             clean.setOnClickListener(v -> cleanUp());
             bottom.addView(clean, Ui.lp(-1, c.dp(Ui.H_GHOST), 0, 0, 0, c.dp(Ui.GAP)));
@@ -63,7 +79,7 @@ final class ResultScreen extends Screen {
         });
         if (ok) bottom.addView(Ui.pair(c, copy, share, Ui.H_BAR));
         else {   // nothing worth copying: offer to try again instead
-            TextView retry = Ui.button(c, "Başka sayfa seç", Ui.Style.PRIMARY, Icon.Kind.IMAGE);
+            TextView retry = Ui.button(c, "Sayfalara dön", Ui.Style.PRIMARY, Icon.Kind.LAYERS);
             retry.setOnClickListener(v -> back());
             bottom.addView(retry, Ui.lp(-1, c.dp(Ui.H_BAR)));
         }
@@ -92,7 +108,7 @@ final class ResultScreen extends Screen {
         clean.setText("Cilalanıyor…"); clean.setEnabled(false);
         c.io.execute(() -> {
             String res = null, err = null;
-            try { res = s.general ? Ocr.cleanGeneral(c.host, raw) : Ocr.polish(c.host, marked); if (res.isEmpty()) err = "Boş yanıt"; }
+            try { res = general ? Ocr.cleanGeneral(c.host, raw) : Ocr.polish(c.host, marked); if (res.isEmpty()) err = "Boş yanıt"; }
             catch (Exception e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); }
             final String r = res, e = err;
             c.ui.post(() -> {
@@ -116,7 +132,7 @@ final class ResultScreen extends Screen {
         Ui.flashCopied(c, copy, Ui.Style.PRIMARY);
     }
 
-    private void back() { s.selected.clear(); c.nav.replace(new PickerScreen(s)); }
+    private void back() { c.nav.pop(); }
 
     @Override public boolean onBack() { back(); return true; }
 }

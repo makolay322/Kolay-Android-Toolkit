@@ -3,21 +3,17 @@ package app.kolay.app.tools.ocr;
 import app.kolay.app.tools.Llm;
 import app.kolay.shell.Host;
 
-import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
-import android.graphics.ImageDecoder;
-import android.graphics.Paint;
-import android.net.Uri;
+import app.kolay.app.doc.OcrEngine;
+import app.kolay.app.tools.scan.ScanSession;
 import com.googlecode.tesseract.android.TessBaseAPI;
 import java.io.*;
 import java.util.regex.*;
 
-/** Photos -> Tesseract (medical: deu; general: the chosen languages) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
+/** Processed pages of a document flow -> Tesseract (medical: deu; general: the chosen languages) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
 final class Ocr {
-    private static final int MAX_SIDE = 2400;
+    /** Pages are rendered at this size, then {@link OcrEngine#prepare} brings the long side to 2400 px (~200 dpi on A4). */
+    private static final long RENDER_PX = 6_000_000L;
     private static final String PROMPT =
         "Aşağıda, Almanca bir tıbbi belgenin (rapor, epikriz, bulgu, reçete, faks vb.) sayfalarının Tesseract OCR çıktıları var. "
         + "Sayfalar KARIŞIK sırada gönderilmiş olabilir; her biri '=== SAYFA n ===' satırıyla başlar. "
@@ -44,13 +40,12 @@ final class Ocr {
         + "Çıktı yalnızca düz metin olsun: sayfa başlığı ('=== SAYFA n ===' dahil), açıklama, markdown veya kod bloğu yazma; "
         + "sayfaları yalnızca bir boş satırla ayır.\n\nSAYFALAR:\n";
 
-    private final Context ctx;
     private final Host host;
     private final String lang;
     private TessBaseAPI tess;
 
     /** @param lang Tesseract language combo, e.g. "deu" or "deu+tur" (must be installed) */
-    Ocr(Host h, String lang) { host = h; this.lang = lang; ctx = h.activity().getApplicationContext(); }
+    Ocr(Host h, String lang) { host = h; this.lang = lang; }
 
     private synchronized TessBaseAPI tess() throws IOException {
         if (tess != null) return tess;
@@ -61,21 +56,10 @@ final class Ocr {
         return tess = a;
     }
 
-    /** Gri tonlama + kontrast germe; EXIF döndürme ImageDecoder'da otomatik. */
-    private Bitmap load(Uri uri) throws IOException {
-        Bitmap bmp = ImageDecoder.decodeBitmap(ImageDecoder.createSource(ctx.getContentResolver(), uri), (d, info, s) -> {
-            int m = Math.max(info.getSize().getWidth(), info.getSize().getHeight());
-            if (m > MAX_SIDE) d.setTargetSampleSize((int) Math.ceil(m / (double) MAX_SIDE));
-            d.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
-        });
-        Bitmap g = Bitmap.createBitmap(bmp.getWidth(), bmp.getHeight(), Bitmap.Config.ARGB_8888);
-        ColorMatrix cm = new ColorMatrix(); cm.setSaturation(0);
-        float c = 1.25f, off = -(0.125f * 255);  // hafif kontrast artışı
-        cm.postConcat(new ColorMatrix(new float[]{c,0,0,0,off, 0,c,0,0,off, 0,0,c,0,off, 0,0,0,1,0}));
-        Paint p = new Paint(); p.setColorFilter(new ColorMatrixColorFilter(cm));
-        new Canvas(g).drawBitmap(bmp, 0, 0, p);
-        bmp.recycle();
-        return g;
+    /** The page as straightened, rotated and filtered in the flow, then grayscale + mild contrast, long side ≤ 2400 px. */
+    private static Bitmap load(ScanSession.Job j) throws IOException {
+        Bitmap b = j.render(RENDER_PX);
+        try { return OcrEngine.prepare(b); } finally { b.recycle(); }
     }
 
     interface Progress { void on(String status, float fraction); }
@@ -95,14 +79,14 @@ final class Ocr {
      * All pages: Tesseract + masking for each, then one cleanup request (page order + fixes). Offline, without a key or on any
      * error the local text is returned as it is, without a note; {@link Out#pending} then lets the user polish it later.
      */
-    synchronized Out run(java.util.List<Uri> uris, Progress pr) throws Exception {
+    synchronized Out run(java.util.List<ScanSession.Job> pages, Progress pr) throws Exception {
         StringBuilder all = new StringBuilder(), plain = new StringBuilder();
         TessBaseAPI a = tess();
         java.util.List<String> raws = new java.util.ArrayList<>();
-        for (int i = 0; i < uris.size(); i++) {
+        for (int i = 0; i < pages.size(); i++) {
             if (cancelled) throw new InterruptedIOException("iptal");
-            pr.on("Sayfa " + (i + 1) + "/" + uris.size() + " okunuyor…", 0.08f + 0.62f * i / uris.size());
-            Bitmap bmp = load(uris.get(i));
+            pr.on("Sayfa " + (i + 1) + "/" + pages.size() + " okunuyor…", 0.08f + 0.62f * i / pages.size());
+            Bitmap bmp = load(pages.get(i));
             a.setImage(bmp);
             String raw = a.getUTF8Text();
             bmp.recycle();
@@ -133,15 +117,15 @@ final class Ocr {
     }
 
     /** General mode: Tesseract only, automatic page layout, no masking and no network. Pages are joined with a blank line. */
-    synchronized String runPlain(java.util.List<Uri> uris, Progress pr) throws Exception {
+    synchronized String runPlain(java.util.List<ScanSession.Job> pages, Progress pr) throws Exception {
         TessBaseAPI a = tess();
         a.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
         StringBuilder out = new StringBuilder();
         try {
-            for (int i = 0; i < uris.size(); i++) {
+            for (int i = 0; i < pages.size(); i++) {
                 if (cancelled) throw new InterruptedIOException("iptal");
-                pr.on("Sayfa " + (i + 1) + "/" + uris.size() + " okunuyor…", 0.08f + 0.9f * i / uris.size());
-                Bitmap bmp = load(uris.get(i));
+                pr.on("Sayfa " + (i + 1) + "/" + pages.size() + " okunuyor…", 0.08f + 0.9f * i / pages.size());
+                Bitmap bmp = load(pages.get(i));
                 a.setImage(bmp);
                 String raw = a.getUTF8Text();
                 bmp.recycle();

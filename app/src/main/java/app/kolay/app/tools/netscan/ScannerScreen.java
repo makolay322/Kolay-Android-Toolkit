@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.pdf.PdfRenderer;
 import android.os.ParcelFileDescriptor;
-import android.os.SystemClock;
 import android.view.*;
 import android.widget.*;
 import app.kolay.app.doc.Imaging;
@@ -23,8 +22,8 @@ import java.util.List;
 
 /**
  * One scanner: connect (HTTPS with a pinned certificate, else LAN-only HTTP), settings from its capabilities, scan jobs.
- * Root of a {@link ScanSession} flow: pages go to the same pages → filter → export screens as the camera scanner, and
- * leaving this screen discards them.
+ * A source of the documents flow: pages go to its {@link ScanSession} (pages → filter → export / text screens); leaving
+ * this screen keeps them.
  */
 final class ScannerScreen extends Screen {
     private static final int[] DPIS = {150, 200, 300};
@@ -34,7 +33,7 @@ final class ScannerScreen extends Screen {
 
     private final Device d;
     private final Store store;
-    private ScanSession s;
+    private final ScanSession s;
     private volatile EsclClient client;
     private Escl.Caps caps;
     private Header header;
@@ -43,17 +42,13 @@ final class ScannerScreen extends Screen {
     private TextView note, progress;
     private volatile boolean destroyed;
     private boolean scanning, cancelling;
-    private long backArmedAt;
     // settings: source 0 platen / 1 feeder / 2 duplex, colour 0 colour / 1 grey / 2 black-and-white
     private int source = -1, dpi, mode, size;
     private String message = "";
 
-    ScannerScreen(Device d, Store store) { this.d = d; this.store = store; }
+    ScannerScreen(Device d, Store store, ScanSession s) { this.d = d; this.store = store; this.s = s; }
 
     @Override public View create() {
-        s = new ScanSession(c);
-        s.camera = false;
-        s.root = this;
         s.onChange = this::paintBar;
         LinearLayout page = new LinearLayout(c.a);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -412,18 +407,12 @@ final class ScannerScreen extends Screen {
 
     private void back() {
         if (scanning) { cancel(); return; }
-        if (s.count() > 0 && SystemClock.uptimeMillis() - backArmedAt > 3000) {
-            backArmedAt = SystemClock.uptimeMillis();
-            Toast.makeText(c.a, s.count() + " sayfa silinecek. Çıkmak için tekrar geri dokun.", Toast.LENGTH_SHORT).show();
-            return;
-        }
         c.nav.pop();
     }
 
     @Override public boolean onBack() { back(); return true; }
 
     @Override public void onReturn() {
-        if (s.closing) return;   // ExportScreen "Bitti": this screen is about to be popped as well
         s.onChange = this::paintBar;
         if (caps != null && !scanning) { message = ""; form(); }
     }
@@ -432,6 +421,5 @@ final class ScannerScreen extends Screen {
         destroyed = true;
         EsclClient cl = client;
         if (cl != null) cl.cancel();   // the scanning thread deletes the job on the scanner
-        s.destroy();
     }
 }

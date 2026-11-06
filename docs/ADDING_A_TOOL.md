@@ -1,6 +1,6 @@
 # Yeni araç ekleme
 
-Bir araç = `Tool` uygulaması + en az bir `Screen`. Ana sayfa dört kart gösterir (Belgeler, Dini, Araçlar, Sohbet); grup kartı `GroupScreen` ile o gruptaki araçları satır satır listeler; kart animasyonu,
+Bir araç = `Tool` uygulaması + en az bir `Screen`. Ana sayfa dört kart gösterir (Belgeler, Dini, Araçlar, Sohbet); grup kartı `GroupScreen` ile o gruptaki araçları satır satır listeler (Belgeler kendi akışını açar: `tools/scan/DocsScreen`, araç listesi yok); kart animasyonu,
 ikon kutusu, geçiş ve geri tuşu hazır gelir.
 
 ## 1. Araç sınıfı
@@ -28,7 +28,7 @@ final class NotScreen extends Screen {
 }
 ```
 ## 3. Kaydet
-`Tools.java` içinde uygun grup dizisine (`DOCUMENTS`, `FAITH`, `UTILITIES`) `new NotTool()` ekle. Bitti. Yeni bir ana sayfa kartı gerekiyorsa `HomeScreen`'e bir `card(...)` ekle (ızgara 2 sütun).
+`Tools.java` içinde uygun grup dizisine (`FAITH`, `UTILITIES`) `new NotTool()` ekle. Bitti. Yeni bir ana sayfa kartı gerekiyorsa `HomeScreen`'e bir `card(...)` ekle (ızgara 2 sütun).
 
 ## Ekranlar arası geçiş
 | Amaç | Çağrı | Hareket |
@@ -43,6 +43,7 @@ Geçiş sürerken gelen istek kuyruğa alınır (son istek kazanır). Geri tuşu
 - Renk/ölçü sabit yazma: `c.p` (Palette) ve `c.dp()`; açık/koyu tema otomatik uyar. ([UI.md](UI.md))
 - Uzun işleri `c.io` havuzunda yap, arayüze `c.ui.post(...)` ile dön. Ekran yok edilince (`onDestroy`) işi iptal et / sonucu yok say.
 - Yığında alttaki bir ekranın hâlâ gösterebileceği bir `Bitmap`'i `recycle()` etme: `pop` sırasında o ekran yeniden çizilir ve geri dönüştürülmüş bitmap uygulamayı çökertir (bırak, GC toplasın).
+- Belge akışında (`ScanSession`) oturumun sahibi kök ekrandır (`DocsScreen`): kaynaklar ve çıktılar (kamera, tarayıcı, kayıt, OCR) oturumu bitirmez/silmez; sayfaları arka planda okumak için `s.jobs()` anlık kopyası alınır.
 - Sır gerekiyorsa `c.host.secret("ad")` / Ayarlar'a bir giriş alanı ekle. **Kodda veya depoda sır tutma.**
 - Çıktıyı/kullanıcı verisini diske veya loga yazma (gerekçeli ve belgelenmiş istisna yoksa).
 - Yeni izin gerekiyorsa `app/src/main/AndroidManifest.xml`'e ekle; sonraki sürümle birlikte gelir (ayrı kurulum gerekmez). Gereksiz izin isteme.

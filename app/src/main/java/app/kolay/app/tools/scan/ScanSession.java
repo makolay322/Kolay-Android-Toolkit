@@ -22,6 +22,10 @@ public final class ScanSession {
     /** Preview renders (list, strip, filter choice) stay around this size. */
     static final long THUMB_PX = 360_000L;
     private static final long DETECT_PX = 1_200_000L;
+    /** Larger pictures are not copied in (the page is marked unreadable); decoding is sampled down anyway. */
+    private static final long MAX_IMPORT_BYTES = 64L << 20;
+    /** Cache folders of the flows alive in this process (main thread). A share can open a second activity next to a running flow. */
+    private static final java.util.Set<String> LIVE = new java.util.HashSet<>();
 
     static final class Page {
         final File file;
@@ -39,23 +43,21 @@ public final class ScanSession {
     final File dir;
     final List<Page> pages = new ArrayList<>();
     public Imaging.Filter defaultFilter = Imaging.Filter.AUTO;
-    /** The screen at the bottom of the flow (camera or network scanner; for "back to the source" / leaving). */
+    /** The screen at the bottom of the flow ({@link DocsScreen}; "Yeni tarama" returns there, "Bitti" leaves it). */
     public Screen root;
     /** Called on the main thread whenever a page's preview or state changed. */
     public Runnable onChange;
-    /** Set when the flow is being left from a later screen: the root must not start again on the way out. */
-    public boolean closing;
-    /** False for the network scanner: texts say "scanner" instead of "camera". */
-    public boolean camera = true;
     private int seq;
     private volatile boolean destroyed;   // also read by the background writers
 
     public ScanSession(Ctx c) {
         this.c = c;
         File parent = new File(c.a.getCacheDir(), "scan");
-        deleteTree(parent);  // leftovers of earlier flows (e.g. the app was killed); only one flow exists at a time
+        File[] old = parent.listFiles();   // leftovers of earlier flows (e.g. the app was killed), never a live one
+        if (old != null) for (File f : old) if (!LIVE.contains(f.getName())) deleteTree(f);
         dir = new File(parent, Long.toString(System.nanoTime()));
         dir.mkdirs();
+        LIVE.add(dir.getName());
     }
 
     public boolean destroyed() { return destroyed; }
@@ -91,7 +93,7 @@ public final class ScanSession {
         });
     }
 
-    /** Gallery pictures: copied into the cache (the read grant may end), then outlined. */
+    /** Gallery or shared pictures: copied into the cache (the read grant may end), then outlined. */
     void addUris(List<android.net.Uri> uris) {
         for (android.net.Uri u : uris) {
             Page p = new Page(newFile(), defaultFilter);
@@ -99,8 +101,11 @@ public final class ScanSession {
             c.io.execute(() -> {
                 try (InputStream in = c.a.getContentResolver().openInputStream(u); OutputStream o = new FileOutputStream(p.file)) {
                     if (in == null) throw new IOException("okunamadı");
-                    byte[] b = new byte[65536]; int n;
-                    while ((n = in.read(b)) > 0) o.write(b, 0, n);
+                    byte[] b = new byte[65536]; int n; long total = 0;
+                    while ((n = in.read(b)) > 0) {
+                        if ((total += n) > MAX_IMPORT_BYTES) throw new IOException("çok büyük");
+                        o.write(b, 0, n);
+                    }
                 } catch (Exception e) { c.ui.post(() -> markBroken(p)); return; }
                 if (gone(p)) return;
                 detect(p, null, true);
@@ -188,9 +193,24 @@ public final class ScanSession {
         changed();
     }
 
-    boolean allReady() {
+    public boolean allReady() {
         for (Page p : pages) if (!p.ready) return false;
         return true;
+    }
+
+    /** A readable page as it is now, for background rendering while the page itself may change. */
+    public static final class Job {
+        final File file; final float[] quad; final int rotation; final Imaging.Filter filter;
+        Job(Page p) { file = p.file; quad = p.quad.clone(); rotation = p.rotation; filter = p.filter; }
+        /** Background: straightened, rotated and filtered, ≤ {@code maxPixels}; a new bitmap owned by the caller. */
+        public Bitmap render(long maxPixels) throws IOException { return Imaging.render(file, quad, rotation, filter, maxPixels); }
+    }
+
+    /** Main thread: the readable pages in order. */
+    public List<Job> jobs() {
+        List<Job> out = new ArrayList<>();
+        for (Page p : pages) if (!p.broken) out.add(new Job(p));
+        return out;
     }
 
     private void changed() { if (!destroyed && onChange != null) onChange.run(); }
@@ -206,6 +226,7 @@ public final class ScanSession {
         onChange = null;
         for (Page p : pages) if (p.thumb != null) { p.thumb.recycle(); p.thumb = null; }
         pages.clear();
+        LIVE.remove(dir.getName());
         File d = dir;
         new Thread(() -> deleteTree(d), "scan-cleanup").start();
     }

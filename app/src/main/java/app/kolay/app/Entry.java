@@ -4,8 +4,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.FrameLayout;
+import app.kolay.app.doc.PhotoPick;
 import app.kolay.app.screens.HomeScreen;
 import app.kolay.app.tools.qr.QrTool;
+import app.kolay.app.tools.scan.DocsScreen;
 import app.kolay.app.tools.youtube.YoutubeTool;
 import app.kolay.app.ui.*;
 import app.kolay.shell.Host;
@@ -37,6 +39,19 @@ public final class Entry {
         if (saved == null && in != null && QrTool.ACTION_QR.equals(in.getAction())) {
             in.setAction(Intent.ACTION_MAIN);
             c.nav.push(new QrTool().open(c));
+        }
+        // Pictures shared via "Metne çevir": straight to text recognition in the documents flow. Only content:// pictures
+        // (the share grant), consumed like the others. Checked before text: a picture share may carry a caption too.
+        String type = in == null ? null : in.getType();
+        if (saved == null && type != null && type.startsWith("image/")
+                && (Intent.ACTION_SEND.equals(in.getAction()) || Intent.ACTION_SEND_MULTIPLE.equals(in.getAction()))) {
+            java.util.List<android.net.Uri> uris = new java.util.ArrayList<>();
+            for (android.net.Uri u : PhotoPick.uris(in)) if ("content".equals(u.getScheme())) uris.add(u);
+            in.setAction(Intent.ACTION_MAIN);
+            in.removeExtra(Intent.EXTRA_STREAM);
+            in.removeExtra(Intent.EXTRA_TEXT);
+            in.setClipData(null);
+            if (!uris.isEmpty()) c.nav.push(new DocsScreen(uris));
         }
         // Shared from another app via "YouTube Özet": open the summary screen with the link. Consumed so recreate() does not repeat it.
         if (saved == null && in != null && Intent.ACTION_SEND.equals(in.getAction()) && in.getStringExtra(Intent.EXTRA_TEXT) != null) {

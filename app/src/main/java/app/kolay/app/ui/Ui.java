@@ -173,6 +173,36 @@ public final class Ui {
         return row;
     }
 
+    /** Full-width navigation row: icon badge (soft tone {@code idx}), title and subtitle, chevron. */
+    public static LinearLayout navRow(Ctx c, Icon.Kind icon, String title, String subtitle, int idx, Runnable open) {
+        Palette p = c.p;
+        LinearLayout row = new LinearLayout(c.a);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(c.dp(14), 0, c.dp(16), 0);
+        surface(c, row, p.surface, 22, true);
+        row.setClickable(true);
+        FrameLayout badge = new FrameLayout(c.a);
+        badge.setBackground(rounded(c, p.softBg(idx), 14));
+        badge.addView(icon(c, icon, p.softFg(idx), 22), new FrameLayout.LayoutParams(c.dp(22), c.dp(22), Gravity.CENTER));
+        row.addView(badge, new LinearLayout.LayoutParams(c.dp(46), c.dp(46)));
+        LinearLayout txt = new LinearLayout(c.a);
+        txt.setOrientation(LinearLayout.VERTICAL);
+        TextView name = text(c, title, 16, p.ink, 600);
+        name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        txt.addView(name);
+        TextView sub = text(c, subtitle, 13, p.muted, 400);
+        sub.setSingleLine(true); sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        txt.addView(sub, lp(-1, -2, 0, c.dp(3), 0, 0));
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
+        tl.setMarginStart(c.dp(14));
+        row.addView(txt, tl);
+        row.addView(icon(c, Icon.Kind.CHEVRON, p.muted, 18), new LinearLayout.LayoutParams(c.dp(18), c.dp(18)));
+        row.setContentDescription(title + ". " + subtitle);
+        row.setOnClickListener(v -> { haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); open.run(); });
+        press(row);
+        return row;
+    }
+
     /** Bottom action area: a full-width row with page gutters, sitting under scrolling content. */
     public static LinearLayout bottomBar(Ctx c) {
         LinearLayout l = new LinearLayout(c.a);

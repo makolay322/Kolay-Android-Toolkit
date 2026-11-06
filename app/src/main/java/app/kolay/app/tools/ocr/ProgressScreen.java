@@ -1,23 +1,43 @@
 package app.kolay.app.tools.ocr;
 
-import android.net.Uri;
 import android.view.*;
 import android.widget.*;
+import app.kolay.app.doc.Langs;
+import app.kolay.app.doc.TessScreen;
+import app.kolay.app.tools.scan.ScanSession;
 import app.kolay.app.ui.*;
 import java.util.List;
 
-/** Reads the selected pages; shows live status, a gliding bar and elapsed time. Back / Cancel aborts. */
-final class ProgressScreen extends Screen {
-    private final Session s;
-    private final List<Uri> pages;
+/**
+ * Reads the processed pages of a document flow (as cropped, rotated and filtered there); shows live status, a gliding bar
+ * and elapsed time. Back / Cancel aborts and returns to the pages. The flow and its pages stay: they end with its root.
+ */
+public final class ProgressScreen extends Screen {
+    private final ScanSession s;
+    private final boolean general;
+    private final String langs;
+    private List<ScanSession.Job> pages;
     private TextView status, elapsed;
     private Bar bar;
     private Ocr ocr;
+    private Runnable waiting;   // the flow's change listener while pages are still being outlined
     private volatile boolean stopped;
     private long t0;
     private float shown;
 
-    ProgressScreen(Session s, List<Uri> pages) { this.s = s; this.pages = pages; }
+    private ProgressScreen(ScanSession s, boolean general, String langs) { this.s = s; this.general = general; this.langs = langs; }
+
+    /**
+     * Reads the pages of {@code s}: {@code general} = the remembered languages, on the device only; otherwise the medical
+     * mode (German, masked, one cleanup request). Missing language data is offered first. {@code replace}: this takes the
+     * place of the calling screen (a result being read again) instead of going on top of it.
+     */
+    public static void open(Ctx c, ScanSession s, boolean general, boolean replace) {
+        String langs = general ? Langs.remembered(c.a, "ocr", "deu") : "deu";
+        Runnable go = () -> { Screen p = new ProgressScreen(s, general, langs); if (replace) c.nav.replace(p); else c.nav.push(p); };
+        if (Langs.ready(c.host, langs)) go.run();
+        else c.nav.push(new TessScreen(langs, go));   // language data first; "Devam" then starts reading
+    }
 
     @Override public View create() {
         Palette p = c.p;
@@ -32,7 +52,7 @@ final class ProgressScreen extends Screen {
         status = Ui.text(c, "Başlıyor…", 18, p.ink, 600);
         status.setGravity(Gravity.CENTER);
         col.addView(status, Ui.lp(-1, -2, 0, c.dp(28), 0, 0));
-        TextView sub = Ui.text(c, pages.size() + (s.general ? " sayfa · yalnızca cihazda okuma" : " sayfa · okuma, isim maskeleme, cilalama"), 13, p.muted, 400);
+        TextView sub = Ui.text(c, s.count() + (general ? " sayfa · " + Langs.names(langs) + " · yalnızca cihazda okuma" : " sayfa · okuma, isim maskeleme, cilalama"), 13, p.muted, 400);
         sub.setGravity(Gravity.CENTER);
         col.addView(sub, Ui.lp(-1, -2, 0, c.dp(6), 0, 0));
         bar = new Bar(c.a, p.surface2, p.primary);
@@ -54,7 +74,17 @@ final class ProgressScreen extends Screen {
         if (stopped) return;
         t0 = System.currentTimeMillis();
         tick();
-        ocr = new Ocr(c.host, s.general ? s.langs : "deu");
+        if (s.allReady()) { begin(); return; }
+        Ui.swapText(status, "Sayfalar hazırlanıyor…");   // e.g. shared pictures still being copied and outlined
+        waiting = () -> { if (s.allReady()) begin(); };
+        s.onChange = waiting;
+    }
+
+    private void begin() {
+        if (stopped || ocr != null) return;
+        if (s.onChange == waiting) s.onChange = null;
+        pages = s.jobs();
+        ocr = new Ocr(c.host, langs);
         c.io.execute(this::work);
     }
 
@@ -65,18 +95,21 @@ final class ProgressScreen extends Screen {
                 if (stopped) return;
                 Ui.swapText(status, msg); shown = Math.max(shown, f); bar.set(shown);
             });
-            if (s.general) result = ocr.runPlain(pages, pr);
+            if (pages.isEmpty()) { result = "Okunabilir sayfa yok."; ok = false; }
+            else if (general) result = ocr.runPlain(pages, pr);
             else { Ocr.Out o = ocr.run(pages, pr); result = o.text; pending = o.pending; }
             if (result.isEmpty()) result = "Metin bulunamadı.";
-        } catch (Exception e) {
-            result = "Hata: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()); ok = false;
+        } catch (Exception | OutOfMemoryError e) {
+            result = e instanceof OutOfMemoryError ? "Hata: bellek yetmedi; daha az sayfayla dene"
+                : "Hata: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            ok = false;
         } finally { ocr.close(); }
         final String text = result, marked = pending; final boolean good = ok;
         c.ui.post(() -> {
             if (stopped) return;
             stopped = true;
             bar.set(1f);
-            c.nav.replace(new ResultScreen(s, text, (System.currentTimeMillis() - t0) / 1000, pages.size(), good, marked));
+            c.nav.replace(new ResultScreen(s, general, langs, text, (System.currentTimeMillis() - t0) / 1000, pages.size(), good, marked));
         });
     }
 
@@ -93,10 +126,14 @@ final class ProgressScreen extends Screen {
         if (stopped) return;
         stopped = true;
         if (ocr != null) ocr.cancel();
-        c.nav.replace(new PickerScreen(s));
+        c.nav.pop();
     }
 
     @Override public boolean onBack() { cancel(); return true; }
 
-    @Override public void onDestroy() { stopped = true; }
+    @Override public void onDestroy() {
+        stopped = true;
+        if (ocr != null) ocr.cancel();
+        if (waiting != null && s.onChange == waiting) s.onChange = null;
+    }
 }

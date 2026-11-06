@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * First page of the scanner: live camera with the detected page outline, manual shutter, optional auto capture (outline
- * steady for ~1 s), torch, gallery import and a strip of the pages so far. Root of the flow: leaving it discards the scan.
+ * steady for ~1 s), torch, gallery import and a strip of the pages so far. A source of the documents flow: leaving it keeps the pages ({@link DocsScreen} owns them).
  * The camera runs only while this screen is on top and the app is in the foreground.
  */
 final class CameraScreen extends Screen implements DocCamera.Listener {
@@ -41,11 +41,11 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
     private OrientationEventListener orient;
     private int deviceRotation;
     private boolean shown, asked, away, autoOn, armed = true;
-    private long steadySince, lostSince, lastShot, backArmedAt;
+    private long steadySince, lostSince, lastShot;
     private float[] raw, smooth, shotQuad, pendingHint;
     private boolean shooting;
 
-    CameraScreen(ScanSession s) { this.s = s; s.root = this; }
+    CameraScreen(ScanSession s) { this.s = s; }
 
     @Override public View create() {
         Palette p = c.p;
@@ -239,17 +239,13 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
     @Override public void onPause() { release(); }
 
     @Override public void onReturn() {
-        if (s.closing) return;   // ExportScreen "Bitti": this screen is about to be popped as well
         away = false;
         s.onChange = this::refresh;
         refresh();
         ensureCamera();
     }
 
-    @Override public void onDestroy() {
-        release();
-        s.destroy();
-    }
+    @Override public void onDestroy() { release(); }
 
     /** Camera, torch, orientation sensor off. */
     private void release() {
@@ -403,11 +399,6 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
     }
 
     private void back() {
-        if (!s.pages.isEmpty() && SystemClock.uptimeMillis() - backArmedAt > 3000) {
-            backArmedAt = SystemClock.uptimeMillis();
-            Toast.makeText(c.a, s.pages.size() + " sayfa silinecek. Çıkmak için tekrar geri dokun.", Toast.LENGTH_SHORT).show();
-            return;
-        }
         release();
         c.nav.pop();
     }

@@ -3,19 +3,27 @@ package app.kolay.app.tools.scan;
 import android.graphics.Outline;
 import android.view.*;
 import android.widget.*;
+import app.kolay.app.tools.ocr.ProgressScreen;
 import app.kolay.app.ui.*;
 
-/** The scanned pages: order (up / down), rotate, crop, filter, delete; then save. Back returns to the camera with the pages kept. */
+/**
+ * The pages: order (up / down), rotate, crop, filter, delete; then save, read as text or as a medical report. Back and
+ * "Sayfa ekle" return to the source below (camera, scanner or the documents screen) with the pages kept.
+ */
 public final class PagesScreen extends Screen {
     private final ScanSession s;
     private Header header;
     private LinearLayout list;
     private FrameLayout body;
     private ScrollView scroll;
-    private TextView save;
+    private TextView save, text, medical;
     private ScanSession.Page confirmDelete;
+    private boolean readText;
 
     public PagesScreen(ScanSession s) { this.s = s; }
+
+    /** {@code readText}: go straight on to "Metne çevir" once shown (pictures shared from another app). */
+    PagesScreen(ScanSession s, boolean readText) { this.s = s; this.readText = readText; }
 
     @Override public View create() {
         LinearLayout page = new LinearLayout(c.a);
@@ -35,12 +43,12 @@ public final class PagesScreen extends Screen {
         TextView more = Ui.button(c, "Sayfa ekle", Ui.Style.TONAL, Icon.Kind.PLUS);
         more.setOnClickListener(v -> c.nav.pop());
         save = Ui.button(c, "Kaydet", Ui.Style.PRIMARY, Icon.Kind.DOWNLOAD);
-        save.setOnClickListener(v -> {
-            if (s.pages.isEmpty()) return;
-            if (!s.allReady()) { Toast.makeText(c.a, "Sayfalar hazırlanıyor, bir an bekle", Toast.LENGTH_SHORT).show(); return; }
-            Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY);
-            c.nav.push(new ExportScreen(s));
-        });
+        save.setOnClickListener(v -> { if (usable(v)) c.nav.push(new ExportScreen(s)); });
+        text = Ui.button(c, "Metne çevir", Ui.Style.TONAL, Icon.Kind.DOC);
+        text.setOnClickListener(v -> { if (usable(v)) ProgressScreen.open(c, s, true, false); });
+        medical = Ui.button(c, "Tıbbi rapor", Ui.Style.TONAL, Icon.Kind.SPARKLE);
+        medical.setOnClickListener(v -> { if (usable(v)) ProgressScreen.open(c, s, false, false); });
+        bb.addView(Ui.pair(c, text, medical, Ui.H_GHOST), Ui.lp(-1, -2, 0, 0, 0, c.dp(Ui.GAP)));
         bb.addView(Ui.pair(c, more, save, Ui.H_BAR));
         page.addView(bb, new LinearLayout.LayoutParams(-1, -2));
         s.onChange = this::refresh;
@@ -48,7 +56,15 @@ public final class PagesScreen extends Screen {
         return page;
     }
 
+    private boolean usable(View v) {
+        if (s.pages.isEmpty()) return false;
+        if (!s.allReady()) { Toast.makeText(c.a, "Sayfalar hazırlanıyor, bir an bekle", Toast.LENGTH_SHORT).show(); return false; }
+        Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY);
+        return true;
+    }
+
     @Override public void onShown() {
+        if (readText) { readText = false; ProgressScreen.open(c, s, true, false); }   // waits for the pages itself
         for (int i = 0; i < list.getChildCount(); i++) Ui.appear(list.getChildAt(i), 40L * Math.min(i, 8));
     }
 
@@ -57,13 +73,12 @@ public final class PagesScreen extends Screen {
     private void refresh() {
         int n = s.pages.size();
         header.subtitle.setText(n == 0 ? "Sayfa kalmadı" : n + " sayfa · sırala, kırp, filtre seç");
-        save.setEnabled(n > 0); save.setAlpha(n > 0 ? 1f : 0.45f);
+        for (TextView b : new TextView[]{save, text, medical}) { b.setEnabled(n > 0); b.setAlpha(n > 0 ? 1f : 0.45f); }
         int y = scroll.getScrollY();
         list.removeAllViews();
         body.removeAllViews();
         if (n == 0) {
-            LinearLayout st = s.camera ? Ui.state(c, Icon.Kind.DOCSCAN, "Sayfa kalmadı", "Kameraya dönüp yeni sayfa çekebilirsin.", "Kameraya dön", () -> c.nav.pop())
-                : Ui.state(c, Icon.Kind.NETSCAN, "Sayfa kalmadı", "Tarayıcıya dönüp yeni sayfa tarayabilirsin.", "Tarayıcıya dön", () -> c.nav.pop());
+            LinearLayout st = Ui.state(c, Icon.Kind.DOCSCAN, "Sayfa kalmadı", "Geri dönüp yeni sayfa ekleyebilirsin.", "Sayfa ekle", () -> c.nav.pop());
             body.addView(st, new FrameLayout.LayoutParams(-1, -1));
             return;
         }

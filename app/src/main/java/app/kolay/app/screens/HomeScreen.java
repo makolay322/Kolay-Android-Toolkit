@@ -4,6 +4,7 @@ import android.view.*;
 import android.widget.*;
 import app.kolay.app.tools.Tool;
 import app.kolay.app.tools.Tools;
+import app.kolay.app.tools.scan.DocsScreen;
 import app.kolay.app.ui.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -69,7 +70,7 @@ public final class HomeScreen extends Screen {
         // 2 × 2 grid: three groups and the chat.
         final int gap = c.dp(12);
         View[] cards = {
-            card("Belgeler", "Tarayıcı · ağ tarayıcı · OCR", Icon.Kind.DOCSCAN, 0, () -> group("Belgeler", "Tara, kaydet, metne çevir", Tools.DOCUMENTS)),
+            card("Belgeler", "Kamera · galeri · Wi-Fi tarayıcı", Icon.Kind.DOCSCAN, 0, () -> c.nav.push(new DocsScreen())),
             card("Dini", FAITH_SUB, Icon.Kind.CRESCENT, 1, () -> group("Dini", "Vakitler, kıble, cuma, helal", Tools.FAITH)),
             card("Araçlar", "QR · sıkıştır · YouTube · uygulamalar", Icon.Kind.APPS, 2, () -> group("Araçlar", "Küçük yardımcılar", Tools.UTILITIES)),
             card(Tools.CHAT.title(), Tools.CHAT.subtitle(), Tools.CHAT.icon(), 3, () -> c.nav.push(Tools.CHAT.open(c))),

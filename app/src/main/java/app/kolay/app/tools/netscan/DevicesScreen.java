@@ -5,11 +5,14 @@ import android.view.*;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
+import app.kolay.app.tools.scan.ScanSession;
 import app.kolay.app.ui.*;
 
 /** Scanners found on the local network (mDNS) plus addresses entered by hand. Discovery runs only while this screen is on top. */
-final class DevicesScreen extends Screen {
+public final class DevicesScreen extends Screen {
     private static final long QUIET_MS = 8000;
+
+    private final ScanSession s;
 
     private Store store;
     private Discovery disco;
@@ -18,6 +21,9 @@ final class DevicesScreen extends Screen {
     private EditText input;
     private long startedAt;
     private boolean shown;
+
+    /** @param s the document flow the scanned pages go to */
+    public DevicesScreen(ScanSession s) { this.s = s; }
 
     @Override public View create() {
         Palette p = c.p;
@@ -171,6 +177,6 @@ final class DevicesScreen extends Screen {
 
     private void open(Device d) {
         disco.stop();
-        c.nav.push(new ScannerScreen(d, store));
+        c.nav.push(new ScannerScreen(d, store, s));
     }
 }
