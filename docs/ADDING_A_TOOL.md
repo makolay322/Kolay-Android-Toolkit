@@ -1,6 +1,6 @@
 # Yeni araç ekleme
 
-Bir araç = `Tool` uygulaması + en az bir `Screen`. Ana sayfa `Tools.ALL` listesini kartlara çevirir; kart animasyonu,
+Bir araç = `Tool` uygulaması + en az bir `Screen`. Ana sayfa dört kart gösterir (Belgeler, Dini, Araçlar, Sohbet); grup kartı `GroupScreen` ile o gruptaki araçları satır satır listeler; kart animasyonu,
 ikon kutusu, geçiş ve geri tuşu hazır gelir.
 
 ## 1. Araç sınıfı
@@ -28,7 +28,7 @@ final class NotScreen extends Screen {
 }
 ```
 ## 3. Kaydet
-`Tools.java` içindeki `ALL` dizisine `new NotTool()` ekle. Bitti.
+`Tools.java` içinde uygun grup dizisine (`DOCUMENTS`, `FAITH`, `UTILITIES`) `new NotTool()` ekle. Bitti. Yeni bir ana sayfa kartı gerekiyorsa `HomeScreen`'e bir `card(...)` ekle (ızgara 2 sütun).
 
 ## Ekranlar arası geçiş
 | Amaç | Çağrı | Hareket |

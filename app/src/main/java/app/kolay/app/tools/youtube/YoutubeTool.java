@@ -12,7 +12,6 @@ public final class YoutubeTool implements Tool {
     @Override public String subtitle() { return "Bağlantıdan Türkçe özet"; }
     @Override public Icon.Kind icon() { return Icon.Kind.PLAY; }
     @Override public Screen open(Ctx c) { return new YoutubeScreen(); }
-    @Override public boolean compact() { return true; }
 
     /** Opened from the system share sheet ("YouTube Özet"): the shared text is filled in and the summary starts at once. */
     public Screen openShared(Ctx c, String sharedText) { return new YoutubeScreen(sharedText); }

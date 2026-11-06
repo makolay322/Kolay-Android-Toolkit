@@ -12,5 +12,4 @@ public final class KibleTool implements Tool {
     @Override public String subtitle() { return "Pusulayla kıble yönü"; }
     @Override public Icon.Kind icon() { return Icon.Kind.COMPASS; }
     @Override public Screen open(Ctx c) { return new KibleScreen(); }
-    @Override public boolean compact() { return true; }
 }

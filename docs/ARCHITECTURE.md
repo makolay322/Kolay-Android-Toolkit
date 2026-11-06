@@ -32,7 +32,7 @@ Otomatik geri dönüş (kötü sürümü kara listeye alma) eski düzenle birlik
 ```
 Entry                    Uygulama girişi: tema, Nav kökü, ana sayfa, geri tuşu, ömür döngüsü
 ui/                      Palette, Ctx, Ui, Icon, Nav, Screen, Header, Arc, Bar, Toggle  → docs/UI.md
-screens/                 HomeScreen, SettingsScreen
+screens/                 HomeScreen (2 × 2 grup kartı), GroupScreen (bir grubun araçları), SettingsScreen
 tools/Tool, Tools        araç arayüzü + kayıt listesi                                   → docs/ADDING_A_TOOL.md
 doc/                     Belge/OCR ortak altyapısı: Langs + LangBar (dil kombinasyonu, hatırlanan seçim), TessScreen (dil verisi yöneticisi), OcrEngine (Tesseract, kelime kutuları), QuadDetector (sayfa kenarı algılama), Imaging (çözme, perspektif düzeltme, filtreler), PdfWriter (JPEG sayfalı, isteğe bağlı görünmez metin katmanlı PDF), MediaOut (MediaStore'a kayıt), PhotoPick (galeriden seçim: sistem Fotoğraf Seçicisi, yoksa belge seçici)
 tools/scan/              Belge Tarayıcı: ScanTool, ScanSession (sayfalar + önbellek dosyaları), DocCamera (camera2: önizleme + analiz akışı + JPEG), CameraScreen, PagesScreen, CropScreen, FilterScreen, ExportScreen
@@ -115,7 +115,7 @@ Not: `LabelOcr` `deu` ister (yoksa çekimden önce `TessScreen` açılır), `tur
 - Arka planda otomatik kontrol yok (WebView ve doğrulama ön planda çalışır); "Kontrol et ve güncelle" takip edilen tüm uygulamaları sırayla kontrol edip yeni sürümü olanları kurar.
 
 ## Araç düzeni ve genel OCR
-- `Tool.compact()` true olan araçlar (QR, Fotoğraf Sıkıştır, YouTube Özeti) ana sayfada karo ızgarasının altında ince yatay şeritler olarak gösterilir.
+- Ana sayfa 2 × 2 kart: **Belgeler** (Belge Tarayıcı, Ağ Tarayıcı, OCR), **Dini** (Namaz Vakitleri, Kıble, Cuma, Helal Sorgu; konum kayıtlıysa alt satırda sonraki vakit, örn. “Sonraki: İkindi 14:32”, değilse sabit metin), **Araçlar** (QR, Fotoğraf Sıkıştır, YouTube Özeti, Uygulamalar), **Sohbet** (doğrudan açılır). Gruplar `Tools.DOCUMENTS / FAITH / UTILITIES` dizileridir; bir grup kartı tek bir genel `GroupScreen` (başlık + araç satırları) açar. Araçtan geri → grup, gruptan geri → ana sayfa. QR kutucuğu ve paylaşılan metin (YouTube) araçları yine doğrudan açar.
 - Tıbbi OCR: iki mod, anahtarla seçilir. Varsayılan "Tıbbi"; "Genel" mod yerel OCR sonucunu tıbbi bağlam varsaymadan gösterir, Kopyala yanında isteğe bağlı "Cilala" (gevşek istem) sunar. "Tıbbi" modda internet yoksa (veya anahtar girilmemişse ya da istek başarısızsa) sonuç, hiçbir not eklenmeden yerel OCR (maskelenmiş) metni olarak verilir ve aynı "Cilala" düğmesi sonradan gönderme imkânı verir. Ortak bulut istemcisi `tools/Llm`. OCR metni diske yazılmaz.
 - Helal Sorgu: iki eşit mod, **Barkod** (açılış modu) ve **İçindekiler** (etiket fotoğrafı + OCR); üstteki seçiciyle değişir (ekran yer değiştirir, yığına eklenmez). İki moddan da geri tuşu ana sayfaya döner; sonuç ekranında geri ana sayfaya, “Yeni sorgu” aynı moda götürür. Barkod bulunamazsa otomatik OCR'a geçilmez.
 - YouTube Özeti paylaşım hedefi: manifestte `activity-alias .YoutubeShare` ("YouTube Özet", `ACTION_SEND text/plain`); `Entry` paylaşılan bağlantıyı alıp özeti doğrudan başlatır.

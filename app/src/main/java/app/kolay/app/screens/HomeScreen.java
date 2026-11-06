@@ -5,12 +5,19 @@ import android.widget.*;
 import app.kolay.app.tools.Tool;
 import app.kolay.app.tools.Tools;
 import app.kolay.app.ui.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
-/** Landing page: the toolbox. */
+/** Landing page: four cards (Belgeler, Dini, Araçlar, Sohbet); a group card opens {@link GroupScreen}. */
 public final class HomeScreen extends Screen {
+    private static final String FAITH_SUB = "Vakitler · kıble · cuma · helal";
+    private static final String[] PRAYERS = {"Sabah", "Güneş", "Öğle", "İkindi", "Akşam", "Yatsı"};   // as on the prayer screen
     private final List<View> entrance = new ArrayList<>();
+    private TextView faithSub;
     private LinearLayout banner;
     private TextView bannerText;
     private Logo logo;
@@ -59,30 +66,26 @@ public final class HomeScreen extends Screen {
         banner.setVisibility(View.GONE);
         col.addView(banner, Ui.lp(-1, -2, 0, c.dp(12), 0, 0));
 
-        TextView label = Ui.label(c, "ARAÇLAR");
-        col.addView(label, Ui.lp(-2, -2, c.dp(4), c.dp(16), 0, c.dp(12)));
-        entrance.add(label);
-
-        // Two-column tile grid for everyday tools; the rarely used ones follow as slim full-width rows.
+        // 2 × 2 grid: three groups and the chat.
         final int gap = c.dp(12);
-        java.util.List<Tool> tiles = new java.util.ArrayList<>(), slim = new java.util.ArrayList<>();
-        for (Tool t : Tools.ALL) (t.compact() ? slim : tiles).add(t);
-        for (int i = 0; i < tiles.size(); i += 2) {
+        View[] cards = {
+            card("Belgeler", "Tarayıcı · ağ tarayıcı · OCR", Icon.Kind.DOCSCAN, 0, () -> group("Belgeler", "Tara, kaydet, metne çevir", Tools.DOCUMENTS)),
+            card("Dini", FAITH_SUB, Icon.Kind.CRESCENT, 1, () -> group("Dini", "Vakitler, kıble, cuma, helal", Tools.FAITH)),
+            card("Araçlar", "QR · sıkıştır · YouTube · uygulamalar", Icon.Kind.APPS, 2, () -> group("Araçlar", "Küçük yardımcılar", Tools.UTILITIES)),
+            card(Tools.CHAT.title(), Tools.CHAT.subtitle(), Tools.CHAT.icon(), 3, () -> c.nav.push(Tools.CHAT.open(c))),
+        };
+        faithSub = (TextView) cards[1].getTag();
+        for (int i = 0; i < cards.length; i += 2) {
             LinearLayout row = new LinearLayout(c.a);
             for (int j = i; j < i + 2; j++) {
-                View tile = j < tiles.size() ? toolCard(tiles.get(j), j) : new Space(c.a);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
                 if (j == i) lp.setMarginEnd(gap / 2); else lp.setMarginStart(gap / 2);
-                row.addView(tile, lp);
-                if (j < tiles.size()) entrance.add(tile);
+                row.addView(cards[j], lp);
+                entrance.add(cards[j]);
             }
-            col.addView(row, Ui.lp(-1, -2, 0, 0, 0, gap));
+            col.addView(row, Ui.lp(-1, -2, 0, i == 0 ? c.dp(16) : 0, 0, gap));
         }
-        for (int i = 0; i < slim.size(); i++) {
-            View row = slimRow(slim.get(i), tiles.size() + i);
-            col.addView(row, Ui.lp(-1, c.dp(68), 0, 0, 0, gap));
-            entrance.add(row);
-        }
+        showNextPrayer();
 
         TextView foot = Ui.text(c, "Sürüm " + c.host.versionName(), 12, p.muted, 400);
         foot.setGravity(Gravity.CENTER);
@@ -96,7 +99,8 @@ public final class HomeScreen extends Screen {
         return sv;
     }
 
-    private View toolCard(Tool t, int idx) {
+    /** A square card: icon tile, title, up to two lines of subtitle (the subtitle view is the card's tag). */
+    private View card(String title, String subtitle, Icon.Kind icon, int idx, Runnable open) {
         Palette p = c.p;
         LinearLayout card = new LinearLayout(c.a);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -107,50 +111,45 @@ public final class HomeScreen extends Screen {
 
         FrameLayout tile = new FrameLayout(c.a);
         tile.setBackground(Ui.rounded(c, p.softBg(idx), 16));
-        tile.addView(Ui.icon(c, t.icon(), p.softFg(idx), 26), new FrameLayout.LayoutParams(c.dp(26), c.dp(26), Gravity.CENTER));
+        tile.addView(Ui.icon(c, icon, p.softFg(idx), 26), new FrameLayout.LayoutParams(c.dp(26), c.dp(26), Gravity.CENTER));
         card.addView(tile, new LinearLayout.LayoutParams(c.dp(52), c.dp(52)));
 
-        TextView title = Ui.text(c, t.title(), 16, p.ink, 600);
-        title.setSingleLine(true); title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        card.addView(title, Ui.lp(-1, -2, 0, c.dp(14), 0, 0));
-        TextView sub = Ui.text(c, t.subtitle(), 13, p.muted, 400);
+        TextView name = Ui.text(c, title, 16, p.ink, 600);
+        name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        card.addView(name, Ui.lp(-1, -2, 0, c.dp(14), 0, 0));
+        TextView sub = Ui.text(c, subtitle, 13, p.muted, 400);
         sub.setMaxLines(2); sub.setEllipsize(android.text.TextUtils.TruncateAt.END); sub.setLineSpacing(0, 1.1f);
         card.addView(sub, Ui.lp(-1, -2, 0, c.dp(4), 0, 0));
-        card.setContentDescription(t.title() + ". " + t.subtitle());
+        card.setContentDescription(title);
+        card.setTag(sub);
 
-        card.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); c.nav.push(t.open(c)); });
+        card.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); open.run(); });
         Ui.press(card);
         return card;
     }
 
-    /** A slim wide row: small icon, title and subtitle on one line. */
-    private View slimRow(Tool t, int idx) {
-        Palette p = c.p;
-        LinearLayout row = new LinearLayout(c.a);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(c.dp(14), 0, c.dp(16), 0);
-        Ui.surface(c, row, p.surface, 22, true);
-        row.setClickable(true);
-        FrameLayout badge = new FrameLayout(c.a);
-        badge.setBackground(Ui.rounded(c, p.softBg(idx), 12));
-        badge.addView(Ui.icon(c, t.icon(), p.softFg(idx), 20), new FrameLayout.LayoutParams(c.dp(20), c.dp(20), Gravity.CENTER));
-        row.addView(badge, new LinearLayout.LayoutParams(c.dp(40), c.dp(40)));
-        LinearLayout txt = new LinearLayout(c.a);
-        txt.setOrientation(LinearLayout.VERTICAL);
-        TextView title = Ui.text(c, t.title(), 15, p.ink, 600);
-        title.setSingleLine(true); title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        txt.addView(title);
-        TextView sub = Ui.text(c, t.subtitle(), 13, p.muted, 400);
-        sub.setSingleLine(true); sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        txt.addView(sub, Ui.lp(-1, -2, 0, c.dp(3), 0, 0));
-        row.setContentDescription(t.title() + ". " + t.subtitle());
-        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
-        tl.setMarginStart(c.dp(12));
-        row.addView(txt, tl);
-        row.addView(Ui.icon(c, Icon.Kind.CHEVRON, p.muted, 18), new LinearLayout.LayoutParams(c.dp(18), c.dp(18)));
-        row.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); c.nav.push(t.open(c)); });
-        Ui.press(row);
-        return row;
+    private void group(String title, String subtitle, Tool[] tools) { c.nav.push(new GroupScreen(title, subtitle, tools)); }
+
+    /** "Dini" card: the next prayer time when a location is saved, else a fixed line; never fails. */
+    private void showNextPrayer() {
+        if (faithSub == null) return;
+        String next = null;
+        try { if (c.host.prayerLocation() != null) next = nextPrayer(); } catch (RuntimeException ignored) { }
+        faithSub.setText(next != null ? next : FAITH_SUB);
+    }
+
+    /** "Sonraki: İkindi 14:32" (today or tomorrow, sunrise included as on the prayer screen), or null. */
+    private String nextPrayer() {
+        long now = System.currentTimeMillis();
+        Calendar cal = Calendar.getInstance();
+        for (int d = 0; d < 2; d++) {
+            long[] t = c.host.prayerTimes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH));
+            if (t == null) return null;
+            for (int i = 0; i < t.length && i < PRAYERS.length; i++)
+                if (t[i] > now) return "Sonraki: " + PRAYERS[i] + " " + new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new Date(t[i]));
+            cal.add(Calendar.DAY_OF_YEAR, 1);
+        }
+        return null;
     }
 
     @Override public void onShown() {
@@ -160,7 +159,9 @@ public final class HomeScreen extends Screen {
         if (c.host.updateReady()) showBanner();
     }
 
-    @Override public void onResume() { if (c.host.updateReady()) showBanner(); }
+    @Override public void onResume() { if (c.host.updateReady()) showBanner(); showNextPrayer(); }
+
+    @Override public void onReturn() { showNextPrayer(); }
 
     private void showBanner() {
         if (banner == null) return;

@@ -11,8 +11,6 @@ public interface Tool {
     String title();
     String subtitle();
     Icon.Kind icon();
-    /** The first screen of the tool; the home screen pushes it. */
+    /** The first screen of the tool; its group (or the home screen) pushes it. */
     Screen open(Ctx c);
-    /** Rarely used tools show as a slim full-width row below the tiles instead of a square tile. */
-    default boolean compact() { return false; }
 }

@@ -8,6 +8,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 - Eski yayın notları sadeleştirildi.
 
 ## 1.014 ve sonrası
+### Değişti (1.031)
+- **Ana sayfa** dört karta toplandı (2 × 2): **Belgeler** (Belge Tarayıcı, Ağ Tarayıcı, OCR), **Dini** (Namaz Vakitleri, Kıble, Cuma, Helal Sorgu), **Araçlar** (QR, Fotoğraf Sıkıştır, YouTube Özeti, Uygulamalar) ve **Sohbet**. Grup kartı o gruptaki araçların listesini açar; araçtan geri grup listesine, oradan ana sayfaya dönülür. Sohbet doğrudan açılır.
+- Dini kartında konum kayıtlıysa sonraki vakit görünür (ör. “Sonraki: İkindi 14:32”). Ayarlar düğmesi, güncelleme bandı, QR hızlı ayar kutucuğu ve YouTube'a metin paylaşımı eskisi gibi.
 ### Değişti (1.030)
 - **Belge Tarayıcı:** deklanşör sesi kaldırıldı; çekimdeki beyaz parlama yerine kısa ve hafif bir karartma + kartın bir an küçülmesi, titreşim ve “Bitti (n)” düğmesinde küçük bir sıçrama.
 - Galeriden ekleme artık sistem **Fotoğraf Seçicisi**ni kullanır (Android 13+ ya da güncellemesi gelmiş Android 11/12; yoksa önceki dosya seçici). Seçici açıkken kamera kapalıdır, vazgeçince yeniden açılır.

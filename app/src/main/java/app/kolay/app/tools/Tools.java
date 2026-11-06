@@ -13,22 +13,13 @@ import app.kolay.app.tools.qr.QrTool;
 import app.kolay.app.tools.scan.ScanTool;
 import app.kolay.app.tools.youtube.YoutubeTool;
 
-/** The toolbox contents, in display order. Add a line here to add a tool. */
+/** The toolbox contents: the home screen shows the groups as cards, a group lists its tools in this order. Add a tool to a group here. */
 public final class Tools {
     private Tools() {}
 
-    public static final Tool[] ALL = {
-        new OcrTool(),
-        new ScanTool(),
-        new NetScanTool(),
-        new ChatTool(),
-        new YoutubeTool(),
-        new CompressTool(),
-        new QrTool(),
-        new HelalTool(),
-        new FridayTool(),
-        new AppsTool(),
-        new NamazTool(),
-        new KibleTool(),
-    };
+    public static final Tool[] DOCUMENTS = { new ScanTool(), new NetScanTool(), new OcrTool() };
+    public static final Tool[] FAITH = { new NamazTool(), new KibleTool(), new FridayTool(), new HelalTool() };
+    public static final Tool[] UTILITIES = { new QrTool(), new CompressTool(), new YoutubeTool(), new AppsTool() };
+    /** Has a home card of its own. */
+    public static final Tool CHAT = new ChatTool();
 }
