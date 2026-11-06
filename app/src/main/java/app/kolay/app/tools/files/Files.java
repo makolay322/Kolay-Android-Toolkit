@@ -17,6 +17,7 @@ import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 import app.kolay.app.ui.Ctx;
 import app.kolay.app.ui.Icon;
+import app.kolay.app.viewer.Viewer;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -163,12 +164,61 @@ final class Files {
 
     static final List<String> clip = new ArrayList<>();
     static boolean clipCut;
+    static FileSource clipSrc = LocalSource.INSTANCE;   // where the clipboard's paths live (a Samba server or the phone)
 
     // ------------------------------------------------------------ open / share
 
-    static void open(Ctx c, FileItem it) {
-        Uri u = ShareProvider.uri(it.path);
-        String m = mime(it.name);
+    /** Tap on a file: documents the built-in viewer can show open there, everything else through the system chooser. */
+    static void open(Ctx c, FileSource src, FileItem it) { open(c, src, it, false); }
+
+    /** "Birlikte aç": always the system chooser. */
+    static void openWith(Ctx c, FileSource src, FileItem it) { open(c, src, it, true); }
+
+    private static void open(Ctx c, FileSource src, FileItem it, boolean chooser) {
+        if (src instanceof SmbSource) openRemote(c, (SmbSource) src, it, chooser);
+        else show(c, it.path, it.name, chooser);
+    }
+
+    private static void show(Ctx c, String path, String name, boolean chooser) {
+        if (!chooser && Viewer.canOpen(name)) {
+            String m = mime(name);
+            Viewer.open(c, Uri.fromFile(new File(path)), m.equals("application/octet-stream") ? null : m);
+        } else openLocal(c, path, name);
+    }
+
+    private static final long OPEN_ASK = 100L << 20;   // bigger network files need a yes before they are fetched
+
+    /**
+     * A file on a Samba server: copied (verified, temporary name first) into the app's cache under {@code smb-open/}, then
+     * opened from there. Copies older than an hour are removed on the next open.
+     */
+    private static void openRemote(Ctx c, SmbSource s, FileItem it, boolean chooser) {
+        File root = new File(c.a.getCacheDir(), "smb-open");
+        Runnable go = () -> {
+            long now = System.currentTimeMillis();
+            File[] old = root.listFiles();
+            if (old != null) for (File d : old) if (now - d.lastModified() > 3600_000L) deleteTree(d);
+            if (it.size > c.a.getCacheDir().getUsableSpace() - (64L << 20)) { toast(c, "Telefonda yeterli boş yer yok"); return; }
+            File dir = new File(root, Long.toString(now, 36));
+            if (!dir.mkdirs()) { toast(c, "Geçici klasör oluşturulamadı"); return; }
+            Jobs.run(c, "İndiriliyor", "indirildi",
+                (p, r) -> Ops.transfer(s, java.util.Collections.singletonList(it.path), LocalSource.INSTANCE, dir.getPath(), false, r, p),
+                () -> { File f = new File(dir, it.name); if (f.isFile()) show(c, f.getPath(), it.name, chooser); else deleteTree(dir); }, true);
+        };
+        if (it.size > OPEN_ASK) Sheet.confirm(c, "Büyük dosya", "“" + it.name + "” " + size(it.size) + ". Açmak için önce telefona geçici olarak indirilir.", "İndir ve aç", false, go);
+        else go.run();
+    }
+
+    private static void deleteTree(File f) {
+        File[] k = f.listFiles();
+        if (k != null) for (File x : k) deleteTree(x);
+        //noinspection ResultOfMethodCallIgnored
+        f.delete();
+    }
+
+    static void openLocal(Ctx c, String path, String name) {
+        Uri u = ShareProvider.uri(path);
+        String m = mime(name);
         Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(u, m).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try { c.a.startActivity(Intent.createChooser(i, "Birlikte aç")); }
         catch (ActivityNotFoundException e) { toast(c, "Bu dosyayı açabilecek uygulama yok"); }

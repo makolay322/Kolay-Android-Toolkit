@@ -42,7 +42,8 @@ import java.util.function.Function;
 final class BrowserScreen extends Screen {
     private static final String[] SORTS = {"Ad", "Tarih", "Boyut", "Tür"};
 
-    private final FileSource src = LocalSource.INSTANCE;
+    private final FileSource src;
+    private final String rootLabel;                       // a Samba server's name (its "/" lists the shares); null for the phone
     private final String fixedTitle;                      // non-null in list mode
     private final Function<Context, List<FileItem>> loader;
     private String path;
@@ -72,17 +73,28 @@ final class BrowserScreen extends Screen {
     private TextView stopBtn;
 
     /** Browse a folder. */
-    BrowserScreen(String path) { this.path = path; this.fixedTitle = null; this.loader = null; }
+    BrowserScreen(String path) { this(LocalSource.INSTANCE, path, null); }
+
+    /** Browse {@code path} of {@code src}; {@code rootLabel} names a network source's root. */
+    BrowserScreen(FileSource src, String path, String rootLabel) { this.src = src; this.path = path; this.rootLabel = rootLabel; this.fixedTitle = null; this.loader = null; }
 
     /** A flat list (e.g. "Görseller"), loaded off the UI thread. */
-    BrowserScreen(String title, Function<Context, List<FileItem>> loader) { this.path = null; this.fixedTitle = title; this.loader = loader; }
+    BrowserScreen(String title, Function<Context, List<FileItem>> loader) { this.src = LocalSource.INSTANCE; this.rootLabel = null; this.path = null; this.fixedTitle = title; this.loader = loader; }
 
     private boolean dirMode() { return loader == null; }
+
+    private boolean local() { return src == LocalSource.INSTANCE; }
+
+    /** A server's share list: shares cannot be selected, deleted or written into. */
+    private boolean atServerRoot() { return !local() && "/".equals(path); }
+
+    /** Local paths among {@code paths} (for the media index; network paths are not indexed). */
+    private static List<String> localOnly(FileSource s, List<String> paths) { return s == LocalSource.INSTANCE ? paths : new ArrayList<>(); }
 
     @Override public View create() {
         SharedPreferences pr = Files.prefs(c.a);
         sort = pr.getInt("sort", 0); asc = pr.getBoolean("asc", true); grid = pr.getBoolean("grid", false); hidden = pr.getBoolean("hidden", false);
-        vols = Files.volumes(c.a);
+        vols = local() ? Files.volumes(c.a) : Collections.singletonList(new Files.Volume(rootLabel, "/", 0, 0));
 
         page = new LinearLayout(c.a);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -194,11 +206,11 @@ final class BrowserScreen extends Screen {
             LinearLayout row = new LinearLayout(c.a);
             row.addView(action(Icon.Kind.COPY, "Kopyala", () -> toClip(false)), new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(action(Icon.Kind.CUT, "Taşı", () -> toClip(true)), new LinearLayout.LayoutParams(0, -2, 1));
-            row.addView(action(Icon.Kind.SHARE, "Paylaş", () -> Files.share(c, selected())), new LinearLayout.LayoutParams(0, -2, 1));
+            row.addView(action(Icon.Kind.SHARE, "Paylaş", () -> { if (local()) Files.share(c, selected()); else Files.toast(c, "Ağdaki dosyalar doğrudan paylaşılamaz; önce telefona kopyala"); }), new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(action(Icon.Kind.TRASH, "Sil", this::askDelete), new LinearLayout.LayoutParams(0, -2, 1));
             bottom.addView(row);
             bottom.setVisibility(View.VISIBLE);
-        } else if (!Files.clip.isEmpty() && dirMode()) {
+        } else if (!Files.clip.isEmpty() && dirMode() && !atServerRoot()) {
             TextView info = Ui.text(c, Files.clip.size() + " öğe " + (Files.clipCut ? "taşınacak" : "kopyalanacak") + " — hedef klasörü aç", 13, c.p.muted, 500);
             bottom.addView(info, Ui.lp(-1, -2, c.dp(4), 0, 0, c.dp(8)));
             TextView cancel = Ui.button(c, "Vazgeç", Ui.Style.GHOST, null);
@@ -286,7 +298,8 @@ final class BrowserScreen extends Screen {
         Collections.sort(shown, dirsFirst.thenComparing(key));
         sel.retainAll(pathsOf(shown));
         adapter.notifyDataSetChanged();
-        if (error != null && shown.isEmpty()) showState(Ui.state(c, Icon.Kind.FOLDER, "Klasör okunamadı", "Bu klasöre erişim yok ya da artık mevcut değil.", null, null));
+        if (error != null && shown.isEmpty()) showState(local() ? Ui.state(c, Icon.Kind.FOLDER, "Klasör okunamadı", "Bu klasöre erişim yok ya da artık mevcut değil.", null, null)
+            : Ui.state(c, Icon.Kind.NETSCAN, "Sunucuya erişilemedi", error.isEmpty() ? "Bağlantı kurulamadı." : error, "Tekrar dene", this::load));
         else if (shown.isEmpty() && !(searching && recursive && searchStop != null && !searchStop.get()))
             showState(Ui.state(c, searching ? Icon.Kind.SEARCH : Icon.Kind.FOLDER, searching ? "Sonuç yok" : "Boş klasör",
                 searching ? "Bu ada uyan dosya bulunamadı." : hidden || items.isEmpty() ? null : "Gizli dosyalar var; Seçenekler → Gizli dosyaları göster.", null, null));
@@ -312,13 +325,14 @@ final class BrowserScreen extends Screen {
         }
         if (Files.isZip(it.name)) {
             Sheet.menu(c, it.name, new String[]{"Buraya çıkart", "Birlikte aç"}, new Icon.Kind[]{Icon.Kind.DOWNLOAD, Icon.Kind.LINK},
-                k -> { if (k == 0) extract(it); else Files.open(c, it); });
+                k -> { if (k == 0) extract(it); else Files.openWith(c, src, it); });
             return;
         }
-        Files.open(c, it);
+        Files.open(c, src, it);
     }
 
     private void toggle(FileItem it) {
+        if (atServerRoot()) { Files.toast(c, "Paylaşımlar seçilemez; birini açıp içinde çalış"); return; }
         if (!sel.remove(it.path)) sel.add(it.path);
         adapter.notifyDataSetChanged();
         header();
@@ -354,18 +368,18 @@ final class BrowserScreen extends Screen {
 
     private void folderMenu() {
         List<String> labels = new ArrayList<>(); List<Icon.Kind> icons = new ArrayList<>(); List<Runnable> acts = new ArrayList<>();
-        if (dirMode()) { labels.add("Yeni klasör"); icons.add(Icon.Kind.PLUS); acts.add(this::newFolder); }
+        if (dirMode() && !atServerRoot()) { labels.add("Yeni klasör"); icons.add(Icon.Kind.PLUS); acts.add(this::newFolder); }
         labels.add("Sırala: " + SORTS[sort] + (asc ? " ↑" : " ↓")); icons.add(Icon.Kind.SETTINGS); acts.add(this::sortMenu);
         labels.add(grid ? "Liste görünümü" : "Izgara görünümü"); icons.add(grid ? Icon.Kind.LIST : Icon.Kind.GRID);
         acts.add(() -> { grid = !grid; Files.prefs(c.a).edit().putBoolean("grid", grid).apply(); applyLayoutMode(); });
         labels.add(hidden ? "Gizli dosyaları gizle" : "Gizli dosyaları göster"); icons.add(Icon.Kind.LAYERS);
         acts.add(() -> { hidden = !hidden; Files.prefs(c.a).edit().putBoolean("hidden", hidden).apply(); apply(); });
-        if (dirMode()) {
+        if (dirMode() && local()) {
             boolean marked = Files.bookmarks(c.a).contains(path);
             labels.add(marked ? "Yer imlerinden çıkar" : "Yer imlerine ekle"); icons.add(Icon.Kind.STAR);
             acts.add(() -> { Files.setBookmark(c.a, path, !marked); Files.toast(c, marked ? "Yer imi kaldırıldı" : "Yer imlerine eklendi"); });
         }
-        if (!shown.isEmpty()) { labels.add("Seç"); icons.add(Icon.Kind.CHECK); acts.add(this::selectAll); }
+        if (!shown.isEmpty() && !atServerRoot()) { labels.add("Seç"); icons.add(Icon.Kind.CHECK); acts.add(this::selectAll); }
         Sheet.menu(c, null, labels.toArray(new String[0]), icons.toArray(new Icon.Kind[0]), k -> acts.get(k).run());
     }
 
@@ -388,10 +402,10 @@ final class BrowserScreen extends Screen {
         FileItem f = s.get(0);
         List<String> labels = new ArrayList<>(); List<Icon.Kind> icons = new ArrayList<>(); List<Runnable> acts = new ArrayList<>();
         if (one) { labels.add("Yeniden adlandır"); icons.add(Icon.Kind.DOC); acts.add(() -> rename(f)); }
-        if (one && !f.dir) { labels.add("Birlikte aç"); icons.add(Icon.Kind.LINK); acts.add(() -> Files.open(c, f)); }
+        if (one && !f.dir) { labels.add("Birlikte aç"); icons.add(Icon.Kind.LINK); acts.add(() -> Files.openWith(c, src, f)); }
         labels.add("Sıkıştır (ZIP)"); icons.add(Icon.Kind.LAYERS); acts.add(() -> zip(s));
         if (one && !f.dir && Files.isZip(f.name)) { labels.add("Buraya çıkart"); icons.add(Icon.Kind.DOWNLOAD); acts.add(() -> extract(f)); }
-        if (one && f.dir) {
+        if (one && f.dir && local()) {
             boolean marked = Files.bookmarks(c.a).contains(f.path);
             labels.add(marked ? "Yer imlerinden çıkar" : "Yer imlerine ekle"); icons.add(Icon.Kind.STAR);
             acts.add(() -> { Files.setBookmark(c.a, f.path, !marked); Files.toast(c, marked ? "Yer imi kaldırıldı" : "Yer imlerine eklendi"); });
@@ -417,6 +431,7 @@ final class BrowserScreen extends Screen {
         Files.clip.clear();
         Files.clip.addAll(pathsOf(selected()));
         Files.clipCut = cut;
+        Files.clipSrc = src;
         sel.clear();
         adapter.notifyDataSetChanged();
         header();
@@ -426,19 +441,48 @@ final class BrowserScreen extends Screen {
     private void paste() {
         List<String> what = new ArrayList<>(Files.clip);
         boolean cut = Files.clipCut;
+        FileSource from = Files.clipSrc;
         String to = path;
         Files.clip.clear();
         bottomBar();
         Jobs.run(c, cut ? "Taşınıyor" : "Kopyalanıyor", cut ? "taşındı" : "kopyalandı",
-            (p, r) -> Ops.transfer(src, what, src, to, cut, r, p),
-            () -> { List<String> changed = new ArrayList<>(what); changed.add(to); Files.rescan(c.a, changed); done(); });
+            (p, r) -> Ops.transfer(from, what, src, to, cut, r, p),
+            () -> {
+                List<String> changed = new ArrayList<>(localOnly(from, what));
+                changed.addAll(localOnly(src, Collections.singletonList(to)));
+                Files.rescan(c.a, changed);
+                done();
+            });
     }
 
     private void askDelete() {
         List<String> what = pathsOf(selected());
         String msg = what.size() == 1 ? "“" + FileSource.name(what.get(0)) + "” kalıcı olarak silinecek." : what.size() + " öğe kalıcı olarak silinecek.";
         Sheet.confirm(c, "Silinsin mi?", msg + " Bu işlem geri alınamaz (çöp kutusu yok).", "Sil", true,
-            () -> Jobs.run(c, "Siliniyor", "silindi", (p, r) -> Ops.delete(src, what, p), () -> { Files.rescan(c.a, what); done(); }));
+            () -> Jobs.run(c, "Siliniyor", "silindi", (p, r) -> Ops.delete(src, what, p), () -> { Files.rescan(c.a, localOnly(src, what)); done(); }));
+    }
+
+    private interface NetCall { String run() throws IOException; }
+
+    /**
+     * Runs a small file-system step that answers with an error text (null = done). On the phone it runs right here, so the
+     * sheet can show the error; on a network source it runs off the UI thread and a failure is shown as a toast.
+     * @return the error for the sheet, or null (also when the step was handed to the background)
+     */
+    private String step(NetCall call, String fail, Runnable ok) {
+        if (local()) {
+            String err;
+            try { err = call.run(); } catch (IOException e) { err = fail; }
+            if (err == null) ok.run();
+            return err;
+        }
+        c.io.execute(() -> {
+            String err;
+            try { err = call.run(); } catch (IOException e) { err = fail + ": " + e.getMessage(); }
+            String fe = err;
+            c.ui.post(() -> { if (fe != null) Files.toast(c, fe); else ok.run(); });
+        });
+        return null;
     }
 
     private void rename(FileItem f) {
@@ -447,14 +491,15 @@ final class BrowserScreen extends Screen {
             if (bad != null) return bad;
             if (name.equals(f.name)) return null;
             String to = FileSource.child(FileSource.parent(f.path), name);
-            try {
+            return step(() -> {
                 if (src.stat(to) != null) return "Bu adda bir öğe zaten var";
                 src.rename(f.path, to);
-            } catch (IOException e) { return "Yeniden adlandırılamadı"; }
-            List<String> changed = new ArrayList<>(); changed.add(f.path); changed.add(to);
-            Files.rescan(c.a, changed);
-            done();
-            return null;
+                return null;
+            }, "Yeniden adlandırılamadı", () -> {
+                List<String> changed = new ArrayList<>(); changed.add(f.path); changed.add(to);
+                Files.rescan(c.a, localOnly(src, changed));
+                done();
+            });
         });
     }
 
@@ -463,42 +508,55 @@ final class BrowserScreen extends Screen {
             String bad = Ops.badName(name);
             if (bad != null) return bad;
             String to = FileSource.child(path, name);
-            try {
+            return step(() -> {
                 if (src.stat(to) != null) return "Bu adda bir öğe zaten var";
                 src.mkdir(to);
-            } catch (IOException e) { return "Klasör oluşturulamadı"; }
-            load();
-            return null;
+                return null;
+            }, "Klasör oluşturulamadı", this::load);
         });
     }
 
     private void zip(List<FileItem> s) {
         String dir = workDir();
         String base = s.size() == 1 ? s.get(0).name.replaceFirst("\\.[^.]+$", "") : (dirMode() ? folderTitle() : "Arşiv");
-        String suggestion;
-        try { suggestion = Ops.uniqueName(src, dir, base + ".zip"); } catch (IOException e) { suggestion = base + ".zip"; }
         List<String> what = pathsOf(s);
-        Sheet.input(c, "ZIP olarak sıkıştır", suggestion, "Sıkıştır", name -> {
+        unique(dir, base + ".zip", suggestion -> Sheet.input(c, "ZIP olarak sıkıştır", suggestion, "Sıkıştır", name -> {
             String n = name.toLowerCase(Locale.ROOT).endsWith(".zip") ? name : name + ".zip";
             String bad = Ops.badName(n);
             if (bad != null) return bad;
             String to = FileSource.child(dir, n);
-            try { if (src.stat(to) != null) return "Bu adda bir dosya zaten var"; } catch (IOException e) { return "Klasör okunamadı"; }
+            if (local()) { try { if (src.stat(to) != null) return "Bu adda bir dosya zaten var"; } catch (IOException e) { return "Klasör okunamadı"; } }
+            // network: the final rename refuses an existing name, so nothing is overwritten
             Jobs.run(c, "Sıkıştırılıyor", "sıkıştırıldı", (p, r) -> Ops.zip(src, what, to, p),
-                () -> { Files.rescan(c.a, java.util.Collections.singletonList(to)); done(); });
+                () -> { Files.rescan(c.a, localOnly(src, Collections.singletonList(to))); done(); });
             return null;
+        }));
+    }
+
+    /** {@link Ops#uniqueName} off the UI thread for network sources; {@code then} gets the name (or {@code name} on errors) on the UI thread. */
+    private void unique(String dir, String name, java.util.function.Consumer<String> then) {
+        if (local()) {
+            String u;
+            try { u = Ops.uniqueName(src, dir, name); } catch (IOException e) { u = name; }
+            then.accept(u);
+            return;
+        }
+        c.io.execute(() -> {
+            String u;
+            try { u = Ops.uniqueName(src, dir, name); } catch (IOException e) { u = name; }
+            String fu = u;
+            c.ui.post(() -> then.accept(fu));
         });
     }
 
     private void extract(FileItem f) {
         String dir = FileSource.parent(f.path);
-        String to;
-        try { to = FileSource.child(dir, Ops.uniqueName(src, dir, f.name.replaceFirst("(?i)\\.zip$", ""))); }
-        catch (IOException e) { Files.toast(c, "Klasör okunamadı"); return; }
-        String target = to;
-        Jobs.run(c, "Çıkartılıyor", "çıkartıldı", (p, r) -> Ops.unzip(src, f.path, target, p), () -> {
-            sel.clear();
-            if (dirMode() && path.equals(dir)) navigate(target); else { header(); load(); }
+        unique(dir, f.name.replaceFirst("(?i)\\.zip$", ""), name -> {
+            String target = FileSource.child(dir, name);
+            Jobs.run(c, "Çıkartılıyor", "çıkartıldı", (p, r) -> Ops.unzip(src, f.path, target, p), () -> {
+                sel.clear();
+                if (dirMode() && path.equals(dir)) navigate(target); else { header(); load(); }
+            });
         });
     }
 
@@ -510,9 +568,9 @@ final class BrowserScreen extends Screen {
         StringBuilder b = new StringBuilder();
         if (s.size() == 1) {
             b.append("Tür: ").append(f.dir ? "Klasör" : Files.mime(f.name)).append('\n');
-            b.append("Konum: ").append(FileSource.parent(f.path)).append('\n');
+            b.append("Konum: ").append(where(FileSource.parent(f.path))).append('\n');
             b.append("Değiştirilme: ").append(Files.date(f.modified)).append('\n');
-        } else b.append("Konum: ").append(FileSource.parent(f.path)).append('\n');
+        } else b.append("Konum: ").append(where(FileSource.parent(f.path))).append('\n');
         String head = b.toString();
         TextView t = sh.text(head + "Boyut: " + (anyDir ? "hesaplanıyor…" : Files.size(bytes) + " (" + bytes + " bayt)"));
         t.setTextIsSelectable(true);
@@ -531,6 +589,8 @@ final class BrowserScreen extends Screen {
         }
         sh.show();
     }
+
+    private String where(String p) { return src instanceof SmbSource ? "smb://" + ((SmbSource) src).server.host + (p.equals("/") ? "" : p) : p; }
 
     private static int countDirs(List<FileItem> s) { int n = 0; for (FileItem it : s) if (it.dir) n++; return n; }
 
@@ -703,7 +763,7 @@ final class BrowserScreen extends Screen {
             sub.setText(where != null ? where : meta);
             thumb.setImageDrawable(null);
             thumb.setTag(null);
-            if (!on && Files.thumbable(it)) Thumbs.load(thumb, it, c.dp(grid ? 88 : 44), () -> icon.setVisibility(INVISIBLE));
+            if (!on && local() && Files.thumbable(it)) Thumbs.load(thumb, it, c.dp(grid ? 88 : 44), () -> icon.setVisibility(INVISIBLE));
         }
     }
 

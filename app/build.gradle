@@ -34,10 +34,15 @@ android {
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     // Smaller download: every update fetches the whole APK, and the Tesseract libraries are ~80% of it. Compressed native
     // libraries are unpacked once at install time (a few MB more on the phone, about half the download).
-    packaging { jniLibs { useLegacyPackaging true } }
+    packaging {
+        jniLibs { useLegacyPackaging true }
+        // BouncyCastle's data files (post-quantum test vectors, X.509 messages) and multi-release OSGi manifests: unused by smbj (~1.2 MB)
+        resources { excludes += ['org/bouncycastle/**', 'META-INF/versions/**'] }
+    }
 }
 
 dependencies {
     implementation 'com.github.adaptech-cz.Tesseract4Android:tesseract4android-openmp:4.8.0'
     implementation 'com.google.zxing:core:3.5.3'   // QR / barcode decoding (pure Java)
+    implementation 'com.hierynomus:smbj:0.15.0'    // Samba (SMB 2/3) client for "Dosyalar" → Ağ; brings BouncyCastle, mbassador, asn-one, slf4j-api
 }

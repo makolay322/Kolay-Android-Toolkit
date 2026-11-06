@@ -23,6 +23,11 @@ final class Jobs {
      * @param after  UI thread, when finished (also after cancel/errors), e.g. reload the folder
      */
     static void run(Ctx c, String title, String verb, BiFunction<Ops.Progress, Ops.Resolver, Ops.Result> work, Runnable after) {
+        run(c, title, verb, work, after, false);
+    }
+
+    /** @param quiet no summary toast on success (the caller shows the result itself, e.g. opens the file) */
+    static void run(Ctx c, String title, String verb, BiFunction<Ops.Progress, Ops.Resolver, Ops.Result> work, Runnable after, boolean quiet) {
         Sheet s = new Sheet(c, title);
         TextView name = s.text("Hazırlanıyor…");
         name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
@@ -43,6 +48,9 @@ final class Jobs {
         final boolean[] posted = {false};
         Runnable cancelIt = () -> { cancel[0] = true; stop.setText("İptal ediliyor…"); stop.setEnabled(false); };
         stop.setOnClickListener(v -> cancelIt.run());
+        final boolean[] finished = {false};
+        // Longer jobs continue with the screen off / app in the background (foreground service with its own İptal).
+        c.ui.postDelayed(() -> { if (!finished[0]) TransferService.begin(c.a, title, () -> c.ui.post(() -> { if (!finished[0]) cancelIt.run(); })); }, 1000);
         s.d.setCancelable(false);   // back = cancel; the sheet stays until the worker has stopped
         s.d.setOnKeyListener((d, code, e) -> {
             if (code != android.view.KeyEvent.KEYCODE_BACK) return false;
@@ -58,6 +66,7 @@ final class Jobs {
                 long d = last[1] == null ? 0 : (Long) last[1], t = last[2] == null ? 0 : (Long) last[2];
                 fill.setScaleX(t > 0 ? Math.min(1f, d / (float) t) : 0);
                 pct.setText(t > 0 ? Files.size(d) + " / " + Files.size(t) : "");
+                TransferService.progress((String) last[0], d, t);
             }
         };
         Ops.Progress p = new Ops.Progress() {
@@ -93,6 +102,8 @@ final class Jobs {
             catch (RuntimeException e) { res = new Ops.Result(); res.errors.add(String.valueOf(e.getMessage())); }
             Ops.Result fr = res;
             c.ui.post(() -> {
+                finished[0] = true;
+                TransferService.end();
                 s.dismiss();
                 if (!fr.errors.isEmpty()) {
                     StringBuilder b = new StringBuilder();
@@ -100,7 +111,7 @@ final class Jobs {
                     if (fr.errors.size() > 15) b.append("… ve ").append(fr.errors.size() - 15).append(" hata daha");
                     Sheet.info(c, fr.done > 0 ? fr.done + " öğe " + verb + ", bazıları yapılamadı" : "İşlem yapılamadı", b.toString().trim());
                 } else if (fr.cancelled) Files.toast(c, "İptal edildi" + (fr.done > 0 ? " (" + fr.done + " öğe " + verb + ")" : ""));
-                else Files.toast(c, fr.done + " öğe " + verb + (fr.skipped > 0 ? ", " + fr.skipped + " atlandı" : ""));
+                else if (!quiet) Files.toast(c, fr.done + " öğe " + verb + (fr.skipped > 0 ? ", " + fr.skipped + " atlandı" : ""));
                 after.run();
             });
         });

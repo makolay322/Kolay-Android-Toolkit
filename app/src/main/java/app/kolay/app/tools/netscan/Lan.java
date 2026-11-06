@@ -11,10 +11,10 @@ import java.util.function.Predicate;
  * link-local fe80::/10 (equally non-global). IPv4-mapped IPv6 is judged by its IPv4 part. Loopback, CGNAT 100.64/10,
  * multicast and every public address are refused.
  */
-final class Lan {
+public final class Lan {
     private Lan() {}
 
-    static boolean isLan(InetAddress a) {
+    public static boolean isLan(InetAddress a) {
         byte[] b = a.getAddress();
         if (b.length == 16 && mapped(b)) b = new byte[]{b[12], b[13], b[14], b[15]};
         int x = b[0] & 0xff, y = b[1] & 0xff;
@@ -27,7 +27,7 @@ final class Lan {
         return b[10] == (byte) 0xff && b[11] == (byte) 0xff;
     }
 
-    static final class NotLan extends IOException {
+    public static final class NotLan extends IOException {
         private static final long serialVersionUID = 1L;
         NotLan() { super("Bu adres yerel ağda değil"); }
     }
@@ -36,7 +36,7 @@ final class Lan {
      * Resolves {@code host} once and returns the address to connect to (IPv4 preferred). The caller connects to exactly
      * this address, so the check applies to the real peer, not to the name.
      */
-    static InetAddress resolve(String host, Predicate<InetAddress> allowed) throws IOException {
+    public static InetAddress resolve(String host, Predicate<InetAddress> allowed) throws IOException {
         InetAddress[] all = InetAddress.getAllByName(host);
         InetAddress v6 = null;
         for (InetAddress a : all) {

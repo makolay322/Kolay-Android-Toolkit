@@ -14,6 +14,11 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
+    <!-- "Dosyalar": long copy/move jobs (also to/from Samba servers) keep running with the screen off: a dataSync foreground
+         service with a progress notification, plus a partial wake lock and a Wi-Fi lock only while a job runs. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <!-- "Uygulama Güncelle" lists the installed apps that have a launcher icon (package visibility, Android 11+). -->
     <queries>
@@ -102,6 +107,7 @@
         <!-- "Dosyalar": read-only content:// links for share / open with (only the links handed out with a grant are readable). -->
         <provider android:name="app.kolay.app.tools.files.ShareProvider" android:authorities="app.kolay.files"
             android:exported="false" android:grantUriPermissions="true"/>
+        <service android:name="app.kolay.app.tools.files.TransferService" android:exported="false" android:foregroundServiceType="dataSync"/>
         <service android:name=".UpdateJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE"/>
     </application>
 </manifest>

@@ -17,7 +17,7 @@ import app.kolay.app.ui.Ui;
 import java.io.File;
 import java.util.List;
 
-/** "Dosyalar" start page: the all-files permission state, storage volumes, categories, bookmarks and recent files. */
+/** "Dosyalar" start page: the all-files permission state, storage volumes, network (Samba) servers, categories, bookmarks and recent files. */
 final class FilesScreen extends Screen {
     private static final long DAY = 24L * 3600 * 1000;
     private LinearLayout col;
@@ -59,6 +59,8 @@ final class FilesScreen extends Screen {
 
         col.addView(Ui.label(c, "DEPOLAMA"), Ui.lp(-1, -2, c.dp(4), c.dp(4), 0, c.dp(8)));
         for (Files.Volume v : Files.volumes(c.a)) col.addView(volumeCard(v), Ui.lp(-1, -2, 0, 0, 0, c.dp(Ui.GAP)));
+
+        SmbUi.section(c, col, this::build);
 
         col.addView(Ui.label(c, "KATEGORİLER"), Ui.lp(-1, -2, c.dp(4), c.dp(14), 0, c.dp(8)));
         String img = MediaStore.Files.FileColumns.MEDIA_TYPE + "=" + MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
@@ -210,7 +212,7 @@ final class FilesScreen extends Screen {
         tl.setMarginStart(c.dp(12));
         r.addView(txt, tl);
         r.setClickable(true);
-        r.setOnClickListener(v -> Files.open(c, it));
+        r.setOnClickListener(v -> Files.open(c, LocalSource.INSTANCE, it));
         r.setOnLongClickListener(v -> {   // long-press: the folder it is in
             Ui.haptic(v, HapticFeedbackConstants.LONG_PRESS);
             c.nav.push(new BrowserScreen(FileSource.parent(it.path)));

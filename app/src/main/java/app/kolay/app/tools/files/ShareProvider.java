@@ -13,7 +13,8 @@ import java.io.IOException;
 
 /**
  * Read-only content:// links for "Paylaş" / "Birlikte aç" (a minimal stand-in for AndroidX's FileProvider).
- * Not exported: other apps can read only the single links the app hands them with a read grant. App-private files are never served.
+ * Not exported: other apps can read only the single links the app hands them with a read grant. App-private files are never served, except the
+ * temporary copies of network files in {@code cache/smb-open/} (see {@code Files.openRemote}).
  */
 public final class ShareProvider extends ContentProvider {
     static final String AUTHORITY = "app.kolay.files";
@@ -26,6 +27,8 @@ public final class ShareProvider extends ContentProvider {
         File f = new File(p.substring(2));
         try {
             String c = f.getCanonicalPath(), own = new File(getContext().getApplicationInfo().dataDir).getCanonicalPath();
+            String fetched = new File(getContext().getCacheDir(), "smb-open").getCanonicalPath() + "/";   // network files copied for "open"
+            if (c.startsWith(fetched) && f.isFile()) return f;
             if (c.startsWith(own + "/") || (c.startsWith("/data/") && !c.startsWith("/data/media/")) || !f.isFile()) throw new FileNotFoundException();
         } catch (IOException e) { throw new FileNotFoundException(); }
         return f;

@@ -9,6 +9,18 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Eklendi (1.006) — Dosyalar: Samba (ağ paylaşımları)
+- Dosyalar giriş sayfasında yeni **Ağ** bölümü: kayıtlı Samba sunucuları (ad, adres, isteğe bağlı port, kullanıcı/parola ya da misafir, isteğe bağlı etki alanı). Ekle, düzenle (basılı tut), sil. Kaydederken bağlantı denenir; olmazsa yine de kaydedilebilir.
+- **Ağda ara:** mDNS (`_smb._tcp`) ve bu ağdaki 445 numaralı portun hızlı taranmasıyla sunucular bulunur; dokununca form adresle dolar.
+- Sunucu açılınca paylaşımları listelenir (gizli `$` ve yönetim paylaşımları hariç; listeyi vermeyen sunucuda paylaşım adı elle eklenir). Paylaşımlar yerel klasörlerle aynı tarayıcıda gezilir: sıralama, arama, yeniden adlandır, sil, yeni klasör, ZIP.
+- **Telefon ↔ sunucu kopyala/taşı** (pano artık kaynağını hatırlar): geçici ad, boyut doğrulaması, sonra yerine taşıma; taşımada kaynak ancak doğrulanmış kopyadan sonra silinir. Aynı paylaşımda taşıma tek adımda.
+- Ağdaki dosyaya dokununca önbelleğe indirilir ve açılır (100 MB üstünde önce sorulur; kopyalar bir saat sonra silinir).
+- **Uzun işlemler ekran kapalıyken de sürer** (yerel işlemler dahil): bildirimde ilerleme ve **İptal**; iş sürerken telefon ve Wi-Fi uyumaz.
+- Protokol: SMB 2.0.2 – 3.1.1; sunucu isterse imzalı, SMB 3'te şifreli. **SMB1 desteklenmez** (açık mesaj). Bağlantı sunucu başına tek, ekranlar arasında paylaşılır; kopan ya da uzun süre boşta kalan bağlantı bir kez kendiliğinden yeniden kurulur.
+- Güvenlik: yalnızca **yerel ağ adreslerine** bağlanılır (genel adres açık bir Türkçe mesajla reddedilir); parola Android Keystore ile şifreli saklanır; kimlik bilgisi ve dosya içeriği loga yazılmaz.
+- Dosyaya dokununca (yerel ya da ağdaki) PDF, Word, Excel, PowerPoint, metin ve CSV artık uygulamanın kendi **Belge Görüntüleyici**'sinde açılır; diğer türler ve “Birlikte aç” yine sistem seçicisiyle.
+- Yeni bağımlılık: `smbj` (BouncyCastle, mbassador, asn-one, slf4j-api ile).
+
 ### Eklendi (1.005) — Belge Görüntüleyici
 - Yeni, salt okunur **Belge Görüntüleyici**: başka uygulamalarda “Birlikte aç” listesinde **Belge Görüntüleyici** olarak çıkar (PDF, Word, Excel, PowerPoint, metin, CSV). Ana sayfada kartı yok; geri tuşu dosyayı açan uygulamaya döner.
 - Hız önce: dosya arka planda okunur, ilk sayfa/ilk paragraflar/ilk satırlar hazır olur olmaz gösterilir, kalanı akarak gelir; yalnızca ekrandaki kısım çizilir.
