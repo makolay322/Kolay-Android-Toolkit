@@ -202,8 +202,6 @@ final class Browser {
 
     boolean showing() { return pane.getVisibility() == View.VISIBLE; }
 
-    String userAgent() { return web.getSettings().getUserAgentString(); }
-
     void destroy() {
         token++;
         done = null; got = null;

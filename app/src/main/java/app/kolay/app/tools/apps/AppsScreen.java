@@ -18,6 +18,7 @@ import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.widget.*;
 import app.kolay.app.ui.*;
+import app.kolay.shell.Host;
 import java.io.File;
 import java.text.Collator;
 import java.util.*;
@@ -296,7 +297,7 @@ final class AppsScreen extends Screen {
         for (Job j : queue) idle(j.it);
         queue.clear();
         if (cur != null) idle(cur.it);
-        if (pendingPack != null) { Installer.deleteTree(pendingPack.dir); pendingPack = null; pendingItem = null; }
+        if (pendingPack != null) { Host.deleteTree(pendingPack.dir); pendingPack = null; pendingItem = null; }
         setRunning(false);
     }
 
@@ -342,10 +343,10 @@ final class AppsScreen extends Screen {
                         p -> c.ui.post(() -> { if (j == current) status(it, f.version + " indiriliyor" + (p >= 0 ? " · %" + p : "…"), c.p.primary, null, null); }));
                     c.ui.post(() -> { if (j == current) status(it, "Dosya doğrulanıyor…", c.p.primary, null, null); });
                     Installer.Pack pack = Installer.prepare(c.a, file, it.app.pkg);
-                    c.ui.post(() -> { if (j == current) install(it, pack); else Installer.deleteTree(pack.dir); });
+                    c.ui.post(() -> { if (j == current) install(it, pack); else Host.deleteTree(pack.dir); });
                 } catch (Exception e) {
                     String m = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-                    Installer.deleteTree(new File(Installer.workDir(c.a), it.app.pkg + ".parts"));
+                    Host.deleteTree(new File(Installer.workDir(c.a), it.app.pkg + ".parts"));
                     new File(Installer.workDir(c.a), it.app.pkg + ".download").delete();
                     c.ui.post(() -> { if (j == current) { status(it, "İndirilemedi: " + m, c.p.danger, "Tekrar dene", Icon.Kind.REFRESH); next(); } });
                 }
@@ -398,7 +399,7 @@ final class AppsScreen extends Screen {
         pendingPack = null; pendingItem = null;
         if (c.a.getPackageManager().canRequestPackageInstalls()) install(it, p);
         else {
-            Installer.deleteTree(p.dir);
+            Host.deleteTree(p.dir);
             status(it, "Kurulum izni verilmedi", c.p.warn, "Tekrar dene", Icon.Kind.REFRESH);
             next();
         }

@@ -11,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.os.Build;
 import android.webkit.CookieManager;
+import app.kolay.shell.Host;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -35,7 +36,7 @@ final class Installer {
     static File workDir(Context ctx) { return new File(ctx.getCacheDir(), "app-updates"); }
 
     /** Removes anything left over from an earlier run (for example when the app was closed mid-download). */
-    static void cleanup(Context ctx) { deleteTree(workDir(ctx)); }
+    static void cleanup(Context ctx) { Host.deleteTree(workDir(ctx)); }
 
     /** Fetches the file the browser was about to download, with the browser's cookies and user agent. Blocking. */
     static File download(Context ctx, String url, String ua, String referer, String pkg, LongConsumer percent) throws IOException {
@@ -92,7 +93,7 @@ final class Installer {
     static Pack prepare(Context ctx, File file, String pkg) throws IOException {
         Pack p = new Pack();
         p.dir = new File(workDir(ctx), pkg + ".parts");
-        deleteTree(p.dir); p.dir.mkdirs();
+        Host.deleteTree(p.dir); p.dir.mkdirs();
         try (ZipFile z = new ZipFile(file)) {
             if (z.getEntry("AndroidManifest.xml") != null) {   // a plain APK
                 File apk = new File(p.dir, "base.apk");
@@ -187,7 +188,7 @@ final class Installer {
         } catch (IOException | RuntimeException e) {
             try { pi.abandonSession(id); } catch (Exception ignored) { }
             throw e;
-        } finally { deleteTree(p.dir); }
+        } finally { Host.deleteTree(p.dir); }
     }
 
     /** Install outcome: {@code null} = success, otherwise a short Turkish reason. "Onay bekleniyor" states are handled inside. */
@@ -231,12 +232,5 @@ final class Installer {
             byte[] b = new byte[65536]; int n;
             while ((n = in.read(b)) > 0) o.write(b, 0, n);
         }
-    }
-
-    static void deleteTree(File f) {
-        if (f == null || !f.exists()) return;
-        File[] kids = f.listFiles();
-        if (kids != null) for (File k : kids) deleteTree(k);
-        f.delete();
     }
 }

@@ -57,7 +57,6 @@ final class DocCamera {
 
     private Run cur;            // main thread only
     private boolean torch;      // main thread only
-    private volatile boolean detect = true;
 
     DocCamera(Activity a, TextureView tv, Listener l) {
         this.tv = tv; this.l = l;
@@ -130,7 +129,6 @@ final class DocCamera {
     boolean available() { return id != null && jpegSize != null && previewSize != null; }
     boolean hasTorch() { return torchAble; }
     boolean torchOn() { return torch; }
-    void setDetect(boolean on) { detect = on; }
 
     /** Upright preview size (width, height): the overlay maps normalised coordinates with it. */
     float[] content() {
@@ -344,7 +342,7 @@ final class DocCamera {
             Image img = null;
             try {
                 img = r.acquireLatestImage();
-                if (img == null || !alive || !detect) return;
+                if (img == null || !alive) return;
                 long now = SystemClock.uptimeMillis();
                 if (now - lastDetect < 90) return;
                 lastDetect = now;
@@ -357,7 +355,7 @@ final class DocCamera {
                 img.close(); img = null;   // free the buffer before the (longer) analysis
                 if (len < stride * (hgt - 1) + w) return;
                 float[] q = QuadDetector.rotate(detector.detect(frame, stride, w, hgt), sensor);
-                main.post(() -> { if (cur == this && detect) l.onQuad(q); });
+                main.post(() -> { if (cur == this) l.onQuad(q); });
             } catch (Exception ignored) {
                 // a bad frame must not end scanning
             } finally {

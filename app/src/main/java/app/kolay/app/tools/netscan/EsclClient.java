@@ -58,7 +58,6 @@ final class EsclClient {
     EsclClient(Device d, Pins pins, Predicate<InetAddress> allowed) { this.d = d; this.pins = pins; this.allowed = allowed; }
 
     boolean secure() { return ep != null && ep.tls; }
-    String pinned() { return tofu.pinned; }
 
     void cancel() { http.abort(); }
 

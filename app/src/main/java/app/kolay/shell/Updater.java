@@ -54,7 +54,7 @@ final class Updater {
     }
 
     static void clearStaged(Context c) {
-        deleteTree(staged(c).getParentFile());
+        Host.deleteTree(staged(c).getParentFile());
         prefs(c).edit().remove("staged_vc").remove("staged_name").apply();
     }
 
@@ -62,7 +62,7 @@ final class Updater {
     static void cleanupLegacy(Context c) {
         SharedPreferences p = prefs(c);
         if (p.getBoolean("legacy_cleaned", false)) return;
-        deleteTree(new File(c.getFilesDir(), "payloads"));
+        Host.deleteTree(new File(c.getFilesDir(), "payloads"));
         c.deleteSharedPreferences("registry");
         new File(c.getCacheDir(), "payload.download").delete();
         new File(c.getCacheDir(), "shell.download").delete();
@@ -231,12 +231,5 @@ final class Updater {
         try (InputStream in = new FileInputStream(a); OutputStream o = new FileOutputStream(b)) {
             byte[] buf = new byte[65536]; int n; while ((n = in.read(buf)) > 0) o.write(buf, 0, n);
         }
-    }
-
-    static void deleteTree(File f) {
-        if (f == null || !f.exists()) return;
-        File[] kids = f.listFiles();
-        if (kids != null) for (File k : kids) deleteTree(k);
-        f.delete();
     }
 }

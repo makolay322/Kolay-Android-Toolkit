@@ -78,4 +78,12 @@ public interface Host {
     void prayerSetReminderMask(int mask);
     /** Asks the launcher to add the prayer widget to the home screen; false when the launcher cannot do that. */
     boolean prayerPinWidget();
+
+    /** Deletes {@code f} and everything below it; best effort, any thread. */
+    static void deleteTree(File f) {
+        if (f == null || !f.exists()) return;
+        File[] kids = f.listFiles();
+        if (kids != null) for (File k : kids) deleteTree(k);
+        f.delete();
+    }
 }

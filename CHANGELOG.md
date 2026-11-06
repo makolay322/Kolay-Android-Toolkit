@@ -8,6 +8,11 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 - Eski yayın notları sadeleştirildi.
 
 ## 1.014 ve sonrası
+### Değişti (1.033) — Kararlılık ve temizlik
+- Galeriden ya da paylaşımla tek seferde en çok **50 görüntü** alınır; fazlası eklenmez ve bunu bildiren bir not çıkar (çok sayıda görüntüde bellek ve bekleme sorununu önler).
+- Metne çevir / Tıbbi rapor: bir sayfa okunurken hata olursa o sayfanın görüntüsü bellekte kalmıyor.
+- Önceki akışlardan kalan önbellek dosyaları artık arka planda silinir (Belgeler açılırken takılma yok).
+- Kullanılmayan kod kaldırıldı, yinelenen dosya silme yardımcıları teke indirildi. Görünür davranış değişmedi.
 ### Değişti (1.032)
 - **Belgeler** artık tek bir belge akışı: kart doğrudan kaynak seçimini açar — **Kamera**, **Galeri** (sistem Fotoğraf Seçicisi, kamera açılmaz) ve **Wi-Fi tarayıcı**. Hepsi aynı sayfa listesine gider; kaynaklar karıştırılabilir (“Sayfa ekle” ya da geri ile Belgeler ekranına dönüp başka kaynaktan ekle; sayfalar kaybolmaz, altta “Sayfalar (n)”). Ayrı Belge Tarayıcı, Ağ Tarayıcı ve OCR girişleri kalktı.
 - Sayfa listesinin altında üç çıktı: **Kaydet** (PDF/JPEG, isteğe bağlı aranabilir PDF; eskisi gibi), **Metne çevir** (cihazda OCR, seçili dillerle; sonuç ekranında dil değiştirip yeniden okuma, isteğe bağlı cilalama) ve **Tıbbi rapor** (önceki tıbbi OCR: Almanca, cihazda maskeleme, sayfa sıralama ve temizleme). OCR artık sayfaların kırpılmış, döndürülmüş ve filtrelenmiş hâlini okur; sonuçtan geri sayfalara dönülür, düzeltip yeniden okunabilir. Akış Belgeler ekranından çıkınca (ya da Kaydet → “Bitti”) biter, sayfalar silinir.

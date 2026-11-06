@@ -62,6 +62,13 @@ final class Ocr {
         try { return OcrEngine.prepare(b); } finally { b.recycle(); }
     }
 
+    /** Tesseract text of one page ("" when none); the page bitmap is recycled even when reading fails. */
+    private static String read(TessBaseAPI a, ScanSession.Job j) throws IOException {
+        Bitmap bmp = load(j);
+        try { a.setImage(bmp); String raw = a.getUTF8Text(); return raw == null ? "" : raw; }
+        finally { bmp.recycle(); }
+    }
+
     interface Progress { void on(String status, float fraction); }
 
     private volatile boolean cancelled;
@@ -86,11 +93,7 @@ final class Ocr {
         for (int i = 0; i < pages.size(); i++) {
             if (cancelled) throw new InterruptedIOException("iptal");
             pr.on("Sayfa " + (i + 1) + "/" + pages.size() + " okunuyor…", 0.08f + 0.62f * i / pages.size());
-            Bitmap bmp = load(pages.get(i));
-            a.setImage(bmp);
-            String raw = a.getUTF8Text();
-            bmp.recycle();
-            raws.add(raw == null ? "" : raw);
+            raws.add(read(a, pages.get(i)));
         }
         java.util.Set<String> known = Mask.collect(raws);  // bir sayfada bulunan isim tüm sayfalarda sansürlenir
         for (int i = 0; i < raws.size(); i++) {
@@ -125,11 +128,8 @@ final class Ocr {
             for (int i = 0; i < pages.size(); i++) {
                 if (cancelled) throw new InterruptedIOException("iptal");
                 pr.on("Sayfa " + (i + 1) + "/" + pages.size() + " okunuyor…", 0.08f + 0.9f * i / pages.size());
-                Bitmap bmp = load(pages.get(i));
-                a.setImage(bmp);
-                String raw = a.getUTF8Text();
-                bmp.recycle();
-                if (raw != null && !raw.trim().isEmpty()) out.append(raw.trim()).append("\n\n");
+                String raw = read(a, pages.get(i)).trim();
+                if (!raw.isEmpty()) out.append(raw).append("\n\n");
             }
         } finally {
             a.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_COLUMN);   // the medical mode relies on the default set in tess()

@@ -125,17 +125,6 @@ public final class Ui {
         }).start();
     }
 
-    /** Animates a view's visibility with a slide from the bottom/top edge. */
-    public static void slideVisible(View v, boolean show, int offsetPx) {
-        v.animate().cancel();
-        if (show) {
-            if (v.getVisibility() != View.VISIBLE) { v.setAlpha(0f); v.setTranslationY(offsetPx); v.setVisibility(View.VISIBLE); }
-            v.animate().alpha(1f).translationY(0).setDuration(320).setInterpolator(EMPH).start();
-        } else if (v.getVisibility() == View.VISIBLE) {
-            v.animate().alpha(0f).translationY(offsetPx).setDuration(200).setInterpolator(EXIT).withEndAction(() -> v.setVisibility(View.INVISIBLE)).start();
-        }
-    }
-
     /** Uppercase section label above a card or list. */
     public static TextView label(Ctx c, String s) {
         TextView t = text(c, s, 12, c.p.muted, 600);

@@ -5,6 +5,7 @@ import app.kolay.app.doc.Imaging;
 import app.kolay.app.doc.QuadDetector;
 import app.kolay.app.ui.Ctx;
 import app.kolay.app.ui.Screen;
+import app.kolay.shell.Host;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -24,6 +25,8 @@ public final class ScanSession {
     private static final long DETECT_PX = 1_200_000L;
     /** Larger pictures are not copied in (the page is marked unreadable); decoding is sampled down anyway. */
     private static final long MAX_IMPORT_BYTES = 64L << 20;
+    /** Pictures taken in at once (gallery pick or share); the rest is dropped with a notice. */
+    private static final int MAX_IMPORT = 50;
     /** Cache folders of the flows alive in this process (main thread). A share can open a second activity next to a running flow. */
     private static final java.util.Set<String> LIVE = new java.util.HashSet<>();
 
@@ -54,7 +57,11 @@ public final class ScanSession {
         this.c = c;
         File parent = new File(c.a.getCacheDir(), "scan");
         File[] old = parent.listFiles();   // leftovers of earlier flows (e.g. the app was killed), never a live one
-        if (old != null) for (File f : old) if (!LIVE.contains(f.getName())) deleteTree(f);
+        if (old != null) {
+            List<File> stale = new ArrayList<>();
+            for (File f : old) if (!LIVE.contains(f.getName())) stale.add(f);
+            if (!stale.isEmpty()) new Thread(() -> { for (File f : stale) Host.deleteTree(f); }, "scan-cleanup").start();
+        }
         dir = new File(parent, Long.toString(System.nanoTime()));
         dir.mkdirs();
         LIVE.add(dir.getName());
@@ -95,6 +102,10 @@ public final class ScanSession {
 
     /** Gallery or shared pictures: copied into the cache (the read grant may end), then outlined. */
     void addUris(List<android.net.Uri> uris) {
+        if (uris.size() > MAX_IMPORT) {
+            android.widget.Toast.makeText(c.a, "En fazla " + MAX_IMPORT + " görüntü alındı, " + (uris.size() - MAX_IMPORT) + " tanesi eklenmedi", android.widget.Toast.LENGTH_LONG).show();
+            uris = uris.subList(0, MAX_IMPORT);
+        }
         for (android.net.Uri u : uris) {
             Page p = new Page(newFile(), defaultFilter);
             pages.add(p);
@@ -228,13 +239,6 @@ public final class ScanSession {
         pages.clear();
         LIVE.remove(dir.getName());
         File d = dir;
-        new Thread(() -> deleteTree(d), "scan-cleanup").start();
-    }
-
-    static void deleteTree(File f) {
-        if (f == null || !f.exists()) return;
-        File[] kids = f.listFiles();
-        if (kids != null) for (File k : kids) deleteTree(k);
-        f.delete();
+        new Thread(() -> Host.deleteTree(d), "scan-cleanup").start();
     }
 }
