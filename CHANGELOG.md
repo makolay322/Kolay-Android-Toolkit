@@ -9,6 +9,10 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti (1.003) — Cuma görseli 2:1, sade sohbet
+- **Cuma Mesajı:** görsel yatay **2:1** (2000×1000) oldu. Yerleşim dikey orta eksene göre simetrik: iki üst köşede birbirinin aynası iki hilal, aynalanmış yıldızlar, ortalı desen ve cami silueti, eşit kenar boşluklu ortalı hadis paneli. Hadis satırları tüm genişliğe yayılmaz; yazı boyutu metnin uzunluğuna göre sığacak en büyük boyuta ayarlanır.
+- **Sohbet:** “Hızlı başla” düğmeleri kaldırıldı; boş ekranda yalnızca kısa bir ipucu kalır. İsteğe artık sabit bir yönerge eklenmez (önceki mesajlar yine gönderilir) ve yanıt olduğu gibi gösterilir (biçim düzeltmesi yok).
+
 ### Değişti (1.002) — Sayfa kenarı algılama
 - Sayfa çerçevesi daha doğru yere oturur: açık renkli masada beyaz sayfa ve içinde yoğun tablo/metin olan sayfalar artık bulunuyor (yoğun metin kenar eşiğini sayfa kenarının üstüne çıkarmıyor; sayfadaki tablo çizgileri çerçeveyi içeri çekmiyor).
 - Kenar algılama rengi de kullanır (renkli masa / kâğıt farkı); kameradaki canlı algılama dahil.

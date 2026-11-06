@@ -5,7 +5,6 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.text.InputType;
 import android.view.*;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import app.kolay.app.screens.SettingsScreen;
 import app.kolay.app.tools.Llm;
@@ -19,17 +18,6 @@ import java.util.List;
  */
 final class ChatScreen extends Screen {
     private static final int MAX_TURNS = 24;          // history sent with each request (oldest dropped first)
-    private static final String SYSTEM =
-        "Sen Kolay adlı kişisel bir Android uygulamasındaki yardımcı sohbet asistanısın. Kullanıcı başka bir dil istemedikçe "
-        + "Türkçe yanıt ver. Kısa, net ve doğrudan ol; giriş ve kapanış cümleleri kurma. Düz metin yaz: markdown başlığı, tablo, "
-        + "kalın veya italik işareti kullanma; liste gerekiyorsa satır başında '• ' kullan. Çeviri, düzeltme veya yeniden yazma "
-        + "istenirse yalnızca sonucu ver. Emin olmadığın bilgide bunu açıkça söyle; uydurma.";
-    private static final String[][] STARTERS = {
-        {"Metni düzelt", "Yazım ve dil bilgisi hatalarını düzelt, anlamı değiştirme:\n"},
-        {"Çevir", "Şunu İngilizceye çevir:\n"},
-        {"Özetle", "Şunu birkaç cümlede özetle:\n"},
-        {"Mesaj yaz", "Kibar ve kısa bir mesaj taslağı yaz: "},
-    };
 
     private final List<String[]> turns = new ArrayList<>();   // {role, text}
     private FrameLayout root;
@@ -75,7 +63,7 @@ final class ChatScreen extends Screen {
         list.setPadding(c.dp(Ui.GUTTER), c.dp(4), c.dp(Ui.GUTTER), c.dp(12));
         scroll.addView(list, new FrameLayout.LayoutParams(-1, -2));
         page.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-        empty = starters();
+        empty = hint();
         list.addView(empty);
 
         // input bar: growing multi-line field + round send button
@@ -101,32 +89,13 @@ final class ChatScreen extends Screen {
         refreshSend();
     }
 
-    /** Empty-state hint with a few one-tap starters that pre-fill the field. */
-    private View starters() {
-        LinearLayout l = new LinearLayout(c.a);
-        l.setOrientation(LinearLayout.VERTICAL);
-        l.setPadding(0, c.dp(8), 0, 0);
-        TextView hint = Ui.text(c, "Hızlı bir soru sor ya da bir metni yapıştırıp ne yapılacağını yaz. Konuşma yalnızca bu ekran "
+    /** Empty-state hint shown until the first message. */
+    private View hint() {
+        TextView hint = Ui.text(c, "Bir şey sor ya da bir metni yapıştırıp ne yapılacağını yaz. Konuşma yalnızca bu ekran "
                 + "açıkken tutulur; çıkınca silinir.", 14, c.p.muted, 400);
         hint.setLineSpacing(0, 1.25f);
-        l.addView(hint, Ui.lp(-1, -2, c.dp(4), 0, c.dp(4), c.dp(14)));
-        l.addView(Ui.label(c, "HIZLI BAŞLA"), Ui.lp(-2, -2, c.dp(4), 0, 0, c.dp(8)));
-        for (int i = 0; i < STARTERS.length; i += 2) {
-            TextView a = starter(STARTERS[i]), b = starter(STARTERS[i + 1]);
-            l.addView(Ui.pair(c, a, b, Ui.H_GHOST), Ui.lp(-1, -2, 0, i == 0 ? 0 : c.dp(Ui.GAP), 0, 0));
-        }
-        return l;
-    }
-
-    private TextView starter(String[] s) {
-        TextView b = Ui.button(c, s[0], Ui.Style.TONAL, null);
-        b.setTextSize(15);
-        b.setOnClickListener(v -> {
-            input.setText(s[1]); input.setSelection(input.length()); input.requestFocus();
-            InputMethodManager im = (InputMethodManager) c.a.getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (im != null) im.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
-        });
-        return b;
+        hint.setLayoutParams(Ui.lp(-1, -2, c.dp(4), c.dp(8), c.dp(4), 0));
+        return hint;
     }
 
     private void submit() {
@@ -151,7 +120,7 @@ final class ChatScreen extends Screen {
         final List<String[]> window = window();
         c.io.execute(() -> {
             String reply = null, err = null;
-            try { reply = tidy(Llm.chat(c.host, window, SYSTEM, 0.7)); }
+            try { reply = Llm.chat(c.host, window, 0.7); if (reply != null) reply = reply.trim(); }
             catch (Exception e) { err = e.getMessage() == null ? "Bağlantı kurulamadı" : e.getMessage(); }
             final String r = reply, e = err;
             c.ui.post(() -> {
@@ -168,7 +137,7 @@ final class ChatScreen extends Screen {
                     if (input.length() == 0) { input.setText(text); input.setSelection(input.length()); }
                     errorBubble = bubbleError(e == null ? "Boş yanıt döndü" : e);
                     list.addView(errorBubble);
-                    if (turns.isEmpty() && empty == null) { empty = starters(); list.addView(empty, 0); }
+                    if (turns.isEmpty() && empty == null) { empty = hint(); list.addView(empty, 0); }
                 }
                 scrollDown();
             });
@@ -188,7 +157,7 @@ final class ChatScreen extends Screen {
         turns.clear();
         list.removeAllViews();
         typing = null; errorBubble = null;
-        empty = starters();
+        empty = hint();
         list.addView(empty);
         input.setText("");
         refreshSend();
@@ -257,20 +226,6 @@ final class ChatScreen extends Screen {
         t.setBackground(Ui.rounded(c, c.p.dangerSoft, 16));
         t.setLayoutParams(Ui.lp(-1, -2, 0, c.dp(10), 0, 0));
         return t;
-    }
-
-    /** Light clean-up for replies that still use markdown despite the instruction. */
-    static String tidy(String s) {
-        StringBuilder out = new StringBuilder();
-        for (String line : s.replace("\r", "").split("\n", -1)) {
-            String l = line;
-            String trimmed = l.replaceFirst("^\\s+", "");
-            if (trimmed.startsWith("#")) l = trimmed.replaceFirst("^#+\\s*", "");
-            else if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) l = l.substring(0, l.length() - trimmed.length()) + "• " + trimmed.substring(2);
-            l = l.replace("**", "").replace("__", "");
-            out.append(l).append('\n');
-        }
-        return out.toString().trim().replaceAll("\n{3,}", "\n\n");
     }
 
     @Override public void onDestroy() {

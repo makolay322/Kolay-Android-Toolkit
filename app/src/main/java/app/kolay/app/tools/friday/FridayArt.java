@@ -10,6 +10,8 @@ import java.util.Random;
  * Draws the Friday card entirely with Canvas (no image assets): a gradient, a geometric Islamic pattern, a crescent,
  * stars and a plain mosque silhouette (no window lights), with the hadith in a translucent panel. The same seed always
  * gives the same background. Only dark themes exist: half near-black, half deep mature colors.
+ * The composition is mirror-symmetric about the vertical centre line: pattern grid, crescents, sparkles, mosque and panel
+ * are all centred or drawn in mirrored pairs, and every text line is centred.
  */
 final class FridayArt {
     private FridayArt() {}
@@ -42,10 +44,10 @@ final class FridayArt {
         new Theme(0xFF3B3A1F, 0xFF1A190B, 0xFFD6B25E, 0xFFF6F1DD, 0x66000000, 0xFF0F0F05),
     };
 
-    /** Output size: landscape 3:2. */
-    static final int W = 1500, H = 1000;
+    /** Output size: landscape 2:1. */
+    static final int W = 2000, H = 1000;
 
-    /** @return a new 3:2 landscape bitmap; the caller owns it */
+    /** @return a new 2:1 landscape bitmap; the caller owns it */
     static Bitmap render(long seed, String hadith, String source) {
         final int w = W, h = H;
         final float u = 1f;
@@ -73,31 +75,35 @@ final class FridayArt {
     private static void pattern(Canvas cv, int w, int h, Theme t, Random r) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(Math.max(2f, w / 520f));
+        p.setStrokeWidth(Math.max(2f, h / 350f));
         p.setColor(t.accent);
         p.setAlpha(34);
-        float s = w / (9f + r.nextInt(6));
+        float s = h / (6f + r.nextInt(4));
         boolean stars = r.nextBoolean();
+        int n = (int) Math.ceil(w / 2f / s) + 1;      // columns at w/2 + k·s, k = -n…n: the grid is centred, so it mirrors
         for (float y = -s / 2; y < h + s; y += s) {
-            for (float x = -s / 2; x < w + s; x += s) {
+            for (int k = -n; k <= n; k++) {
+                float x = w / 2f + k * s;
                 if (stars) {
                     float d = s * 0.40f;
                     cv.drawRect(x - d, y - d, x + d, y + d, p);
                     cv.save(); cv.rotate(45, x, y); cv.drawRect(x - d, y - d, x + d, y + d, p); cv.restore();
                 } else {
                     cv.drawCircle(x, y, s * 0.5f, p);
-                    cv.drawCircle(x + s / 2, y + s / 2, s * 0.5f, p);
+                    if (k < n) cv.drawCircle(x + s / 2, y + s / 2, s * 0.5f, p);   // offset row: w/2 ± (j+½)·s, also mirrored
                 }
             }
         }
     }
 
+    /** Two crescents, one in each top corner, mirror images of each other (both open toward the title). */
     private static void moon(Canvas cv, int w, int h, Theme t, Random r) {
-        boolean left = r.nextBoolean();
-        // In a top corner, left or right of the centered title (which spans roughly 0.22·w … 0.78·w).
-        float rad = h * 0.068f;
-        float cx = left ? w * 0.085f : w * 0.915f, cy = h * (0.115f + r.nextFloat() * 0.015f);
-        float dir = left ? 1 : -1;
+        float cy = h * (0.115f + r.nextFloat() * 0.015f);
+        crescent(cv, w * 0.12f, cy, h * 0.068f, 1, t);
+        crescent(cv, w * 0.88f, cy, h * 0.068f, -1, t);
+    }
+
+    private static void crescent(Canvas cv, float cx, float cy, float rad, float dir, Theme t) {
         Paint g = new Paint(Paint.ANTI_ALIAS_FLAG);
         g.setShader(new RadialGradient(cx, cy, rad * 2.4f, (t.accent & 0x00FFFFFF) | 0x30000000, t.accent & 0x00FFFFFF, Shader.TileMode.CLAMP));
         cv.drawCircle(cx, cy, rad * 2.4f, g);
@@ -111,16 +117,21 @@ final class FridayArt {
         cv.drawPath(star(cx + dir * rad * 0.95f, cy - rad * 0.05f, rad * 0.30f, rad * 0.13f, 5), f);
     }
 
+    /** Random sparkles on the left half, each drawn again at its mirror position on the right. */
     private static void sparkles(Canvas cv, int w, int h, Theme t, Random r) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        int n = 22 + r.nextInt(18);
+        int n = 22 + r.nextInt(12);
         for (int i = 0; i < n; i++) {
-            float x = r.nextFloat() * w, y = r.nextFloat() * h * 0.70f, s = 2f + r.nextFloat() * 5f * h / 1000f;
-            if (y > h * 0.06f && y < h * 0.23f && x > w * 0.18f && x < w * 0.82f) continue;   // title band
+            float x = r.nextFloat() * w / 2f, y = r.nextFloat() * h * 0.70f, s = 2f + r.nextFloat() * 5f * h / 1000f;
+            boolean star = r.nextInt(3) == 0;
+            int alpha = 90 + r.nextInt(150);
+            if (y > h * 0.06f && x > w * 0.17f) continue;   // keep clear of the title and the hadith panel
             p.setColor(t.accent);
-            p.setAlpha(90 + r.nextInt(150));
-            if (r.nextInt(3) == 0) cv.drawPath(star(x, y, s * 2.4f, s * 0.7f, 4), p);
-            else cv.drawCircle(x, y, s, p);
+            p.setAlpha(alpha);
+            for (float xx : new float[]{x, w - x}) {
+                if (star) cv.drawPath(star(xx, y, s * 2.4f, s * 0.7f, 4), p);
+                else cv.drawCircle(xx, y, s, p);
+            }
         }
     }
 
@@ -128,8 +139,8 @@ final class FridayArt {
     private static void mosque(Canvas cv, int w, int h, Theme t, Random r) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(t.mosque);
-        float cx = w * (0.38f + r.nextFloat() * 0.24f);
-        float mw = w * 0.30f;
+        float cx = w / 2f;                                          // centred: the silhouette mirrors about the axis
+        float mw = h * 0.45f;
         float bodyTop = h * 0.928f;
         float dr = mw * 0.21f;
 
@@ -142,10 +153,10 @@ final class FridayArt {
 
         int pairs = r.nextBoolean() ? 1 : 2;
         for (int i = 0; i < pairs; i++) {
-            float off = mw / 2 + w * (0.035f + 0.10f * i);
+            float off = mw / 2 + h * (0.0525f + 0.15f * i);
             float tip = h * (0.775f + 0.03f * r.nextFloat());
-            minaret(cv, p, cx - off, tip, h, w);
-            minaret(cv, p, cx + off, tip + h * 0.01f * (i + 1), h, w);
+            minaret(cv, p, cx - off, tip, h);
+            minaret(cv, p, cx + off, tip, h);
         }
     }
 
@@ -153,8 +164,8 @@ final class FridayArt {
         cv.drawArc(new RectF(cx - rx, baseY - ry, cx + rx, baseY + ry), 180, 180, true, p);
     }
 
-    private static void minaret(Canvas cv, Paint p, float x, float tipY, int h, int w) {
-        float half = w * 0.009f, cone = h * 0.05f;
+    private static void minaret(Canvas cv, Paint p, float x, float tipY, int h) {
+        float half = h * 0.0135f, cone = h * 0.05f;
         float shaftTop = tipY + cone;
         cv.drawRect(x - half, shaftTop, x + half, h, p);
         cv.drawRect(x - half * 2f, shaftTop + h * 0.07f, x + half * 2f, shaftTop + h * 0.082f, p);   // balcony
@@ -171,13 +182,14 @@ final class FridayArt {
         tp.setTextAlign(Paint.Align.CENTER);
 
         tp.setColor(t.text);
-        tp.setTextSize(72 * u);
+        tp.setTextSize(80 * u);
         tp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         tp.setShadowLayer(14 * u, 0, 3 * u, 0xB3000000);   // keeps the title legible over sparkles and the moon's glow
         cv.drawText("Cumamız Mübarek Olsun", w / 2f, h * 0.165f, tp);
         tp.clearShadowLayer();
 
-        float pl = w * 0.08f, pr = w * 0.92f, pt = h * 0.225f, pb = h * 0.775f;
+        // Panel narrower than the canvas (0.64·w), centred: equal side margins and hadith lines that stay readable.
+        float pw = w * 0.64f, pl = (w - pw) / 2f, pr = pl + pw, pt = h * 0.225f, pb = h * 0.775f;
         Paint pp = new Paint(Paint.ANTI_ALIAS_FLAG);
         pp.setColor(t.panel);
         float rad = 28 * u;
@@ -185,7 +197,7 @@ final class FridayArt {
         pp.setStyle(Paint.Style.STROKE); pp.setStrokeWidth(3 * u); pp.setColor(t.accent); pp.setAlpha(150);
         cv.drawRoundRect(new RectF(pl, pt, pr, pb), rad, rad, pp);
 
-        float pad = 40 * u;
+        float pad = 48 * u;
         float inner = (pr - pl) - 2 * pad;
 
         tp.setTypeface(Typeface.DEFAULT_BOLD);
@@ -196,13 +208,13 @@ final class FridayArt {
         cv.drawText("HADÎS-İ ŞERÎF", w / 2f, labelY, tp);
         tp.setLetterSpacing(0f);
 
-        // source line sits at the bottom of the panel; the hadith is fitted in between
+        // source line sits at the bottom of the panel; the hadith is fitted in between, largest size that fits
         tp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.ITALIC));
         tp.setTextSize(34 * u);
         float srcY = pb - pad * 0.7f;
         cv.drawText("— " + source, w / 2f, srcY, tp);
 
-        float top = labelY + 26 * u, bottom = srcY - 58 * u;
+        float top = labelY + 34 * u, bottom = srcY - 62 * u;
         TextPaint hp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         hp.setColor(t.text);
         hp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.NORMAL));

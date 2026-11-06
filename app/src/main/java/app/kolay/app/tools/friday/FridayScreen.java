@@ -30,9 +30,9 @@ final class FridayScreen extends Screen {
         hadith = rnd.nextInt(hadiths.size());
         LinearLayout page = new LinearLayout(c.a);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.addView(new Header(c, "Cuma Mesajı", "Rastgele görsel · hadis · 3:2", () -> c.nav.pop()).view);
+        page.addView(new Header(c, "Cuma Mesajı", "Rastgele görsel · hadis · 2:1", () -> c.nav.pop()).view);
 
-        // 3:2 preview, as large as the space allows, with rounded corners and a loader until the first render.
+        // 2:1 preview, as large as the space allows, with rounded corners and a loader until the first render.
         FrameLayout box = new FrameLayout(c.a);
         box.setPadding(c.dp(Ui.GUTTER), c.dp(4), c.dp(Ui.GUTTER), c.dp(8));
         FrameLayout frame = new FrameLayout(c.a) {

@@ -34,13 +34,13 @@ public final class Llm {
 
     /**
      * Multi-turn chat. {@code turns} alternate user / model, oldest first, and must end with the user's new message;
-     * each entry is {role ("user" or "model"), text}. {@code system} sets the assistant's standing instructions.
+     * each entry is {role ("user" or "model"), text}. No system instruction is sent.
      */
-    public static String chat(Host host, List<String[]> turns, String system, double temperature) throws Exception {
+    public static String chat(Host host, List<String[]> turns, double temperature) throws Exception {
         JSONArray contents = new JSONArray();
         for (String[] t : turns)
             contents.put(new JSONObject().put("role", t[0]).put("parts", new JSONArray().put(new JSONObject().put("text", t[1]))));
-        return call(host, contents, system, temperature, 4096, 90000);
+        return call(host, contents, null, temperature, 4096, 90000);
     }
 
     public static boolean hasKey(Host host) { return !host.secret(SettingsScreen.LLM_SECRET).isEmpty(); }
@@ -51,7 +51,7 @@ public final class Llm {
         JSONObject body = new JSONObject()
             .put("contents", contents)
             .put("generationConfig", new JSONObject().put("temperature", temperature).put("maxOutputTokens", maxTokens));
-        if (system != null)
+        if (system != null && !system.isEmpty())
             body.put("systemInstruction", new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", system))));
         HttpURLConnection c = (HttpURLConnection) new URL("https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent").openConnection();
         c.setRequestMethod("POST"); c.setDoOutput(true); c.setConnectTimeout(10000); c.setReadTimeout(readTimeoutMs);
