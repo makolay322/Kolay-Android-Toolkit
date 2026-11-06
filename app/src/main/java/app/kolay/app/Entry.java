@@ -10,6 +10,7 @@ import app.kolay.app.tools.qr.QrTool;
 import app.kolay.app.tools.scan.DocsScreen;
 import app.kolay.app.tools.youtube.YoutubeTool;
 import app.kolay.app.ui.*;
+import app.kolay.app.viewer.Viewer;
 import app.kolay.shell.Host;
 
 /** UI entry point: sets up theme, navigation and the home screen inside {@code MainActivity}, which forwards its lifecycle here. */
@@ -52,6 +53,13 @@ public final class Entry {
             in.removeExtra(Intent.EXTRA_TEXT);
             in.setClipData(null);
             if (!uris.isEmpty()) c.nav.push(new DocsScreen(uris));
+        }
+        // "Birlikte aç" (ACTION_VIEW) for documents: straight to the viewer; Back returns to the opening app. Consumed like the others.
+        if (saved == null && in != null && Intent.ACTION_VIEW.equals(in.getAction()) && in.getData() != null) {
+            android.net.Uri u = in.getData();
+            String t = in.getType();
+            in.setAction(Intent.ACTION_MAIN);
+            c.nav.push(Viewer.external(u, t));
         }
         // Shared from another app via "YouTube Özet": open the summary screen with the link. Consumed so recreate() does not repeat it.
         if (saved == null && in != null && Intent.ACTION_SEND.equals(in.getAction()) && in.getStringExtra(Intent.EXTRA_TEXT) != null) {

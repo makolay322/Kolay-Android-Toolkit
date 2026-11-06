@@ -9,6 +9,17 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Eklendi (1.005) — Belge Görüntüleyici
+- Yeni, salt okunur **Belge Görüntüleyici**: başka uygulamalarda “Birlikte aç” listesinde **Belge Görüntüleyici** olarak çıkar (PDF, Word, Excel, PowerPoint, metin, CSV). Ana sayfada kartı yok; geri tuşu dosyayı açan uygulamaya döner.
+- Hız önce: dosya arka planda okunur, ilk sayfa/ilk paragraflar/ilk satırlar hazır olur olmaz gösterilir, kalanı akarak gelir; yalnızca ekrandaki kısım çizilir.
+- **PDF:** dikey kaydırma, sayfalar yalnızca görünürken çizilir (bellek sınırlı önbellek), iki parmakla / çift dokunuşla yakınlaştırma (yakınlaşınca daha keskin yeniden çizim), “3 / 12” göstergesi; dokununca sayfaya git. Parolalı PDF için açık bir uyarı.
+- **Word (.docx):** paragraflar, kalın/italik/altı çizili/üstü çizili, başlık boyutları, madde işaretli ve numaralı listeler, basit tablolar, belge içindeki görseller.
+- **Excel (.xlsx):** sayfa sekmeleri, hızlı çizilen hücre ızgarası (sabit sütun harfleri ve satır numaraları, iki yönlü kaydırma, yakınlaştırma), dokunulan hücrenin tam değeri altta; yalnızca kayıtlı değerler (formül hesaplanmaz), tarih/sayı/yüzde gösterimi.
+- **PowerPoint (.pptx):** her slayt kendi en-boy oranında; metin kutuları ve resimler yaklaşık yerlerinde, kaydırarak slayttan slayta, “Slayt 3 / 12” göstergesi.
+- **Metin / CSV:** düz metin (UTF-8, UTF-16 ya da Türkçe Windows kodlaması kendiliğinden), CSV basit tablo olarak (virgül, noktalı virgül ya da sekme).
+- Eski **.doc / .xls / .ppt** dosyaları için şimdilik “Eski Office biçimi” bilgisi çıkar (ileride eklenecek destek için tek bir giriş noktası hazır).
+- Güvenlik: ağ kullanılmaz, belge içeriği log'a yazılmaz; sıkıştırma bombasına karşı girdi boyutu ve görsel sayısı sınırlı; bozuk dosyada çökme yerine anlaşılır bir hata ekranı.
+
 ### Eklendi (1.004) — Dosyalar
 - Ana sayfada yeni, tam genişlikte **Dosyalar** kartı: yerel dosya yöneticisi.
 - Giriş sayfası: depolama alanları (doluluk çubuğuyla), kategoriler (**Görseller, Videolar, Sesler, Belgeler, İndirilenler, APK'lar**), son 30 günde eklenen dosyalar, **yer imleri** (basılı tut: kaldır).
