@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/** Landing page: four cards (Belgeler, Dini, Araçlar, Sohbet); a group card opens {@link GroupScreen}. */
+/** Landing page: four cards (Belgeler, Dini, Araçlar, Sohbet) and a full-width Dosyalar card; a group card opens {@link GroupScreen}. */
 public final class HomeScreen extends Screen {
     private static final String FAITH_SUB = "Vakitler · kıble · cuma · helal";
     private static final String[] PRAYERS = {"Sabah", "Güneş", "Öğle", "İkindi", "Akşam", "Yatsı"};   // as on the prayer screen
@@ -86,6 +86,10 @@ public final class HomeScreen extends Screen {
             }
             col.addView(row, Ui.lp(-1, -2, 0, i == 0 ? c.dp(16) : 0, 0, gap));
         }
+        // Full width under the grid: spans both columns, so the 2 × 2 layout stays even.
+        View files = wideCard(Tools.FILES.title(), Tools.FILES.subtitle(), Tools.FILES.icon(), 4, () -> c.nav.push(Tools.FILES.open(c)));
+        col.addView(files, Ui.lp(-1, -2));
+        entrance.add(files);
         showNextPrayer();
 
         TextView foot = Ui.text(c, "Sürüm " + c.host.versionName(), 12, p.muted, 400);
@@ -124,6 +128,36 @@ public final class HomeScreen extends Screen {
         card.setContentDescription(title);
         card.setTag(sub);
 
+        card.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); open.run(); });
+        Ui.press(card);
+        return card;
+    }
+
+    /** A full-width card in the same style: icon tile on the left, title and one line of subtitle, chevron. */
+    private View wideCard(String title, String subtitle, Icon.Kind icon, int idx, Runnable open) {
+        Palette p = c.p;
+        LinearLayout card = new LinearLayout(c.a);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(c.dp(16), c.dp(16), c.dp(16), c.dp(16));
+        Ui.surface(c, card, p.surface, 22, true);
+        card.setClickable(true);
+        FrameLayout tile = new FrameLayout(c.a);
+        tile.setBackground(Ui.rounded(c, p.softBg(idx), 16));
+        tile.addView(Ui.icon(c, icon, p.softFg(idx), 26), new FrameLayout.LayoutParams(c.dp(26), c.dp(26), Gravity.CENTER));
+        card.addView(tile, new LinearLayout.LayoutParams(c.dp(52), c.dp(52)));
+        LinearLayout txt = new LinearLayout(c.a);
+        txt.setOrientation(LinearLayout.VERTICAL);
+        TextView name = Ui.text(c, title, 16, p.ink, 600);
+        name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        txt.addView(name);
+        TextView sub = Ui.text(c, subtitle, 13, p.muted, 400);
+        sub.setSingleLine(true); sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        txt.addView(sub, Ui.lp(-1, -2, 0, c.dp(4), 0, 0));
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
+        tl.setMarginStart(c.dp(16));
+        card.addView(txt, tl);
+        card.addView(Ui.icon(c, Icon.Kind.CHEVRON, p.muted, 18), new LinearLayout.LayoutParams(c.dp(18), c.dp(18)));
+        card.setContentDescription(title);
         card.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); open.run(); });
         Ui.press(card);
         return card;

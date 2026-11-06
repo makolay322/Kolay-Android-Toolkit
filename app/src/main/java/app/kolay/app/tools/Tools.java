@@ -3,6 +3,7 @@ package app.kolay.app.tools;
 import app.kolay.app.tools.apps.AppsTool;
 import app.kolay.app.tools.chat.ChatTool;
 import app.kolay.app.tools.compress.CompressTool;
+import app.kolay.app.tools.files.FilesTool;
 import app.kolay.app.tools.friday.FridayTool;
 import app.kolay.app.tools.halal.HelalTool;
 import app.kolay.app.tools.kible.KibleTool;
@@ -16,6 +17,7 @@ public final class Tools {
 
     public static final Tool[] FAITH = { new NamazTool(), new KibleTool(), new FridayTool(), new HelalTool() };
     public static final Tool[] UTILITIES = { new QrTool(), new CompressTool(), new YoutubeTool(), new AppsTool() };
-    /** Has a home card of its own. */
+    /** Have a home card of their own. */
     public static final Tool CHAT = new ChatTool();
+    public static final Tool FILES = new FilesTool();
 }

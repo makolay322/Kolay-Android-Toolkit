@@ -6,7 +6,8 @@ import android.graphics.drawable.Drawable;
 /** Stroke icons on a 24-unit grid, drawn with paths so they stay crisp at any size and take any color. */
 public final class Icon extends Drawable {
     public enum Kind { BACK, CHEVRON, CHECK, COPY, SHARE, SETTINGS, SCAN, KEY, REFRESH, LINK, QR, FLASH, BARCODE, CAMERA, CRESCENT, CLOCK,
-        IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND, DOCSCAN, TRASH, CROP, PLUS, NETSCAN }
+        IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND, DOCSCAN, TRASH, CROP, PLUS, NETSCAN,
+        FOLDER, SEARCH, MORE, GRID, LIST, STAR, MUSIC, CUT }
 
     private final Kind kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -169,6 +170,39 @@ public final class Icon extends Drawable {
                 break;
             case PLUS:
                 path.moveTo(12, 5); path.lineTo(12, 19); path.moveTo(5, 12); path.lineTo(19, 12);
+                break;
+            case FOLDER:
+                path.moveTo(3.5f, 7); path.quadTo(3.5f, 5, 5.5f, 5); path.lineTo(9.5f, 5); path.lineTo(11.5f, 7.5f); path.lineTo(18.5f, 7.5f);
+                path.quadTo(20.5f, 7.5f, 20.5f, 9.5f); path.lineTo(20.5f, 17); path.quadTo(20.5f, 19, 18.5f, 19); path.lineTo(5.5f, 19);
+                path.quadTo(3.5f, 19, 3.5f, 17); path.close();
+                break;
+            case SEARCH:
+                path.addCircle(10.5f, 10.5f, 6, Path.Direction.CW);
+                path.moveTo(15, 15); path.lineTo(20, 20);
+                break;
+            case MORE:   // three dots, drawn as tiny rings
+                path.addCircle(12, 5.5f, 0.9f, Path.Direction.CW); path.addCircle(12, 12, 0.9f, Path.Direction.CW); path.addCircle(12, 18.5f, 0.9f, Path.Direction.CW);
+                break;
+            case GRID:
+                path.addRoundRect(4, 4, 10.5f, 10.5f, 2, 2, Path.Direction.CW); path.addRoundRect(13.5f, 4, 20, 10.5f, 2, 2, Path.Direction.CW);
+                path.addRoundRect(4, 13.5f, 10.5f, 20, 2, 2, Path.Direction.CW); path.addRoundRect(13.5f, 13.5f, 20, 20, 2, 2, Path.Direction.CW);
+                break;
+            case LIST:
+                path.moveTo(9, 6.5f); path.lineTo(20, 6.5f); path.moveTo(9, 12); path.lineTo(20, 12); path.moveTo(9, 17.5f); path.lineTo(20, 17.5f);
+                path.addCircle(5, 6.5f, 0.8f, Path.Direction.CW); path.addCircle(5, 12, 0.8f, Path.Direction.CW); path.addCircle(5, 17.5f, 0.8f, Path.Direction.CW);
+                break;
+            case STAR:
+                path.moveTo(12, 3.8f); path.lineTo(14.5f, 9); path.lineTo(20.2f, 9.7f); path.lineTo(16, 13.6f); path.lineTo(17.1f, 19.3f);
+                path.lineTo(12, 16.5f); path.lineTo(6.9f, 19.3f); path.lineTo(8, 13.6f); path.lineTo(3.8f, 9.7f); path.lineTo(9.5f, 9); path.close();
+                break;
+            case MUSIC:
+                path.addCircle(7.5f, 17, 2.5f, Path.Direction.CW); path.addCircle(17, 15, 2.5f, Path.Direction.CW);
+                path.moveTo(10, 17); path.lineTo(10, 6); path.lineTo(19.5f, 4); path.lineTo(19.5f, 15);
+                path.moveTo(10, 9.5f); path.lineTo(19.5f, 7.5f);
+                break;
+            case CUT:
+                path.addCircle(7, 17, 2.8f, Path.Direction.CW); path.addCircle(17, 17, 2.8f, Path.Direction.CW);
+                path.moveTo(9, 15); path.lineTo(17.5f, 4); path.moveTo(15, 15); path.lineTo(6.5f, 4);
                 break;
             case LINK:
                 path.moveTo(10, 14); path.lineTo(14, 10);

@@ -9,6 +9,16 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Eklendi (1.004) — Dosyalar
+- Ana sayfada yeni, tam genişlikte **Dosyalar** kartı: yerel dosya yöneticisi.
+- Giriş sayfası: depolama alanları (doluluk çubuğuyla), kategoriler (**Görseller, Videolar, Sesler, Belgeler, İndirilenler, APK'lar**), son 30 günde eklenen dosyalar, **yer imleri** (basılı tut: kaldır).
+- Klasör gezme: üstte tıklanabilir yol çubuğu, **liste / ızgara** görünümü, sıralama (ad, tarih, boyut, tür; artan/azalan), gizli dosyaları göster/gizle, geri tuşu üst klasöre çıkar, görsel ve videolarda küçük resim. Binlerce dosyalı klasörler arka planda listelenir.
+- Arama: yazdıkça bu klasörde süzer; “Alt klasörlerde de ara” açıkken alt klasörleri de tarar (durdurulabilir).
+- İşlemler: basılı tutunca çoklu seçim, tümünü seç, **kopyala / taşı → Buraya yapıştır**, yeniden adlandır, sil (onaylı, kalıcı), yeni klasör, paylaş, birlikte aç, özellikler (klasör boyutu arka planda hesaplanır), **ZIP sıkıştır / çıkart**.
+- Uzun işlemler ilerleme çubuğuyla, iptal edilebilir. Aynı adlı öğede sorulur: **Değiştir / Atla / İkisini de tut** (klasörde *Birleştir*), istenirse hepsine uygulanır.
+- Veri kaybı yok: dosya önce gizli geçici adla yazılır, boyutu doğrulanır, sonra yerine konur; birimler arası taşımada kaynak ancak doğrulanmış kopyadan sonra silinir; ZIP içinden klasör dışına yazmaya çalışan girdiler reddedilir.
+- İzin: Android 11+'da “Tüm dosyalara erişim” (açıklama + ayarlar düğmesi), Android 10'da depolama izni. Dosya içerikleri hiçbir sunucuya gönderilmez.
+
 ### Değişti (1.003) — Cuma görseli 2:1, sade sohbet
 - **Cuma Mesajı:** görsel yatay **2:1** (2000×1000) oldu. Yerleşim dikey orta eksene göre simetrik: iki üst köşede birbirinin aynası iki hilal, aynalanmış yıldızlar, ortalı desen ve cami silueti, eşit kenar boşluklu ortalı hadis paneli. Hadis satırları tüm genişliğe yayılmaz; yazı boyutu metnin uzunluğuna göre sığacak en büyük boyuta ayarlanır.
 - **Sohbet:** “Hızlı başla” düğmeleri kaldırıldı; boş ekranda yalnızca kısa bir ipucu kalır. İsteğe artık sabit bir yönerge eklenmez (önceki mesajlar yine gönderilir) ve yanıt olduğu gibi gösterilir (biçim düzeltmesi yok).
