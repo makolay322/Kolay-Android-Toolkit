@@ -87,7 +87,7 @@ public final class ScanSession {
             try (OutputStream o = new FileOutputStream(p.file)) { o.write(jpeg); }
             catch (IOException e) { c.ui.post(() -> markBroken(p)); return; }
             if (gone(p)) return;
-            detect(p, hint);
+            detect(p, hint, false);
         });
     }
 
@@ -103,7 +103,7 @@ public final class ScanSession {
                     while ((n = in.read(b)) > 0) o.write(b, 0, n);
                 } catch (Exception e) { c.ui.post(() -> markBroken(p)); return; }
                 if (gone(p)) return;
-                detect(p, null);
+                detect(p, null, true);
             });
         }
         changed();
@@ -123,12 +123,15 @@ public final class ScanSession {
         changed();
     }
 
-    /** Background: find the page outline on a ~1 MP copy, then render the preview. */
-    private void detect(Page p, float[] hint) {
+    /**
+     * Background: find the page outline on a ~1 MP copy, then render the preview. Imported pictures use the stricter
+     * {@link QuadDetector#detectImport} (they are often cropped already); camera stills fall back to the live outline.
+     */
+    private void detect(Page p, float[] hint, boolean imported) {
         float[] q = null;
         try {
             Bitmap b = Imaging.decode(p.file, DETECT_PX);
-            try { q = new QuadDetector().detect(b); } finally { b.recycle(); }
+            try { QuadDetector d = new QuadDetector(); q = imported ? d.detectImport(b) : d.detect(b); } finally { b.recycle(); }
         } catch (Exception | OutOfMemoryError e) {
             c.ui.post(() -> markBroken(p));
             return;

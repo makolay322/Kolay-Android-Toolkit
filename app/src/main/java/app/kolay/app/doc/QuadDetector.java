@@ -9,6 +9,7 @@ import android.graphics.Bitmap;
  * instance must not be used by two threads at once.
  *
  * Result: 8 floats, normalised (0..1) corner coordinates in the order top-left, top-right, bottom-right, bottom-left; or null.
+ * {@link #detectImport} is the stricter variant for imported pictures, which are often cropped already.
  */
 public final class QuadDetector {
     private static final int TARGET = 360;
@@ -27,9 +28,58 @@ public final class QuadDetector {
     private int[] img, tmp, mag;
     private byte[] dir, edge, near;
     private int[] acc, stack;
+    private float conf;
+    private boolean imported;
+    private int seedCap = Integer.MAX_VALUE;   // detectImport retries: weaker page edges (light desk) seed the hysteresis
+    private int[] raw;
+
+    // imported pictures (see detectImport); tuned on synthetic test pages (dark / grey / wood / light desks, cropped pages)
+    private static final float MIN_CONF = 0.70f, MIN_AREA = 0.25f;
+    private static final float STRIP = 0.03f;
+    private static final int PAPER_TOL = 40, STEP_TOL = 18, PAPER_MIN = 110, STEP = 12;
+    private static final int[] SEED_CAPS = {96, 64};
+
+    /** Mean edge coverage (0..1) of the perimeter of the last quad found; 0 when none was found. */
+    public float confidence() { return conf; }
 
     /** Luma plane (e.g. a camera Y plane with {@code stride}); the frame is analysed in its own orientation. */
     public float[] detect(byte[] luma, int stride, int width, int height) {
+        load(luma, stride, width, height);
+        return run();
+    }
+
+    /** Any bitmap (e.g. an imported photo or a captured still); only a small copy is read. */
+    public float[] detect(Bitmap b) {
+        load(b);
+        return run();
+    }
+
+    /**
+     * Imported picture: the page outline only when it is convincing, otherwise the whole picture ({@link #full}); never null.
+     * A picture whose border already looks like paper counts as cropped. A found outline must be well supported by edges,
+     * cover a plausible part of the picture and be darker outside than inside along its sides (a page on a background,
+     * not a table, box or photo printed on the page).
+     */
+    public float[] detectImport(Bitmap b) { load(b); return importRun(); }
+
+    /** {@link #detectImport(Bitmap)} for a luma plane. */
+    public float[] detectImport(byte[] luma, int stride, int width, int height) { load(luma, stride, width, height); return importRun(); }
+
+    private float[] importRun() {
+        if (looksCropped()) { conf = 0; return full(); }
+        int n = w * h;
+        if (raw == null || raw.length < n) raw = new int[n];
+        System.arraycopy(img, 0, raw, 0, n);
+        imported = true;
+        float[] q;
+        try {
+            q = run();
+            for (int i = 0; q == null && i < SEED_CAPS.length; i++) { System.arraycopy(raw, 0, img, 0, n); seedCap = SEED_CAPS[i]; q = run(); }
+        } finally { imported = false; seedCap = Integer.MAX_VALUE; }
+        return q != null ? q : full();
+    }
+
+    private void load(byte[] luma, int stride, int width, int height) {
         int f = Math.max(1, (Math.max(width, height) + TARGET - 1) / TARGET);
         alloc(width / f, height / f);
         for (int y = 0; y < h; y++) {
@@ -42,11 +92,9 @@ public final class QuadDetector {
                 img[y * w + x] = s / (f * f);
             }
         }
-        return run();
     }
 
-    /** Any bitmap (e.g. an imported photo or a captured still); only a small copy is read. */
-    public float[] detect(Bitmap b) {
+    private void load(Bitmap b) {
         int bw = b.getWidth(), bh = b.getHeight();
         float k = Math.min(1f, TARGET / (float) Math.max(bw, bh));
         int sw = Math.max(8, Math.round(bw * k)), sh = Math.max(8, Math.round(bh * k));
@@ -59,7 +107,6 @@ public final class QuadDetector {
             int c = px[i];
             img[i] = (((c >> 16) & 0xFF) * 77 + ((c >> 8) & 0xFF) * 150 + (c & 0xFF) * 29) >> 8;
         }
-        return run();
     }
 
     private void alloc(int nw, int nh) {
@@ -72,6 +119,7 @@ public final class QuadDetector {
     }
 
     private float[] run() {
+        conf = 0;
         blur();
         int edges = canny();
         if (edges < 30) return null;
@@ -122,7 +170,7 @@ public final class QuadDetector {
         // thresholds from the magnitude distribution: strong = top 8 %, with an absolute floor against sensor noise
         int target = (int) (count * 0.92), run = 0, high = 2047;
         for (int v = 0; v < 2048; v++) { run += hist[v]; if (run >= target) { high = v; break; } }
-        high = Math.max(high, 64);
+        high = Math.max(Math.min(high, seedCap), 64);
         int low = Math.max(24, high * 2 / 5);
 
         // non-maximum suppression → candidates in edge[] (1 = weak, 2 = strong)
@@ -245,10 +293,13 @@ public final class QuadDetector {
                 if (!cross(lt[i2], lr[i2], lt[j2], lr[j2], q, 4, cx, cy)) continue;
                 if (!cross(lt[i2], lr[i2], lt[j1], lr[j1], q, 6, cx, cy)) continue;
                 float s = score(q, minSide, minArea);
-                if (s > best) { best = s; bestQ = q.clone(); }
+                if (s > best && (!imported || plausible(q, s))) { best = s; bestQ = q.clone(); }
             }
         }
         if (bestQ == null) return null;
+        float per = 0;
+        for (int i = 0; i < 4; i++) { int a = i * 2, b = ((i + 1) % 4) * 2; per += (float) Math.hypot(bestQ[b] - bestQ[a], bestQ[b + 1] - bestQ[a + 1]); }
+        conf = per > 0 ? best / per : 0;
         float[] out = order(bestQ);
         for (int i = 0; i < 8; i += 2) {
             out[i] = clamp01((out[i] + 0.5f) / w);
@@ -347,6 +398,83 @@ public final class QuadDetector {
             }
         }
         return order(r);
+    }
+
+    /**
+     * Raw (unblurred) image: at least three sides look like the page itself. Per side, the 75th percentile of each row
+     * parallel to it (middle 80 % of the side) gives a paper profile from the border inwards; the border strip must be
+     * close to the paper level of the picture and show no step up to brighter paper further in (a page lying on a light
+     * desk does). Background slivers along a side or a dark bar may spoil one side.
+     */
+    private boolean looksCropped() {
+        int[] hist = new int[256];
+        int n = 0;
+        for (int y = h / 10; y < h - h / 10; y++) for (int x = w / 10; x < w - w / 10; x++) { hist[Math.min(255, img[y * w + x])]++; n++; }
+        int paper = 255;
+        for (int v = 255, run = 0; v >= 0; v--) { run += hist[v]; if (run >= n / 10) { paper = v; break; } }
+        if (paper < PAPER_MIN) return false;
+        int sides = 0;
+        for (int side = 0; side < 4; side++) if (paperSide(side, paper)) sides++;
+        return sides >= 3;
+    }
+
+    /** Side 0 top, 1 bottom, 2 left, 3 right. */
+    private boolean paperSide(int side, int paper) {
+        boolean horiz = side < 2;
+        int len = horiz ? w : h, depth = horiz ? h : w;
+        int strip = Math.max(2, Math.round(depth * STRIP)), far = Math.max(strip + 2, depth / 5);
+        int[] hist = new int[256];
+        float border = 0, inner = 0;
+        for (int d = 0; d < far; d++) {
+            java.util.Arrays.fill(hist, 0);
+            int cnt = 0;
+            for (int t = len / 10; t < len - len / 10; t++) {
+                int r = side == 1 || side == 3 ? depth - 1 - d : d;
+                hist[Math.min(255, img[horiz ? r * w + t : t * w + r])]++; cnt++;
+            }
+            int v = 255;
+            for (int k = 255, run = 0; k >= 0; k--) { run += hist[k]; if (run >= cnt / 4) { v = k; break; } }
+            if (d < strip) border += v / (float) strip; else inner = Math.max(inner, v);
+        }
+        return border >= paper - PAPER_TOL && border >= inner - STEP_TOL;
+    }
+
+    /**
+     * Import candidate (pixel corners in cyclic order, edge score {@code s}): edge coverage ≥ {@link #MIN_CONF}, area ≥
+     * {@link #MIN_AREA} of the picture, and on a background: along each side a little outside is darker than a little
+     * inside by {@link #STEP} (on the blurred image; sides on the picture border are not measurable). All measurable sides
+     * but at most one, and at least two.
+     */
+    private boolean plausible(float[] q, float score) {
+        float per = 0, area = 0;
+        for (int i = 0; i < 4; i++) {
+            int a = i * 2, b = ((i + 1) % 4) * 2;
+            per += (float) Math.hypot(q[b] - q[a], q[b + 1] - q[a + 1]);
+            area += q[a] * q[b + 1] - q[b] * q[a + 1];
+        }
+        if (score < MIN_CONF * per || Math.abs(area) / 2 < MIN_AREA * w * h) return false;
+        float d = Math.max(3, Math.min(w, h) * 0.025f);
+        float mx = (q[0] + q[2] + q[4] + q[6]) / 4, my = (q[1] + q[3] + q[5] + q[7]) / 4;
+        int measurable = 0, edges = 0;
+        for (int i = 0; i < 4; i++) {
+            int a = i * 2, b = ((i + 1) % 4) * 2;
+            float ax = q[a], ay = q[a + 1], bx = q[b], by = q[b + 1];
+            float len = (float) Math.hypot(bx - ax, by - ay);
+            if (len < 1) continue;
+            float nx = (by - ay) / len, ny = -(bx - ax) / len;                       // a normal; turned to point outwards
+            if (nx * ((ax + bx) / 2 - mx) + ny * ((ay + by) / 2 - my) < 0) { nx = -nx; ny = -ny; }
+            long sin = 0, sout = 0; int k = 0;
+            for (int s = 1; s < 20; s++) {
+                float t = 0.1f + 0.8f * s / 20f, px = ax + (bx - ax) * t, py = ay + (by - ay) * t;
+                int ox = Math.round(px + nx * d), oy = Math.round(py + ny * d), ix = Math.round(px - nx * d), iy = Math.round(py - ny * d);
+                if (ox < 1 || oy < 1 || ox >= w - 1 || oy >= h - 1 || ix < 0 || iy < 0 || ix >= w || iy >= h) continue;
+                sout += img[oy * w + ox]; sin += img[iy * w + ix]; k++;
+            }
+            if (k < 10) continue;
+            measurable++;
+            if ((sin - sout) / (float) k >= STEP) edges++;
+        }
+        return edges >= 2 && edges >= measurable - 1;
     }
 
     /** The whole image as a quad. */

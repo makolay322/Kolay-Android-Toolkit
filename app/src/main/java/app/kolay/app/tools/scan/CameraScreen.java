@@ -9,12 +9,12 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.media.MediaActionSound;
 import android.net.Uri;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.*;
 import android.widget.*;
+import app.kolay.app.doc.PhotoPick;
 import app.kolay.app.ui.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,10 +36,9 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
     private HorizontalScrollView stripScroll;
     private TextView stateTitle, stateText, stateBtn, hint, autoChip, done;
     private ImageView torchIcon;
-    private View flash;
+    private View dim;
     private Overlay overlay;
     private OrientationEventListener orient;
-    private MediaActionSound sound;
     private int deviceRotation;
     private boolean shown, asked, away, autoOn, armed = true;
     private long steadySince, lostSince, lastShot, backArmedAt;
@@ -66,10 +65,10 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         cam = new DocCamera(c.a, tv, this);
         overlay = new Overlay();
         cameraCard.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
-        flash = new View(c.a);
-        flash.setBackgroundColor(Color.WHITE);
-        flash.setAlpha(0f);
-        cameraCard.addView(flash, new FrameLayout.LayoutParams(-1, -1));
+        dim = new View(c.a);   // shutter cue: a short dark dim, no flash
+        dim.setBackgroundColor(Color.BLACK);
+        dim.setAlpha(0f);
+        cameraCard.addView(dim, new FrameLayout.LayoutParams(-1, -1));
 
         autoChip = Ui.text(c, "", 13, Color.WHITE, 600);
         autoChip.setGravity(Gravity.CENTER);
@@ -249,7 +248,6 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
 
     @Override public void onDestroy() {
         release();
-        if (sound != null) { sound.release(); sound = null; }
         s.destroy();
     }
 
@@ -276,7 +274,6 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
                 }
             };
             if (orient.canDetectOrientation()) orient.enable();
-            if (sound == null) { sound = new MediaActionSound(); sound.load(MediaActionSound.SHUTTER_CLICK); }
             hint.setText("Sayfa aranıyor…");
             cam.start();
         } else if (!asked) {
@@ -346,11 +343,13 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         pendingHint = smooth == null ? null : app.kolay.app.doc.QuadDetector.rotate(smooth, deviceRotation);
         shotQuad = raw == null ? null : raw.clone();
         hint.setText("Çekiliyor…");
-        if (sound != null) sound.play(MediaActionSound.SHUTTER_CLICK);
         Ui.haptic(overlay, HapticFeedbackConstants.VIRTUAL_KEY);
-        flash.animate().cancel();
-        flash.setAlpha(0.7f);
-        flash.animate().alpha(0f).setDuration(260).setInterpolator(Ui.EXIT).start();
+        dim.animate().cancel();
+        dim.setAlpha(0.3f);
+        dim.animate().alpha(0f).setDuration(180).setInterpolator(Ui.EXIT).start();
+        cameraCard.animate().cancel();
+        cameraCard.setScaleX(0.97f); cameraCard.setScaleY(0.97f);
+        cameraCard.animate().scaleX(1f).scaleY(1f).setDuration(180).setInterpolator(Ui.EXIT).start();
     }
 
     @Override public void onJpeg(byte[] jpeg) {
@@ -360,6 +359,9 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         hint.setText(autoOn ? "Sonraki sayfayı yerleştir" : "Kaydedildi · sonraki sayfa");
         s.addJpeg(jpeg, pendingHint);
         pendingHint = null;
+        done.animate().cancel();
+        done.setScaleX(1.08f); done.setScaleY(1.08f);
+        done.animate().scaleX(1f).scaleY(1f).setDuration(200).setInterpolator(Ui.EXIT).start();
     }
 
     @Override public void onCaptureFailed() {
@@ -381,28 +383,23 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         c.nav.push(new PagesScreen(s));
     }
 
+    /** The camera is released before the picker opens and only comes back once the picker has returned. */
     private void openGallery() {
-        Intent i = new Intent(Intent.ACTION_GET_CONTENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE)
-            .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        try { c.a.startActivityForResult(i, REQ_GALLERY); }
-        catch (ActivityNotFoundException e) { Toast.makeText(c.a, "Galeri açılamadı", Toast.LENGTH_SHORT).show(); }
+        leaveForChild();
+        try { c.a.startActivityForResult(PhotoPick.intent(true), REQ_GALLERY); }
+        catch (ActivityNotFoundException e) {
+            Toast.makeText(c.a, "Galeri açılamadı", Toast.LENGTH_SHORT).show();
+            away = false;
+            ensureCamera();
+        }
     }
 
     @Override public void onActivityResult(int req, int result, Intent data) {
-        if (req != REQ_GALLERY || result != android.app.Activity.RESULT_OK || data == null) return;
-        List<Uri> uris = gallery(data);
-        if (uris.isEmpty()) return;
+        if (req != REQ_GALLERY) return;
+        List<Uri> uris = result == android.app.Activity.RESULT_OK ? PhotoPick.uris(data) : new ArrayList<>();
+        if (uris.isEmpty()) { away = false; ensureCamera(); return; }   // cancelled: camera back (start is idempotent)
         s.addUris(uris);
-        leaveForChild();
         c.nav.push(new PagesScreen(s));
-    }
-
-    static List<Uri> gallery(Intent data) {
-        List<Uri> uris = new ArrayList<>();
-        android.content.ClipData cd = data.getClipData();
-        if (cd != null) for (int i = 0; i < cd.getItemCount(); i++) { Uri u = cd.getItemAt(i).getUri(); if (u != null) uris.add(u); }
-        else if (data.getData() != null) uris.add(data.getData());
-        return uris;
     }
 
     private void back() {

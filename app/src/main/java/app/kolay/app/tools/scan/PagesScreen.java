@@ -5,7 +5,7 @@ import android.view.*;
 import android.widget.*;
 import app.kolay.app.ui.*;
 
-/** The scanned pages: order (up / down), crop, filter, delete; then save. Back returns to the camera with the pages kept. */
+/** The scanned pages: order (up / down), rotate, crop, filter, delete; then save. Back returns to the camera with the pages kept. */
 public final class PagesScreen extends Screen {
     private final ScanSession s;
     private Header header;
@@ -76,7 +76,8 @@ public final class PagesScreen extends Screen {
         Palette p = c.p;
         ScanSession.Page pg = s.pages.get(i);
         LinearLayout card = Ui.card(c, p.surface, 12);
-        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout top = new LinearLayout(c.a);
         FrameLayout th = new FrameLayout(c.a);
         th.setBackground(Ui.rounded(c, p.surface2, 12));
         final float r = c.dp(12);
@@ -97,27 +98,28 @@ public final class PagesScreen extends Screen {
         th.setClickable(!pg.broken && pg.ready);
         th.setContentDescription("Sayfa " + (i + 1) + ", kırp");
         th.setOnClickListener(v -> crop(pg));
-        card.addView(th, new LinearLayout.LayoutParams(c.dp(84), c.dp(112)));
+        top.addView(th, new LinearLayout.LayoutParams(c.dp(84), c.dp(112)));
 
         LinearLayout right = new LinearLayout(c.a);
         right.setOrientation(LinearLayout.VERTICAL);
         right.addView(Ui.text(c, "Sayfa " + (i + 1), 16, p.ink, 600));
         String st = pg.broken ? "Görüntü okunamadı" : !pg.ready ? "Kenarlar aranıyor…" : pg.filter.label + (pg.rotation != 0 ? " · " + pg.rotation + "°" : "");
         right.addView(Ui.text(c, st, 13, pg.broken ? p.danger : p.muted, 400), Ui.lp(-2, -2, 0, c.dp(3), 0, 0));
-        right.addView(new Space(c.a), new LinearLayout.LayoutParams(1, 0, 1));
         LinearLayout tools = new LinearLayout(c.a);
         boolean usable = pg.ready && !pg.broken;
         tools.addView(tool(Icon.Kind.SEND, 0, "Yukarı taşı", i > 0, () -> s.move(i, i - 1)));
         tools.addView(tool(Icon.Kind.SEND, 180, "Aşağı taşı", i < s.pages.size() - 1, () -> s.move(i, i + 1)));
+        tools.addView(tool(Icon.Kind.REFRESH, 0, "Döndür", usable, () -> { pg.rotation = (pg.rotation + 90) % 360; s.edited(pg); refresh(); }));
         tools.addView(tool(Icon.Kind.CROP, 0, "Kırp", usable, () -> crop(pg)));
         tools.addView(tool(Icon.Kind.SPARKLE, 0, "Filtre", usable, () -> filter(pg)));
         View del = tool(Icon.Kind.TRASH, 0, confirmDelete == pg ? "Silmeyi onayla" : "Sil", true, () -> delete(pg));
         if (confirmDelete == pg) del.setBackground(Ui.rounded(c, p.dangerSoft, 12));
         tools.addView(del);
-        right.addView(tools);
-        LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(0, -1, 1);
+        LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(0, -2, 1);
         rl.setMarginStart(c.dp(12));
-        card.addView(right, rl);
+        top.addView(right, rl);
+        card.addView(top);
+        card.addView(tools, Ui.lp(-1, -2, 0, c.dp(10), 0, 0));
         return card;
     }
 

@@ -178,7 +178,7 @@ final class ScannerScreen extends Screen {
     private void restoreSettings() {
         source = -1;
         String saved = store.settings(d.key);
-        int sSrc = -1, sDpi = 200, sMode = 0, sSize = 0;
+        int sSrc = -1, sDpi = 300, sMode = 0, sSize = 0;   // no saved settings: 300 dpi when supported (see fit)
         if (saved != null) {
             String[] f = saved.split(",");
             try { sSrc = Integer.parseInt(f[0]); sDpi = Integer.parseInt(f[1]); sMode = Integer.parseInt(f[2]); sSize = Integer.parseInt(f[3]); }

@@ -181,6 +181,19 @@ final class ExportScreen extends Screen {
         Job(File f, float[] q, int r, Imaging.Filter fl) { file = f; quad = q; rotation = r; filter = fl; }
     }
 
+    /** PDF pages: A4 at 300 dpi (long side 3508 px), JPEG quality 90; plain JPEG export keeps the full picture. */
+    private static final int PDF_LONG_PX = 3508, PDF_QUALITY = 90;
+
+    /** Downscales (never upscales) to {@link #PDF_LONG_PX}; recycles {@code b} when a smaller copy is made. */
+    private static Bitmap forPdf(Bitmap b) {
+        int w = b.getWidth(), h = b.getHeight(), m = Math.max(w, h);
+        if (m <= PDF_LONG_PX) return b;
+        float k = PDF_LONG_PX / (float) m;
+        Bitmap s = Bitmap.createScaledBitmap(b, Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k)), true);
+        if (s != b) b.recycle();
+        return s;
+    }
+
     /** Background thread. Writes straight into the MediaStore entries; on failure or cancel they are removed again. */
     private void work(List<Job> jobs, boolean asPdf, boolean withOcr, String combo, String base) {
         ContentResolver cr = c.a.getContentResolver();
@@ -219,8 +232,9 @@ final class ExportScreen extends Screen {
                     }
                     if (cancelled) throw new InterruptedIOException();
                     if (asPdf) {
+                        bmp = forPdf(bmp);
                         ByteArrayOutputStream jb = new ByteArrayOutputStream(1 << 20);
-                        if (!bmp.compress(Bitmap.CompressFormat.JPEG, 85, jb)) throw new java.io.IOException("Sayfa sıkıştırılamadı");
+                        if (!bmp.compress(Bitmap.CompressFormat.JPEG, PDF_QUALITY, jb)) throw new java.io.IOException("Sayfa sıkıştırılamadı");
                         int w = bmp.getWidth(), h = bmp.getHeight();
                         bmp.recycle();
                         pw.addPage(jb.toByteArray(), w, h, words);
