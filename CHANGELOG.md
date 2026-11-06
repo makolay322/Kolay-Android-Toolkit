@@ -9,6 +9,13 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti (1.002) — Sayfa kenarı algılama
+- Sayfa çerçevesi daha doğru yere oturur: açık renkli masada beyaz sayfa ve içinde yoğun tablo/metin olan sayfalar artık bulunuyor (yoğun metin kenar eşiğini sayfa kenarının üstüne çıkarmıyor; sayfadaki tablo çizgileri çerçeveyi içeri çekmiyor).
+- Kenar algılama rengi de kullanır (renkli masa / kâğıt farkı); kameradaki canlı algılama dahil.
+- Kenar çizgilerine ek olarak “parlak, renksiz bölge” adayı: iki aday da denenir, kenarlarca daha iyi desteklenen seçilir. Galeriden gelen zaten kırpılmış görüntüler eskisi gibi tümüyle alınır.
+- Çekilen ve içe aktarılan sayfalarda köşeler daha yüksek çözünürlükte inceltilir (canlı önizlemede yapılmaz).
+- Canlı çerçeve titremez: son karelerin ortancası gösterilir, birkaç kare sabit kalınca çıkar, tek tük kaçan karede kaybolmaz, sayfa değişince sıfırlanır.
+
 ### Değişti (1.001)
 - **Cuma Mesajı:** görselin en altındaki ince siyah şerit (zemin) kaldırıldı; görsel altta doğrudan arka plan rengiyle biter.
 - **Belgeler → Sayfalar:** liste 3 sütunlu, daha sık bir ızgara oldu (küçük sayfa önizlemesi, altında sayfa numarası ve filtre).

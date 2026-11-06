@@ -199,7 +199,7 @@ final class DocCamera {
         private CaptureRequest.Builder req;
         private boolean wantTorch, withAnalysis = analysisSize != null;
         private long lastDetect;
-        private byte[] frame;   // luma copy of the analysed frame, reused (detection thread only)
+        private byte[] frame, fu, fv;   // Y / U / V copies of the analysed frame, reused (detection thread only)
         private volatile int shots;
 
         Run() { th.start(); dth.start(); h = new Handler(th.getLooper()); dh = new Handler(dth.getLooper()); }
@@ -352,9 +352,21 @@ final class DocCamera {
                 int len = Math.min(buf.remaining(), stride * hgt);
                 if (frame == null || frame.length < len) frame = new byte[len];
                 buf.get(frame, 0, len);
+                // chroma for the edge stage; U and V share strides (YUV_420_888); without a full copy the luma path runs alone
+                Image.Plane pu = img.getPlanes()[1], pv = img.getPlanes()[2];
+                int urs = pu.getRowStride(), ups = pu.getPixelStride();
+                ByteBuffer ub = pu.getBuffer(), vb = pv.getBuffer();
+                int ul = ub.remaining(), vl = vb.remaining(), need = ((hgt - 1) / 2) * urs + ((w - 1) / 2) * ups + 1;
+                boolean chroma = ul >= need && vl >= need;
+                if (chroma) {
+                    if (fu == null || fu.length < ul) fu = new byte[ul];
+                    if (fv == null || fv.length < vl) fv = new byte[vl];
+                    ub.get(fu, 0, ul); vb.get(fv, 0, vl);
+                }
                 img.close(); img = null;   // free the buffer before the (longer) analysis
                 if (len < stride * (hgt - 1) + w) return;
-                float[] q = QuadDetector.rotate(detector.detect(frame, stride, w, hgt), sensor);
+                float[] q = QuadDetector.rotate(chroma ? detector.detect(frame, stride, fu, fv, urs, ups, w, hgt)
+                    : detector.detect(frame, stride, w, hgt), sensor);
                 main.post(() -> { if (cur == this) l.onQuad(q); });
             } catch (Exception ignored) {
                 // a bad frame must not end scanning

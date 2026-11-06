@@ -26,7 +26,7 @@ import java.util.List;
  */
 final class CameraScreen extends Screen implements DocCamera.Listener {
     private static final int REQ_CAMERA = 73, REQ_GALLERY = 74;
-    private static final long STEADY_MS = 1000, COOLDOWN_MS = 1500, LOST_MS = 500;
+    private static final long STEADY_MS = 1000, COOLDOWN_MS = 1500;
 
     private final ScanSession s;
     private DocCamera cam;
@@ -41,8 +41,10 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
     private OrientationEventListener orient;
     private int deviceRotation;
     private boolean shown, asked, away, autoOn, armed = true;
-    private long steadySince, lostSince, lastShot;
-    private float[] raw, smooth, shotQuad, pendingHint;
+    private long steadySince, lastShot;
+    private float[] smooth, shotQuad, pendingHint;   // smooth: the stabiliser's shown outline (its array) or null
+    private final QuadStabilizer stab = new QuadStabilizer();
+    private final float[] lastShown = new float[8];
     private boolean shooting;
 
     CameraScreen(ScanSession s) { this.s = s; }
@@ -252,7 +254,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         cam.stop();
         paintTorch(false);
         if (orient != null) orient.disable();
-        raw = null; smooth = null; shooting = false;
+        stab.reset(); smooth = null; shooting = false;
         overlay.invalidate();
     }
 
@@ -301,32 +303,24 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
 
     @Override public void onQuad(float[] q) {
         long now = SystemClock.uptimeMillis();
-        if (q == null) {
-            if (raw != null && lostSince == 0) lostSince = now;
-            if (lostSince != 0 && now - lostSince > LOST_MS) {
-                raw = null; smooth = null; steadySince = 0; armed = true;
+        float[] m = stab.update(q, now);   // median of recent frames; held briefly through failed frames
+        if (m == null) {
+            if (smooth != null) {
+                smooth = null; steadySince = 0; armed = true;
                 if (!shooting) hint.setText("Sayfa aranıyor…");
             }
             overlay.invalidate();
             return;
         }
-        lostSince = 0;
-        if (raw == null || dist(q, raw) > 0.025f) steadySince = now;
-        raw = q;
-        if (smooth == null) smooth = q.clone();
-        else for (int i = 0; i < 8; i++) smooth[i] += (q[i] - smooth[i]) * 0.5f;
-        if (!armed && shotQuad != null && dist(q, shotQuad) > 0.12f) armed = true;   // a new page was put down
+        if (smooth == null || QuadStabilizer.dist(m, lastShown) > 0.025f) steadySince = now;
+        System.arraycopy(m, 0, lastShown, 0, 8);
+        smooth = m;
+        if (!armed && shotQuad != null && QuadStabilizer.dist(m, shotQuad) > 0.12f) armed = true;   // a new page was put down
         overlay.invalidate();
-        if (shooting) return;
+        if (shooting || q == null) return;   // a held outline neither shoots nor changes the hint
         long steady = now - steadySince;
         if (autoOn && armed && steady >= STEADY_MS && now - lastShot > COOLDOWN_MS) { shoot(true); return; }
         hint.setText(autoOn ? (armed ? "Sabit tut…" : "Sonraki sayfayı yerleştir") : "Sayfa bulundu");
-    }
-
-    private static float dist(float[] a, float[] b) {
-        float m = 0;
-        for (int i = 0; i < 8; i++) m = Math.max(m, Math.abs(a[i] - b[i]));
-        return m;
     }
 
     private void shoot(boolean auto) {
@@ -337,7 +331,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         lastShot = SystemClock.uptimeMillis();
         // the still is turned by the phone's rotation relative to the (portrait) preview; turn the live outline along
         pendingHint = smooth == null ? null : app.kolay.app.doc.QuadDetector.rotate(smooth, deviceRotation);
-        shotQuad = raw == null ? null : raw.clone();
+        shotQuad = smooth == null ? null : smooth.clone();
         hint.setText("Çekiliyor…");
         Ui.haptic(overlay, HapticFeedbackConstants.VIRTUAL_KEY);
         dim.animate().cancel();
