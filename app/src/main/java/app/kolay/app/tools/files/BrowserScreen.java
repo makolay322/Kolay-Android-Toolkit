@@ -415,6 +415,10 @@ final class BrowserScreen extends Screen {
         List<String> labels = new ArrayList<>(); List<Icon.Kind> icons = new ArrayList<>(); List<Runnable> acts = new ArrayList<>();
         if (one) { labels.add("Yeniden adlandır"); icons.add(Icon.Kind.DOC); acts.add(() -> rename(f)); }
         if (one && !f.dir) { labels.add("Birlikte aç"); icons.add(Icon.Kind.LINK); acts.add(() -> Files.openWith(c, src, f)); }
+        if (one && !f.dir && local() && f.name.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) {
+            labels.add("PDF düzenle"); icons.add(Icon.Kind.EDIT);
+            acts.add(() -> { sel.clear(); header(); c.nav.push(new app.kolay.app.tools.pdfedit.PdfEditScreen(android.net.Uri.fromFile(new java.io.File(f.path)))); });
+        }
         labels.add("Sıkıştır (ZIP)"); icons.add(Icon.Kind.LAYERS); acts.add(() -> zip(s));
         if (one && !f.dir && Files.isZip(f.name)) { labels.add("Buraya çıkart"); icons.add(Icon.Kind.DOWNLOAD); acts.add(() -> extract(f)); }
         if (one && f.dir && local()) {

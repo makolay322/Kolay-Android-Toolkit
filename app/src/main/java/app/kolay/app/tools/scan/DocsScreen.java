@@ -8,6 +8,7 @@ import android.view.*;
 import android.widget.*;
 import app.kolay.app.doc.PhotoPick;
 import app.kolay.app.tools.netscan.DevicesScreen;
+import app.kolay.app.tools.pdfedit.PdfEditScreen;
 import app.kolay.app.ui.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.List;
  * live as long as this screen: sources and outputs come and go above it; leaving it (back, "Bitti") discards them.
  */
 public final class DocsScreen extends Screen {
-    private static final int REQ_GALLERY = 75;
+    private static final int REQ_GALLERY = 75, REQ_PDF = 76;
 
     private List<Uri> shared;
     private ScanSession s;
@@ -45,6 +46,7 @@ public final class DocsScreen extends Screen {
         rows.add(Ui.navRow(c, Icon.Kind.CAMERA, "Kamera", "Belgeyi çek, kenarlar kendiliğinden bulunur", 0, () -> c.nav.push(new CameraScreen(s))));
         rows.add(Ui.navRow(c, Icon.Kind.IMAGE, "Galeri", "Fotoğraflardan sayfa seç", 1, this::gallery));
         rows.add(Ui.navRow(c, Icon.Kind.NETSCAN, "Wi-Fi tarayıcı", "Ağdaki tarayıcıdan tara", 2, () -> c.nav.push(new DevicesScreen(s))));
+        rows.add(Ui.navRow(c, Icon.Kind.EDIT, "PDF düzenle", "Sayfaları sırala, döndür, sil, birleştir", 3, this::pickPdf));
         for (View r : rows) { r.setAlpha(0f); col.addView(r, Ui.lp(-1, c.dp(76), 0, 0, 0, c.dp(12))); }
         ScrollView sv = new ScrollView(c.a);
         sv.setVerticalScrollBarEnabled(false);
@@ -80,7 +82,16 @@ public final class DocsScreen extends Screen {
         catch (ActivityNotFoundException e) { Ui.toast(c, "Galeri açılamadı"); }
     }
 
+    private void pickPdf() {
+        try { c.a.startActivityForResult(PdfEditScreen.pickIntent(), REQ_PDF); }
+        catch (ActivityNotFoundException e) { Ui.toast(c, "Dosya seçici açılamadı"); }
+    }
+
     @Override public void onActivityResult(int req, int result, Intent data) {
+        if (req == REQ_PDF && result == android.app.Activity.RESULT_OK && data != null && data.getData() != null) {
+            c.nav.push(new PdfEditScreen(data.getData()));
+            return;
+        }
         if (req != REQ_GALLERY || result != android.app.Activity.RESULT_OK) return;
         List<Uri> uris = PhotoPick.uris(data);
         if (uris.isEmpty()) return;

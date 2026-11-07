@@ -23,10 +23,12 @@ final class ZoomLayout extends FrameLayout {
     ZoomLayout(Context c) {
         super(c);
         slop = ViewConfiguration.get(c).getScaledTouchSlop();
+        // Built on the loader thread (PdfPane.open): the detectors need the main looper explicitly.
+        android.os.Handler main = new android.os.Handler(android.os.Looper.getMainLooper());
         sg = new ScaleGestureDetector(c, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override public boolean onScale(ScaleGestureDetector d) { zoomTo(scale * d.getScaleFactor(), d.getFocusX(), d.getFocusY()); return true; }
             @Override public void onScaleEnd(ScaleGestureDetector d) { if (onZoom != null) onZoom.ended(scale); }
-        });
+        }, main);
         sg.setQuickScaleEnabled(false);
         gd = new GestureDetector(c, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDoubleTap(MotionEvent e) {
@@ -34,7 +36,7 @@ final class ZoomLayout extends FrameLayout {
                 if (onZoom != null) onZoom.ended(scale);
                 return true;
             }
-        });
+        }, main);
     }
 
     float scale() { return scale; }

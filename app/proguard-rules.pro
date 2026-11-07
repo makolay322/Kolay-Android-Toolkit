@@ -14,3 +14,9 @@
 -dontwarn javax.security.auth.kerberos.**
 -dontwarn javax.el.**
 -dontwarn org.slf4j.**
+
+# PdfBox-Android (PDF düzenle): the AAR's own rules keep its reflective parts. Its BouncyCastle build is excluded in favour of
+# smbj's (same packages); the public-key (certificate) encryption parts it would need from bcpkix and the optional JPEG 2000
+# decoder are absent, so those PDFs are not supported.
+-dontwarn org.bouncycastle.**
+-dontwarn com.gemalto.jp2.**

@@ -7,7 +7,7 @@ import android.graphics.drawable.Drawable;
 public final class Icon extends Drawable {
     public enum Kind { BACK, CHEVRON, CHECK, COPY, SHARE, SETTINGS, SCAN, KEY, REFRESH, LINK, QR, FLASH, BARCODE, CAMERA, CRESCENT, CLOCK,
         IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND, DOCSCAN, TRASH, CROP, PLUS, NETSCAN,
-        FOLDER, SEARCH, MORE, GRID, LIST, STAR, MUSIC, CUT }
+        FOLDER, SEARCH, MORE, GRID, LIST, STAR, MUSIC, CUT, EDIT }
 
     private final Kind kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -162,6 +162,11 @@ public final class Icon extends Drawable {
                 path.moveTo(6.5f, 6.5f); path.lineTo(7.5f, 19); path.quadTo(7.6f, 20, 8.6f, 20); path.lineTo(15.4f, 20);
                 path.quadTo(16.4f, 20, 16.5f, 19); path.lineTo(17.5f, 6.5f);
                 path.moveTo(10.5f, 10); path.lineTo(10.5f, 16.5f); path.moveTo(13.5f, 10); path.lineTo(13.5f, 16.5f);
+                break;
+            case EDIT:
+                path.moveTo(4.5f, 19.5f); path.lineTo(5.3f, 15.6f); path.lineTo(15.6f, 5.3f); path.quadTo(16.8f, 4.1f, 18, 5.3f);
+                path.lineTo(18.7f, 6); path.quadTo(19.9f, 7.2f, 18.7f, 8.4f); path.lineTo(8.4f, 18.7f); path.close();
+                path.moveTo(13.8f, 7.1f); path.lineTo(16.9f, 10.2f);
                 break;
             case CROP:
                 path.moveTo(7, 3.5f); path.lineTo(7, 17); path.lineTo(20.5f, 17);

@@ -53,7 +53,7 @@ public final class HomeScreen extends Screen {
         body.setPadding(c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), 0);
         final int gap = c.dp(12);
         View[] cards = {
-            card("Belgeler", "Kamera · galeri · Wi-Fi tarayıcı", Icon.Kind.DOCSCAN, T_DOCS, () -> c.nav.push(new DocsScreen())),
+            card("Belgeler", "Kamera · galeri · Wi-Fi · PDF düzenle", Icon.Kind.DOCSCAN, T_DOCS, () -> c.nav.push(new DocsScreen())),
             card("Dini", "Vakitler · kıble · cuma · helal", Icon.Kind.CRESCENT, T_FAITH, () -> group("Dini", "Vakitler, kıble, cuma, helal", Tools.FAITH, T_FAITH)),
             card("Araçlar", "QR · sıkıştır · YouTube · uygulamalar", Icon.Kind.APPS, T_TOOLS, () -> group("Araçlar", "Küçük yardımcılar", Tools.UTILITIES, T_TOOLS)),
             card(Tools.FILES.title(), Tools.FILES.subtitle(), Tools.FILES.icon(), T_FILES, () -> c.nav.push(Tools.FILES.open(c))),

@@ -132,6 +132,9 @@ final class ViewerScreen extends Screen {
         post(() -> {
             closer = pane::close;
             header.subtitle.setText("PDF · " + pane.count() + " sayfa");
+            View edit = Ui.iconButton(c, Icon.Kind.EDIT, "Düzenle", () -> c.nav.push(new app.kolay.app.tools.pdfedit.PdfEditScreen(uri)));
+            header.view.addView(edit);
+            ((LinearLayout.LayoutParams) edit.getLayoutParams()).setMarginStart(c.dp(8));
             if (pane.count() == 0) show(Ui.state(c, Icon.Kind.DOC, "Boş PDF", "Bu dosyada sayfa yok.", null, null));
             else show(pane);
         });

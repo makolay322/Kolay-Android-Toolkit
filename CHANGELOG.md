@@ -9,6 +9,14 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Eklendi — PDF düzenle (sayfa işlemleri)
+- **Belgeler → PDF düzenle**, Dosyalar'da PDF menüsü → **PDF düzenle** ve PDF görüntüleyicide kalem düğmesi: sayfalar ızgarada; basılı tutup sürükleyerek sırala, 90° döndür, sil, başka PDF ekle, galeriden görüntü sayfası ekle.
+- Metin ve çizimler korunur (sayfalar resme çevrilmez); döndürme kayıpsız (`/Rotate`).
+- Eklenen görüntü (ör. 300 dpi tarama) artık piksel boyutundan dev bir sayfa olmaz: komşu sayfanın kâğıt boyutunu (yoksa A4) alır, yatay görüntüde yatay; tam çözünürlükte, JPEG ise yeniden sıkıştırılmadan.
+- Kayıt yeni dosya olarak (`ad_duzenlenmis.pdf`, aynı klasöre ya da `Documents/Kolay`) ya da onayla asıl dosyanın üzerine; parolalı PDF parola sorularak açılır (kayıt parolasız). Büyük dosyalar için geçici dosya tamponu, küçük resimler yalnızca ekrandaki sayfalar için.
+- Yeni bağımlılık: PdfBox-Android 2.0.27.0 (Apache-2.0; APK ≈ 1,9 MB büyüdü).
+- Düzeltme: PDF görüntüleyici PDF'leri açamıyordu (“Belge açılamadı”): yakınlaştırma katmanı arka plan iş parçacığında kurulurken hareket algılayıcıları çöküyordu.
+
 ### Değişti (1.009) — Arayüz yenilendi
 - **Ana sayfa:** durum çubuğunun altına uzanan degrade başlık (selam, tarih, sıradaki namaz vakti ve kalan süre, dokununca Namaz Vakitleri; konum yoksa konum seçme kısayolu; yeni sürüm bildirimi de burada). Grup kartları başlığın alt kenarına biner; her grubun kendi rengi, degrade ikon kutusu ve köşede hafif ışıması var. Dosyalar kartı dahili depolamadaki boş yeri ve doluluk çubuğunu gösterir.
 - **Ortak tasarım sistemi:** sabit kategori renkleri (gruplar ve dosya türleri hep aynı renkte), yazı ölçeği, köşe/süre belirteçleri, açık temada renkli yumuşak gölgeler, odaklanınca vurgu çerçeveli metin alanları. Tüm ekranlar aynı parçaları kullanır.
