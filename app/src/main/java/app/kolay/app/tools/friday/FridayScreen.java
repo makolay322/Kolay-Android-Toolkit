@@ -24,11 +24,6 @@ final class FridayScreen extends Screen {
     private boolean destroyed;
     private ImageView preview;
     private Arc loader;
-    /** Text colour choices for the card; 0 = the theme's own colour. */
-    private static final int[] INKS = {0, 0xFFFFFFFF, 0xFFF5ECD7, 0xFFD4AF37, 0xFF111111, 0xFF0E2340, 0xFF0B5D3B, 0xFF6D1A2E};
-    private static final String[] INK_NAMES = {"Otomatik", "Beyaz", "Krem", "Altın", "Siyah", "Lacivert", "Yeşil", "Bordo"};
-    private int ink;
-    private final View[] swatches = new View[INKS.length];
 
     @Override public View create() {
         hadiths = Hadiths.all(c.a);
@@ -62,28 +57,6 @@ final class FridayScreen extends Screen {
         f.setOrientation(LinearLayout.VERTICAL);
         f.setPadding(c.dp(Ui.GUTTER), c.dp(4), c.dp(Ui.GUTTER), c.dp(Ui.GUTTER));
 
-        // Text colour swatches; the choice is remembered.
-        ink = c.a.getSharedPreferences("friday", 0).getInt("ink", 0);
-        LinearLayout inks = new LinearLayout(c.a);
-        for (int i = 0; i < INKS.length; i++) {
-            final int col = INKS[i];
-            View sw = col == 0 ? Ui.text(c, "A", Ui.T_SUB, c.p.ink, 700) : new View(c.a);
-            if (col == 0) ((TextView) sw).setGravity(Gravity.CENTER);
-            sw.setContentDescription("Yazı rengi: " + INK_NAMES[i]);
-            sw.setOnClickListener(v -> {
-                if (ink == col) return;
-                ink = col; markInk();
-                c.a.getSharedPreferences("friday", 0).edit().putInt("ink", col).apply();
-                render();
-            });
-            swatches[i] = sw;
-            FrameLayout cell = new FrameLayout(c.a);
-            cell.addView(sw, new FrameLayout.LayoutParams(c.dp(30), c.dp(30), Gravity.CENTER));
-            inks.addView(cell, new LinearLayout.LayoutParams(0, c.dp(40), 1));
-        }
-        markInk();
-        f.addView(inks, Ui.lp(-1, -2, 0, 0, 0, c.dp(6)));
-
         TextView fresh = Ui.button(c, "Yeni görsel", Ui.Style.TONAL, Icon.Kind.REFRESH);
         fresh.setOnClickListener(v -> { seed = rnd.nextLong(); nextHadith(); render(); });
         TextView other = Ui.button(c, "Başka hadis", Ui.Style.TONAL, Icon.Kind.DOC);
@@ -105,17 +78,6 @@ final class FridayScreen extends Screen {
 
     @Override public void onShown() { render(); }
 
-    /** Round swatches; the selected one gets a thick primary ring. */
-    private void markInk() {
-        for (int i = 0; i < INKS.length; i++) {
-            boolean on = INKS[i] == ink;
-            android.graphics.drawable.GradientDrawable d = Ui.rounded(c, INKS[i] == 0 ? c.p.surface2 : INKS[i], 15);
-            d.setStroke(c.dp(on ? 3 : 1), on ? c.p.primary : c.p.line);
-            swatches[i].setBackground(d);
-            swatches[i].setSelected(on);
-        }
-    }
-
     private void nextHadith() {
         int n = hadiths.size();
         if (n < 2) return;
@@ -125,10 +87,10 @@ final class FridayScreen extends Screen {
 
     private void render() {
         final int my = ++gen;
-        final long s = seed; final String[] h = hadiths.get(hadith); final int k = ink;
+        final long s = seed; final String[] h = hadiths.get(hadith);
         c.io.execute(() -> {
             Bitmap b;
-            try { b = FridayArt.render(s, h[0], h[1], k); }
+            try { b = FridayArt.render(s, h[0], h[1]); }
             catch (Throwable t) { return; }
             c.ui.post(() -> {
                 if (destroyed || my != gen) { b.recycle(); return; }

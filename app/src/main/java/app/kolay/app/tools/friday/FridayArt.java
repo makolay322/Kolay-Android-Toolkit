@@ -47,8 +47,8 @@ final class FridayArt {
     /** Output size: landscape 2:1. */
     static final int W = 2000, H = 1000;
 
-    /** @param ink text colour for the title and hadith, 0 = the theme's own; @return a new 2:1 landscape bitmap; the caller owns it */
-    static Bitmap render(long seed, String hadith, String source, int ink) {
+    /** @return a new 2:1 landscape bitmap; the caller owns it */
+    static Bitmap render(long seed, String hadith, String source) {
         final int w = W, h = H;
         final float u = 1f;
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
@@ -66,7 +66,7 @@ final class FridayArt {
         moon(cv, w, h, t, r);
         sparkles(cv, w, h, t, r);
         mosque(cv, w, h, t, r);
-        panelAndText(cv, w, h, u, t, hadith, source, ink == 0 ? t.text : ink);
+        panelAndText(cv, w, h, u, t, hadith, source);
         return bmp;
     }
 
@@ -180,11 +180,11 @@ final class FridayArt {
 
     // ---- text ---------------------------------------------------------------------------------
 
-    private static void panelAndText(Canvas cv, int w, int h, float u, Theme t, String hadith, String source, int ink) {
+    private static void panelAndText(Canvas cv, int w, int h, float u, Theme t, String hadith, String source) {
         TextPaint tp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         tp.setTextAlign(Paint.Align.CENTER);
 
-        tp.setColor(ink);
+        tp.setColor(t.text);
         tp.setTextSize(46 * u);
         tp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         tp.setShadowLayer(14 * u, 0, 3 * u, 0xB3000000);   // keeps the title legible over sparkles and the moon's glow
@@ -220,7 +220,7 @@ final class FridayArt {
 
         float top = labelY + 26 * u, bottom = srcY - 50 * u;
         TextPaint hp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        hp.setColor(ink);
+        hp.setColor(t.text);
         hp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.NORMAL));
         String body = "“" + hadith + "”";
         // Largest size at which the balanced, unhyphenated layout fits the panel height and no single word is wider
