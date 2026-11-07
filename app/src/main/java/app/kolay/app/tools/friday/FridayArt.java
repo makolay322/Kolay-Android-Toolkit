@@ -180,6 +180,9 @@ final class FridayArt {
 
     // ---- text ---------------------------------------------------------------------------------
 
+    /** Upper limit for the hadith text size (px at u = 1); slightly above the 46 px title. */
+    private static final float HADITH_MAX = 64f;
+
     private static void panelAndText(Canvas cv, int w, int h, float u, Theme t, String hadith, String source) {
         TextPaint tp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         tp.setTextAlign(Paint.Align.CENTER);
@@ -227,10 +230,10 @@ final class FridayArt {
         hp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.NORMAL));
         String body = "“" + hadith + "”";
         // Largest size at which the balanced, unhyphenated layout fits the panel height and no single word is wider
-        // than a line (so words are never split).
+        // than a line (so words are never split), capped at HADITH_MAX so short hadiths don't balloon.
         String[] words = body.split("\\s+");
         StaticLayout lay = null;
-        for (float size = 140 * u; size >= 24 * u; size -= 2 * u) {
+        for (float size = HADITH_MAX * u; size >= 24 * u; size -= 2 * u) {
             hp.setTextSize(size);
             float widest = 0;
             for (String wd : words) widest = Math.max(widest, hp.measureText(wd));

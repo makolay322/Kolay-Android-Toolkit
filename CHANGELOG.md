@@ -9,6 +9,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Cuma hadis yazısına üst sınır
+- **Cuma Mesajı:** hadis yazısı en fazla 64 px (başlığın biraz üstü); kısa hadisler artık aşırı büyümez, uzun olanlar yine sığana kadar küçülür.
+
 ### Değişti — Daha küçük APK, Cuma görselinde daha küçük hadis paneli
 - **APK ≈ 6,8 MB → ≈ 4,2 MB** (her güncelleme daha az indirir). Özellik kaldırılmadı:
   - PDF motorunun kullanılmayan yazı tipleri ve tabloları çıkarıldı (Adobe CJK CMap'leri, 14 standart yazı tipinin AFM ölçüleri, LiberationSans, glif listeleri, Unicode/Bidi tabloları; ≈ 1,6 MB). PDF düzenle yalnızca sayfa işlemleri yaptığı için bunları hiç okumaz.
