@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Narrow and tall (1 x 3 and taller): the next prayer (name, time, countdown) on top, below it the six times as a list. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:src="@drawable/widget_bg" android:scaleType="fitXY" android:importantForAccessibility="no"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+        android:paddingStart="8dp" android:paddingEnd="9dp" android:paddingTop="10dp" android:paddingBottom="10dp">
+        <TextView android:id="@+id/name" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+            android:gravity="center" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+            android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="18sp"/>
+        <TextView android:id="@+id/time" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.8"
+            android:gravity="center" android:fontFamily="sans-serif-light" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+            android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="44sp"/>
+        <Chronometer android:id="@+id/left" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.8"
+            android:gravity="center|top" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+            android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:baselineAligned="false">
+            <TextView android:id="@+id/n0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.3"
+                android:gravity="start|center_vertical" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+            <TextView android:id="@+id/t0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:paddingStart="3dp" android:gravity="end|center_vertical" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:baselineAligned="false">
+            <TextView android:id="@+id/n1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.3"
+                android:gravity="start|center_vertical" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+            <TextView android:id="@+id/t1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:paddingStart="3dp" android:gravity="end|center_vertical" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:baselineAligned="false">
+            <TextView android:id="@+id/n2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.3"
+                android:gravity="start|center_vertical" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+            <TextView android:id="@+id/t2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:paddingStart="3dp" android:gravity="end|center_vertical" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:baselineAligned="false">
+            <TextView android:id="@+id/n3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.3"
+                android:gravity="start|center_vertical" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+            <TextView android:id="@+id/t3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:paddingStart="3dp" android:gravity="end|center_vertical" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:baselineAligned="false">
+            <TextView android:id="@+id/n4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.3"
+                android:gravity="start|center_vertical" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+            <TextView android:id="@+id/t4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:paddingStart="3dp" android:gravity="end|center_vertical" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:baselineAligned="false">
+            <TextView android:id="@+id/n5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.3"
+                android:gravity="start|center_vertical" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+            <TextView android:id="@+id/t5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:paddingStart="3dp" android:gravity="end|center_vertical" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+                android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp"/>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

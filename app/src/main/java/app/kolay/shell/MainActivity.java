@@ -102,7 +102,7 @@ public class MainActivity extends Activity {
         @Override public boolean prayerPinWidget() { return Prayer.pinWidget(MainActivity.this); }
         @Override public int[] prayerWidgetStyle() { return PrayerWidget.style(MainActivity.this); }
         @Override public void prayerSetWidgetStyle(int bg, int opacity, int ink) { PrayerWidget.setStyle(MainActivity.this, bg, opacity, ink); }
-        @Override public android.widget.RemoteViews prayerWidgetPreview(int bg, int opacity, int ink) { return PrayerWidget.preview(MainActivity.this, bg, opacity, ink); }
+        @Override public android.widget.RemoteViews prayerWidgetPreview(int bg, int opacity, int ink, int w, int h) { return PrayerWidget.preview(MainActivity.this, bg, opacity, ink, w, h); }
         @Override public int prayerWallpaperColor() { return PrayerWidget.wallpaperColor(MainActivity.this); }
     }
 

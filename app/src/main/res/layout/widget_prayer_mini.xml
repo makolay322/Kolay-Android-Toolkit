@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 1 x 1: the next prayer's name above its time, centred. All text auto-sizes to fit. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:src="@drawable/widget_bg" android:scaleType="fitXY" android:importantForAccessibility="no"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+        android:padding="7dp">
+        <TextView android:id="@+id/name" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+            android:gravity="center|bottom" android:fontFamily="sans-serif-medium" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+            android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="18sp"/>
+        <TextView android:id="@+id/time" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.7"
+            android:gravity="center" android:fontFamily="sans-serif-light" android:fontFeatureSettings="tnum" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeStepGranularity="1sp"
+            android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="44sp"/>
+    </LinearLayout>
+</FrameLayout>

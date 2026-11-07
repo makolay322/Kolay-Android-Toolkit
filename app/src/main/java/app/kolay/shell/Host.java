@@ -95,8 +95,8 @@ public interface Host {
     int[] prayerWidgetStyle();
     /** Saves the widget appearance and repaints every placed widget at once. */
     void prayerSetWidgetStyle(int background, int opacity, int ink);
-    /** The large widget layout drawn with an unsaved appearance (live preview; inflate with {@code apply}/{@code reapply}). */
-    android.widget.RemoteViews prayerWidgetPreview(int background, int opacity, int ink);
+    /** The widget as it looks at {@code widthDp} x {@code heightDp} with an unsaved appearance (live preview; inflate with {@code apply}/{@code reapply}). */
+    android.widget.RemoteViews prayerWidgetPreview(int background, int opacity, int ink, int widthDp, int heightDp);
     /** The wallpaper's main colour (what a transparent widget shows through). */
     int prayerWallpaperColor();
 

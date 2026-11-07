@@ -12,13 +12,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.SizeF;
+import android.view.View;
 import android.widget.RemoteViews;
 import java.util.Calendar;
 
 /**
- * Home-screen widget: a rounded card with the next prayer (name, time, live countdown); from about 3 x 2 cells also all six
- * times of that day. Three layouts by size (Android 12+: one RemoteViews per size, the launcher picks; older: from the
- * widget options). All text auto-sizes, so nothing clips. Background colour and transparency are the user's choice
+ * Home-screen widget, resizable from 1 x 1 to 5 x 5: a rounded card with the next prayer (name, time, live countdown) and,
+ * where it fits, all six times of that day. One layout per size bucket ({@link #BUCKETS}; Android 12+: one RemoteViews per
+ * bucket, the launcher picks; older: from the widget options). All text auto-sizes, so nothing clips. Background colour and transparency are the user's choice
  * ({@link PrayerWidgetConfig}); "Otomatik" follows the wallpaper (off-white on a dark one, near-black on a light one).
  * The text colour is the user's choice too, or by default picked from the resulting background's luminance. Tap = the app's prayer-times screen.
  */
@@ -30,8 +31,23 @@ public class PrayerWidget extends AppWidgetProvider {
     static final int OFF_WHITE = 0xFFF5F2EA, SOFT_BLACK = 0xFF1A1A1E;
     private static final int INK_DARK = 0xFF24221F, INK_LIGHT = 0xFFFFFFFF;
     private static final int DEFAULT_OPACITY = 88;
-    /** Layout size thresholds (dp): from these sizes up the taller / full layout fits. */
-    private static final float TALL_H = 110, FULL_W = 180, FULL_H = 170;
+    /**
+     * Size buckets: {min width dp, min height dp, layout, padding dp of the full layout (0 = its own), lead block shown}.
+     * Of the buckets that fit, the one with the largest area is used (as the platform does with a size map).
+     * Roughly: 1 x 1 mini · 2-3 x 1 short · 4 x 1 row of six times (+ next and countdown from 5 x 1) · 1 x 2 tall ·
+     * 1 x 3+ list · 2 x 2 and larger the full grid, with more padding (and bigger auto-sized text) as it grows.
+     */
+    private static final int[][] BUCKETS = {
+        {40, 40, R.layout.widget_prayer_mini, 0, 0},
+        {100, 40, R.layout.widget_prayer, 0, 0},
+        {250, 40, R.layout.widget_prayer_row, 0, 0},
+        {340, 40, R.layout.widget_prayer_row, 0, 1},
+        {40, 105, R.layout.widget_prayer_tall, 0, 0},
+        {40, 180, R.layout.widget_prayer_list, 0, 0},
+        {110, 110, R.layout.widget_prayer_full, 10, 0},
+        {180, 120, R.layout.widget_prayer_full, 14, 0},
+        {260, 260, R.layout.widget_prayer_full, 20, 0},
+    };
     private static final int[] N_IDS = {R.id.n0, R.id.n1, R.id.n2, R.id.n3, R.id.n4, R.id.n5};
     private static final int[] T_IDS = {R.id.t0, R.id.t1, R.id.t2, R.id.t3, R.id.t4, R.id.t5};
 
@@ -67,8 +83,8 @@ public class PrayerWidget extends AppWidgetProvider {
         updateAll(c.getApplicationContext());
     }
 
-    /** The full layout with the given (unsaved) appearance, for the live preview in the settings screen. */
-    static RemoteViews preview(Context c, int bg, int opacity, int ink) { return build(c, R.layout.widget_prayer_full, new int[]{bg, opacity, ink}); }
+    /** The widget at the given size (dp) with the given (unsaved) appearance, for the live preview in the settings screen. */
+    static RemoteViews preview(Context c, int bg, int opacity, int ink, int w, int h) { return build(c, pick(w, h), new int[]{bg, opacity, ink}); }
 
     /** The wallpaper's main colour (what shows through a transparent card); a neutral dark / light grey when unknown. */
     static int wallpaperColor(Context c) {
@@ -91,21 +107,26 @@ public class PrayerWidget extends AppWidgetProvider {
         RemoteViews v;
         if (Build.VERSION.SDK_INT >= 31) {
             java.util.Map<SizeF, RemoteViews> bySize = new android.util.ArrayMap<>();
-            bySize.put(new SizeF(40, 40), build(c, R.layout.widget_prayer, s));
-            bySize.put(new SizeF(40, TALL_H), build(c, R.layout.widget_prayer_tall, s));
-            bySize.put(new SizeF(FULL_W, FULL_H), build(c, R.layout.widget_prayer_full, s));
+            for (int[] b : BUCKETS) bySize.put(new SizeF(b[0], b[1]), build(c, b, s));
             v = new RemoteViews(bySize);
         } else {
             // Android 10/11: the smaller of the portrait / landscape sizes, so the chosen layout fits in both
             Bundle o = m.getAppWidgetOptions(id);
             int w = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH), h = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
-            int layout = w >= FULL_W && h >= FULL_H ? R.layout.widget_prayer_full : h >= TALL_H ? R.layout.widget_prayer_tall : R.layout.widget_prayer;
-            v = build(c, layout, s);
+            v = build(c, pick(w, h), s);
         }
         m.updateAppWidget(id, v);
     }
 
-    private static RemoteViews build(Context c, int layout, int[] style) {
+    /** The bucket for a widget of {@code w} x {@code h} dp: the largest that fits, else the smallest. */
+    private static int[] pick(float w, float h) {
+        int[] best = BUCKETS[0];
+        for (int[] b : BUCKETS) if (b[0] <= w && b[1] <= h && b[0] * b[1] > best[0] * best[1]) best = b;
+        return best;
+    }
+
+    private static RemoteViews build(Context c, int[] bucket, int[] style) {
+        int layout = bucket[2];
         long now = System.currentTimeMillis();
         long[] n = Prayer.next(c, now);
 
@@ -123,7 +144,11 @@ public class PrayerWidget extends AppWidgetProvider {
         v.setInt(R.id.bg, "setImageAlpha", Math.round(a * 255));
         Intent open = new Intent(c, MainActivity.class).setAction(ACTION_PRAYER).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         v.setOnClickPendingIntent(R.id.root, PendingIntent.getActivity(c, 1, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
+        if (bucket[3] > 0) { int pad = Math.round(bucket[3] * c.getResources().getDisplayMetrics().density); v.setViewPadding(R.id.content, pad, pad, pad, pad); }
+        // the row shows the next prayer + countdown in front only when wide enough, and always without a location (its grid is empty)
+        if (layout == R.layout.widget_prayer_row) v.setViewVisibility(R.id.lead, bucket[4] == 1 || n == null ? View.VISIBLE : View.GONE);
 
+        // views a layout does not have (e.g. no countdown in the mini one) are skipped by RemoteViews
         v.setTextColor(R.id.name, soft);
         v.setTextColor(R.id.time, ink);
         v.setTextColor(R.id.left, soft);
@@ -142,7 +167,7 @@ public class PrayerWidget extends AppWidgetProvider {
         v.setChronometerCountDown(R.id.left, true);
         v.setContentDescription(R.id.root, "Sıradaki vakit: " + Prayer.NAMES[idx] + " " + t);
 
-        if (layout == R.layout.widget_prayer_full) {
+        if (layout == R.layout.widget_prayer_full || layout == R.layout.widget_prayer_row || layout == R.layout.widget_prayer_list) {
             // the day the next time belongs to (tomorrow after Yatsı)
             Calendar cal = Calendar.getInstance();
             cal.setTimeInMillis(n[1]);
