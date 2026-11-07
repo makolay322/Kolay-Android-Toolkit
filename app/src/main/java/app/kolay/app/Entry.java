@@ -39,10 +39,15 @@ public final class Entry {
         root.setBackgroundColor(p.bg);
         a.setContentView(root);
 
+        Intent in = a.getIntent();
+        // Started by the launcher to set up the widget's look (PrayerWidgetConfig): only that page; leaving it closes the activity.
+        if (in != null && android.appwidget.AppWidgetManager.ACTION_APPWIDGET_CONFIGURE.equals(in.getAction())) {
+            new Nav(c, root).push(new app.kolay.app.tools.namaz.WidgetStyleScreen(true));
+            return;
+        }
         new Nav(c, root).push(new HomeScreen());
         // Opened from the quick-settings tile: show the QR reader on top of home (so Back lands on home).
         // Only on a fresh start, and consume the action so a later recreate() does not reopen it.
-        Intent in = a.getIntent();
         if (saved == null && in != null && QrTool.ACTION_QR.equals(in.getAction())) {
             in.setAction(Intent.ACTION_MAIN);
             c.nav.push(new QrTool().open(c));

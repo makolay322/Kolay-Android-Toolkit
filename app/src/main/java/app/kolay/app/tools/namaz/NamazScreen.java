@@ -19,7 +19,7 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * Today's prayer times for the saved location, with a live countdown, the reminder switch and the widget button.
+ * Today's prayer times for the saved location, with a live countdown, the reminder switch and the widget buttons (add, appearance).
  * The calculation, alarms and widget live in the shell (they must work while the app is closed); this is only the front end.
  */
 final class NamazScreen extends Screen {
@@ -259,6 +259,9 @@ final class NamazScreen extends Screen {
         TextView loc2 = Ui.button(c, "Konumu yenile", Ui.Style.TONAL, Icon.Kind.PIN);
         loc2.setOnClickListener(v -> { if (hasLocationPermission()) { locate(false); } else c.a.requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOC); });
         body.addView(Ui.pair(c, pin, loc2, Ui.H_BTN), Ui.lp(-1, -2, 0, c.dp(12), 0, 0));
+        TextView look = Ui.button(c, "Widget görünümü", Ui.Style.GHOST, Icon.Kind.SETTINGS);
+        look.setOnClickListener(v -> c.nav.push(new WidgetStyleScreen(false)));
+        body.addView(look, Ui.lp(-1, c.dp(Ui.H_GHOST), 0, c.dp(6), 0, 0));
 
         TextView note = Ui.text(c, "Diyanet usulü (imsak 18°, yatsı 17°, ikindi asr-ı evvel) astronomik hesap; resmî takvimle birkaç dakika fark olabilir.", 12, c.p.muted, 400);
         note.setLineSpacing(0, 1.15f);

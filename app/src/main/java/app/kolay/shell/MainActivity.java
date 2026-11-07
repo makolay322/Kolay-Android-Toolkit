@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
 /**
- * The only activity. Prepares the platform pieces (key store, OCR data, updater) and hands the window to the UI
+ * The only activity (plus {@link PrayerWidgetConfig}, the same UI opened on the widget appearance page). Prepares the platform pieces (key store, OCR data, updater) and hands the window to the UI
  * ({@link Entry}). The class name stays {@code app.kolay.shell.MainActivity} on purpose: launcher shortcuts point at it.
  */
 public class MainActivity extends Activity {
@@ -100,6 +100,10 @@ public class MainActivity extends Activity {
         @Override public int prayerReminderMask() { return Prayer.reminderMask(MainActivity.this); }
         @Override public void prayerSetReminderMask(int mask) { Prayer.setReminderMask(MainActivity.this, mask); }
         @Override public boolean prayerPinWidget() { return Prayer.pinWidget(MainActivity.this); }
+        @Override public int[] prayerWidgetStyle() { return PrayerWidget.style(MainActivity.this); }
+        @Override public void prayerSetWidgetStyle(int bg, int opacity) { PrayerWidget.setStyle(MainActivity.this, bg, opacity); }
+        @Override public android.widget.RemoteViews prayerWidgetPreview(int bg, int opacity) { return PrayerWidget.preview(MainActivity.this, bg, opacity); }
+        @Override public int prayerWallpaperColor() { return PrayerWidget.wallpaperColor(MainActivity.this); }
     }
 
     // ---- lifecycle forwarding ------------------------------------------------------------------

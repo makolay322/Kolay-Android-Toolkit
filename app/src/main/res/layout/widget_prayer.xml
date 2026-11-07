@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The card and the time are drawn as one bitmap sized to fill the widget (card colour follows the wallpaper). -->
+<!-- Small (short) widget: next prayer name + remaining time on the left, its time on the right. All text auto-sizes to fit. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent">
-    <ImageView android:id="@+id/img" android:layout_width="match_parent" android:layout_height="match_parent"
-        android:scaleType="fitCenter" android:importantForAccessibility="no"/>
+    <ImageView android:id="@+id/bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:src="@drawable/widget_bg" android:scaleType="fitXY" android:importantForAccessibility="no"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="horizontal" android:baselineAligned="false" android:gravity="center_vertical"
+        android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="6dp" android:paddingBottom="6dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView android:id="@+id/name" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.2"
+                android:maxLines="1" android:gravity="start|bottom" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+                android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp"/>
+            <Chronometer android:id="@+id/left" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+                android:maxLines="1" android:gravity="start|top" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
+                android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
+        </LinearLayout>
+        <TextView android:id="@+id/time" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.3"
+            android:maxLines="1" android:gravity="end|center_vertical" android:fontFamily="sans-serif-light" android:fontFeatureSettings="tnum"
+            android:includeFontPadding="false"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="48sp" android:autoSizeStepGranularity="1sp"/>
+    </LinearLayout>
 </FrameLayout>

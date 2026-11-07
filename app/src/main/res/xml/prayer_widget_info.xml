@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Resizable from 2 x 1 (next time only) up to any size (all six times from about 3 x 2); layouts chosen in PrayerWidget.
+     Appearance (background, transparency) is set in PrayerWidgetConfig: optional when placing, long-press to reopen (Android 12+). -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:minWidth="110dp" android:minHeight="40dp" android:minResizeWidth="40dp" android:minResizeHeight="40dp"
-    android:targetCellWidth="2" android:targetCellHeight="1"
+    android:minWidth="180dp" android:minHeight="110dp" android:minResizeWidth="100dp" android:minResizeHeight="40dp"
+    android:targetCellWidth="3" android:targetCellHeight="2"
     android:updatePeriodMillis="1800000" android:resizeMode="horizontal|vertical"
-    android:initialLayout="@layout/widget_prayer" android:widgetCategory="home_screen"
+    android:initialLayout="@layout/widget_prayer_tall" android:widgetCategory="home_screen"
+    android:configure="app.kolay.shell.PrayerWidgetConfig" android:widgetFeatures="reconfigurable|configuration_optional"
     android:description="@string/widget_prayer_desc"/>

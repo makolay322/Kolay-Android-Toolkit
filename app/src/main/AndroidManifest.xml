@@ -46,6 +46,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Widget appearance (launcher: when placing the prayer widget, long-press → reconfigure on Android 12+): the same UI on its style page. -->
+        <activity android:name=".PrayerWidgetConfig" android:exported="true" android:label="Widget görünümü"
+            android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/></intent-filter>
+        </activity>
         <!-- Share-sheet entry "YouTube Özet": same activity, started with ACTION_SEND; the UI reads the shared link. -->
         <activity-alias android:name=".YoutubeShare" android:targetActivity=".MainActivity" android:exported="true"
             android:label="YouTube Özet" android:icon="@mipmap/ic_launcher">

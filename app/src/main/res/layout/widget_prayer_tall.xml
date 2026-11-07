@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Medium (taller) widget: next prayer name, its time large, remaining time; stacked and centred. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent">
+    <ImageView android:id="@+id/bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:src="@drawable/widget_bg" android:scaleType="fitXY" android:importantForAccessibility="no"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+        android:padding="14dp">
+        <TextView android:id="@+id/name" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+            android:maxLines="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="24sp" android:autoSizeStepGranularity="1sp"/>
+        <TextView android:id="@+id/time" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2.4"
+            android:maxLines="1" android:gravity="center" android:fontFamily="sans-serif-light" android:fontFeatureSettings="tnum"
+            android:includeFontPadding="false"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="72sp" android:autoSizeStepGranularity="1sp"/>
+        <Chronometer android:id="@+id/left" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.9"
+            android:maxLines="1" android:gravity="center" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="16sp" android:autoSizeStepGranularity="1sp"/>
+    </LinearLayout>
+</FrameLayout>
