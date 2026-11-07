@@ -18,12 +18,11 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Landing page. A gradient hero under the status bar (name, settings, greeting, date, next prayer, update notice), then four
+ * Landing page. A gradient hero under the status bar (name, settings, greeting, date, weather now + 24 h strip, update notice), then four
  * group cards (Belgeler, Dini, Araçlar, Sohbet) overlapping its lower edge and a full-width Dosyalar card with the free space.
  * A group card opens {@link GroupScreen}.
  */
 public final class HomeScreen extends Screen {
-    private static final String[] PRAYERS = {"Sabah", "Güneş", "Öğle", "İkindi", "Akşam", "Yatsı"};   // as on the prayer screen
     private static final Locale TR = new Locale("tr", "TR");
     /** Tone index (Palette.tone) of each home group; a group's tool rows continue from there. */
     private static final int T_DOCS = 0, T_FAITH = 2, T_TOOLS = 3, T_CHAT = 1, T_FILES = 5;
@@ -31,7 +30,10 @@ public final class HomeScreen extends Screen {
     private final List<View> entrance = new ArrayList<>();
     private FrameLayout hero;
     private LinearLayout heroCol, banner;
-    private TextView greet, date, prayerText, bannerText, filesSub;
+    private TextView greet, date, wxNow, wxCond, bannerText, filesSub;
+    private LinearLayout wxSide, wxHours;
+    private View wxStrip;
+    private boolean wxLoading;
     private View scrim, filesFill;
     private ScrollView sv;
     private LinearLayout col;
@@ -95,7 +97,7 @@ public final class HomeScreen extends Screen {
         scrim.setBackgroundColor(p.bg);
         scrim.setAlpha(0f);
         page.addView(scrim, new FrameLayout.LayoutParams(-1, 0, Gravity.TOP));
-        showNextPrayer();
+        showWeather();
         loadStorage();
         return page;
     }
@@ -143,16 +145,41 @@ public final class HomeScreen extends Screen {
         top.addView(glassButton(Icon.Kind.SETTINGS, "Ayarlar", () -> c.nav.push(new SettingsScreen())));
         heroCol.addView(top);
 
+        // Greeting + date on the left, current weather on the right.
+        LinearLayout head = new LinearLayout(c.a);
+        head.setGravity(Gravity.BOTTOM);
+        LinearLayout left = new LinearLayout(c.a);
+        left.setOrientation(LinearLayout.VERTICAL);
         greet = Ui.text(c, "", Ui.T_DISPLAY, p.onHero, 800);
         greet.setLetterSpacing(-0.02f);
-        heroCol.addView(greet, Ui.lp(-1, -2, 0, c.dp(28), 0, 0));
+        left.addView(greet);
         date = Ui.text(c, "", 15, withAlpha(p.onHero, 0xD9), 500);
-        heroCol.addView(date, Ui.lp(-1, -2, 0, c.dp(6), 0, 0));
+        left.addView(date, Ui.lp(-1, -2, 0, c.dp(6), 0, 0));
+        head.addView(left, new LinearLayout.LayoutParams(0, -2, 1));
+        wxSide = new LinearLayout(c.a);
+        wxSide.setOrientation(LinearLayout.VERTICAL);
+        wxSide.setGravity(Gravity.END);
+        wxNow = Ui.text(c, "", 26, p.onHero, 800);
+        wxNow.setSingleLine(true);
+        wxSide.addView(wxNow);
+        wxCond = Ui.text(c, "", Ui.T_SUB, withAlpha(p.onHero, 0xD9), 500);
+        wxCond.setSingleLine(true);
+        wxSide.addView(wxCond, Ui.lp(-2, -2, 0, c.dp(2), 0, 0));
+        wxSide.setVisibility(View.GONE);
+        head.addView(wxSide, Ui.lp(-2, -2, c.dp(12), 0, 0, 0));
+        heroCol.addView(head, Ui.lp(-1, -2, 0, c.dp(28), 0, 0));
 
-        LinearLayout chip = glassChip(Icon.Kind.CLOCK);
-        prayerText = (TextView) chip.getChildAt(1);
-        chip.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); c.nav.push(Tools.FAITH[0].open(c)); });
-        heroCol.addView(chip, Ui.lp(-2, c.dp(40), 0, c.dp(18), 0, 0));
+        // 24 h strip: hour, symbol, temperature, rain chance (and amount) per hour; hidden without data.
+        HorizontalScrollView hs = new HorizontalScrollView(c.a);
+        hs.setHorizontalScrollBarEnabled(false);
+        hs.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        hs.setBackground(Ui.rounded(c, 0x2EFFFFFF, 20));
+        wxHours = new LinearLayout(c.a);
+        wxHours.setPadding(c.dp(6), c.dp(8), c.dp(6), c.dp(8));
+        hs.addView(wxHours);
+        hs.setVisibility(View.GONE);
+        wxStrip = hs;
+        heroCol.addView(hs, Ui.lp(-1, -2, 0, c.dp(16), 0, 0));
 
         // "New version" notice (only when a downloaded update waits)
         banner = glassChip(Icon.Kind.REFRESH);
@@ -323,32 +350,50 @@ public final class HomeScreen extends Screen {
 
     private void group(String title, String subtitle, Tool[] tools, int tone) { c.nav.push(new GroupScreen(title, subtitle, tools, tone)); }
 
-    // ---- next prayer ---------------------------------------------------------------------------
+    // ---- weather -------------------------------------------------------------------------------
 
-    /** Hero chip: the next prayer time when a location is saved, else an invitation to set one; never fails. */
-    private void showNextPrayer() {
-        if (prayerText == null) return;
-        String next = null;
-        try { if (c.host.prayerLocation() != null) next = nextPrayer(); } catch (RuntimeException ignored) { }
-        prayerText.setText(next != null ? next : "Namaz vakitleri için konumu seç");
+    /** Shows the cached forecast for the saved prayer location, refreshing it when older than 45 min; hidden without data. */
+    private void showWeather() {
+        if (wxSide == null) return;
+        double[] loc = null;
+        try { loc = c.host.prayerLocation(); } catch (RuntimeException ignored) { }
+        if (loc == null) { renderWeather(null); return; }
+        final String key = Weather.key(loc);
+        renderWeather(Weather.cached(c.a, key));
+        long age = Weather.age(c.a, key);
+        if (wxLoading || age >= 0 && age < Weather.FRESH_MS) return;
+        wxLoading = true;
+        final android.content.Context app = c.a.getApplicationContext();
+        c.io.execute(() -> {
+            Weather w = null;
+            try { Weather.fetch(app, key); w = Weather.cached(app, key); } catch (Exception ignored) { }   // offline: keep what is shown
+            final Weather got = w;
+            c.ui.post(() -> { wxLoading = false; if (got != null && wxSide != null) renderWeather(got); });
+        });
     }
 
-    /** "Sonraki: İkindi 14:32 · 1 sa 12 dk" (today or tomorrow, sunrise included as on the prayer screen), or null. */
-    private String nextPrayer() {
-        long now = System.currentTimeMillis();
-        Calendar cal = Calendar.getInstance();
-        for (int d = 0; d < 2; d++) {
-            long[] t = c.host.prayerTimes(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH));
-            if (t == null) return null;
-            for (int i = 0; i < t.length && i < PRAYERS.length; i++)
-                if (t[i] > now) {
-                    long min = (t[i] - now) / 60000;
-                    String left = min >= 60 ? (min / 60) + " sa " + (min % 60) + " dk" : Math.max(1, min) + " dk";
-                    return "Sonraki: " + PRAYERS[i] + " " + new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new Date(t[i])) + " · " + left;
-                }
-            cal.add(Calendar.DAY_OF_YEAR, 1);
+    private void renderWeather(Weather w) {
+        int vis = w == null ? View.GONE : View.VISIBLE;
+        wxSide.setVisibility(vis); wxStrip.setVisibility(vis);
+        if (w == null) return;
+        wxNow.setText(Weather.symbol(w.code, w.day) + " " + Math.round(w.temp) + "°");
+        wxCond.setText(Weather.label(w.code));
+        wxHours.removeAllViews();
+        int soft = withAlpha(c.p.onHero, 0xCC);
+        for (int i = 0; i < w.hour.length; i++) {
+            LinearLayout col = new LinearLayout(c.a);
+            col.setOrientation(LinearLayout.VERTICAL);
+            col.setGravity(Gravity.CENTER_HORIZONTAL);
+            col.addView(Ui.text(c, i == 0 ? "Şimdi" : w.hour[i], Ui.T_CAP, soft, 500));
+            col.addView(Ui.text(c, Weather.symbol(w.codes[i], w.days[i]), 16, c.p.onHero, 400), Ui.lp(-2, -2, 0, c.dp(2), 0, 0));
+            col.addView(Ui.text(c, Math.round(w.t[i]) + "°", 14, c.p.onHero, 700), Ui.lp(-2, -2, 0, c.dp(2), 0, 0));
+            String rain = "%" + w.prob[i] + (w.mm[i] >= 0.1 ? "\n" + String.format(TR, "%.1f", w.mm[i]) + " mm" : "");
+            TextView r = Ui.text(c, rain, 11, w.prob[i] >= 30 || w.mm[i] >= 0.1 ? c.p.onHero : soft, w.prob[i] >= 30 ? 700 : 500);
+            r.setGravity(Gravity.CENTER_HORIZONTAL);
+            col.addView(r, Ui.lp(-2, -2, 0, c.dp(2), 0, 0));
+            col.setContentDescription(w.hour[i] + ":00, " + Math.round(w.t[i]) + " derece, yağış olasılığı yüzde " + w.prob[i]);
+            wxHours.addView(col, Ui.lp(c.dp(46), -2));
         }
-        return null;
     }
 
     // ---- lifecycle -----------------------------------------------------------------------------
@@ -366,9 +411,9 @@ public final class HomeScreen extends Screen {
         if (c.host.updateReady()) showBanner();
     }
 
-    @Override public void onResume() { if (c.host.updateReady()) showBanner(); refreshGreeting(); showNextPrayer(); }
+    @Override public void onResume() { if (c.host.updateReady()) showBanner(); refreshGreeting(); showWeather(); }
 
-    @Override public void onReturn() { refreshGreeting(); showNextPrayer(); loadStorage(); }
+    @Override public void onReturn() { refreshGreeting(); showWeather(); loadStorage(); }
 
     private void showBanner() {
         if (banner == null) return;
