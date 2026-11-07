@@ -170,7 +170,7 @@ public final class HomeScreen extends Screen {
         wxSide.setOrientation(LinearLayout.VERTICAL);
         wxSide.setGravity(Gravity.END);
         wxNow = Ui.text(c, "", 26, p.onHero, 800);
-        wxNow.setSingleLine(true);
+        wxNow.setMaxLines(1);
         wxSide.addView(wxNow);
         wxCond = Ui.text(c, "", Ui.T_SUB, withAlpha(p.onHero, 0xD9), 500);
         wxCond.setSingleLine(true);
