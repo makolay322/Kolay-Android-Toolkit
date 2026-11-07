@@ -44,10 +44,10 @@ final class FridayArt {
         new Theme(0xFF3B3A1F, 0xFF1A190B, 0xFFD6B25E, 0xFFF6F1DD, 0x66000000, 0xFF0F0F05),
     };
 
-    /** Output size: landscape 2:1. */
-    static final int W = 2000, H = 1000;
+    /** Output size: square. */
+    static final int W = 1080, H = 1080;
 
-    /** @return a new 2:1 landscape bitmap; the caller owns it */
+    /** @return a new square bitmap; the caller owns it */
     static Bitmap render(long seed, String hadith, String source) {
         final int w = W, h = H;
         final float u = 1f;
@@ -99,8 +99,17 @@ final class FridayArt {
     /** Two small crescents flanking the title in the top strip, mirror images of each other (both open toward it). */
     private static void moon(Canvas cv, int w, int h, Theme t, Random r) {
         float cy = h * (0.042f + r.nextFloat() * 0.006f);
-        crescent(cv, w * 0.315f, cy, h * 0.026f, 1, t);
-        crescent(cv, w * 0.685f, cy, h * 0.026f, -1, t);
+        float off = moonOffset(w);
+        crescent(cv, w / 2f - off, cy, h * 0.026f, 1, t);
+        crescent(cv, w / 2f + off, cy, h * 0.026f, -1, t);
+    }
+
+    /** Distance of each crescent from the centre: just outside the title, whose width doesn't scale with w. */
+    private static float moonOffset(int w) {
+        Paint tp = new Paint(Paint.ANTI_ALIAS_FLAG);
+        tp.setTextSize(46);
+        tp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
+        return tp.measureText(TITLE) / 2f + 60;
     }
 
     private static void crescent(Canvas cv, float cx, float cy, float rad, float dir, Theme t) {
@@ -125,7 +134,7 @@ final class FridayArt {
             float x = r.nextFloat() * w / 2f, y = h * (0.012f + r.nextFloat() * 0.06f), s = 1.5f + r.nextFloat() * 3f * h / 1000f;
             boolean star = r.nextInt(3) == 0;
             int alpha = 90 + r.nextInt(150);
-            if (x > w * 0.27f) continue;                     // keep clear of the crescents and the title
+            if (x > w / 2f - moonOffset(w) - 90) continue;                     // keep clear of the crescents and the title
             p.setColor(t.accent);
             p.setAlpha(alpha);
             for (float xx : new float[]{x, w - x}) {
@@ -182,6 +191,7 @@ final class FridayArt {
 
     /** Upper limit for the hadith text size (px at u = 1); slightly above the 46 px title. */
     private static final float HADITH_MAX = 64f;
+    private static final String TITLE = "Cumamız Mübarek Olsun";
 
     private static void panelAndText(Canvas cv, int w, int h, float u, Theme t, String hadith, String source) {
         TextPaint tp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -191,7 +201,7 @@ final class FridayArt {
         tp.setTextSize(46 * u);
         tp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         tp.setShadowLayer(14 * u, 0, 3 * u, 0xB3000000);   // keeps the title legible over sparkles and the moon's glow
-        cv.drawText("Cumamız Mübarek Olsun", w / 2f, h * 0.062f, tp);
+        cv.drawText(TITLE, w / 2f, h * 0.062f, tp);
         tp.clearShadowLayer();
 
         // The panel is the focus, centred below the thin title strip: 75% of the area of the earlier 0.95·w × 0.87·h

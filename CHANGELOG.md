@@ -9,6 +9,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Cuma görseli kare
+- Cuma görseli yatay 2:1 yerine kare (1080×1080); hilaller başlığın hemen dışına yerleşir.
+
 ### Değişti — Cuma hadis yazısına üst sınır
 - **Cuma Mesajı:** hadis yazısı en fazla 64 px (başlığın biraz üstü); kısa hadisler artık aşırı büyümez, uzun olanlar yine sığana kadar küçülür.
 
