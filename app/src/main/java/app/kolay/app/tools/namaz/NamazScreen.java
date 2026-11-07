@@ -272,7 +272,7 @@ final class NamazScreen extends Screen {
 
     private boolean canExact() {
         AlarmManager am = c.a.getSystemService(AlarmManager.class);
-        return am == null || am.canScheduleExactAlarms();
+        return am == null || Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms();   // API 31; earlier versions always allow exact alarms
     }
 
     private void onReminder(int bit, boolean on) {

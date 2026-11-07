@@ -214,23 +214,16 @@ final class Files {
         Runnable go = () -> {
             long now = System.currentTimeMillis();
             File[] old = root.listFiles();
-            if (old != null) for (File d : old) if (now - d.lastModified() > 3600_000L) deleteTree(d);
+            if (old != null) for (File d : old) if (now - d.lastModified() > 3600_000L) app.kolay.shell.Host.deleteTree(d);
             if (it.size > c.a.getCacheDir().getUsableSpace() - (64L << 20)) { toast(c, "Telefonda yeterli boş yer yok"); return; }
             File dir = new File(root, Long.toString(now, 36));
             if (!dir.mkdirs()) { toast(c, "Geçici klasör oluşturulamadı"); return; }
             Jobs.run(c, "İndiriliyor", "indirildi",
                 (p, r) -> Ops.transfer(s, java.util.Collections.singletonList(it.path), LocalSource.INSTANCE, dir.getPath(), false, r, p),
-                () -> { File f = new File(dir, it.name); if (f.isFile()) show(c, f.getPath(), it.name, chooser); else deleteTree(dir); }, true);
+                () -> { File f = new File(dir, it.name); if (f.isFile()) show(c, f.getPath(), it.name, chooser); else app.kolay.shell.Host.deleteTree(dir); }, true);
         };
         if (it.size > OPEN_ASK) Sheet.confirm(c, "Büyük dosya", "“" + it.name + "” " + size(it.size) + ". Açmak için önce telefona geçici olarak indirilir.", "İndir ve aç", false, go);
         else go.run();
-    }
-
-    private static void deleteTree(File f) {
-        File[] k = f.listFiles();
-        if (k != null) for (File x : k) deleteTree(x);
-        //noinspection ResultOfMethodCallIgnored
-        f.delete();
     }
 
     static void openLocal(Ctx c, String path, String name) {

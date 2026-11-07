@@ -43,6 +43,14 @@ public final class Llm {
         return call(host, contents, null, temperature, 4096, 90000);
     }
 
+    /** The whole stream as UTF-8 text ({@code InputStream.readAllBytes} needs API 33; minSdk is 29). */
+    public static String readUtf8(InputStream is) throws java.io.IOException {
+        java.io.ByteArrayOutputStream o = new java.io.ByteArrayOutputStream();
+        byte[] b = new byte[8192];
+        for (int n; (n = is.read(b)) > 0; ) o.write(b, 0, n);
+        return new String(o.toByteArray(), StandardCharsets.UTF_8);
+    }
+
     public static boolean hasKey(Host host) { return !host.secret(SettingsScreen.LLM_SECRET).isEmpty(); }
 
     private static String call(Host host, JSONArray contents, String system, double temperature, int maxTokens, int readTimeoutMs) throws Exception {
@@ -61,7 +69,7 @@ public final class Llm {
         int code = c.getResponseCode();
         String resp;
         try (InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream()) {
-            resp = is == null ? "" : new String(is.readAllBytes(), StandardCharsets.UTF_8);   // error stream is null when the body is empty
+            resp = is == null ? "" : readUtf8(is);   // error stream is null when the body is empty
         } finally { c.disconnect(); }
         if (code == 429) throw new IOException("Kullanım sınırı doldu; biraz sonra tekrar dene");
         if (code == 401 || code == 403 || (code == 400 && resp.contains("API key")))

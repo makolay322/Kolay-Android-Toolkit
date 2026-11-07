@@ -156,6 +156,7 @@ final class PdfPane extends FrameLayout {
     }
 
     void close() {
+        if (closed) return;   // idempotent: a second call would hit the shut-down worker
         closed = true;
         worker.execute(() -> {
             try { renderer.close(); } catch (RuntimeException ignored) {}

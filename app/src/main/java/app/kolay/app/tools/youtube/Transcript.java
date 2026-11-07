@@ -92,7 +92,7 @@ final class Transcript {
         int code = c.getResponseCode();
         String resp;
         try (InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream()) {
-            resp = is == null ? "" : new String(is.readAllBytes(), StandardCharsets.UTF_8);   // error stream is null when the body is empty
+            resp = is == null ? "" : app.kolay.app.tools.Llm.readUtf8(is);   // error stream is null when the body is empty
         } finally { c.disconnect(); }
         if (code >= 400) throw new IOException("YouTube HTTP " + code);
         return resp;

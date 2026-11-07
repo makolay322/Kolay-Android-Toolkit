@@ -66,7 +66,7 @@ final class Mask {
         t = IBAN.matcher(t).replaceAll("[IBAN]");
         if (known.isEmpty()) return t;
         Matcher m = Pattern.compile("[A-ZÄÖÜ][A-Za-zÄÖÜäöüß'’-]{3,}").matcher(t);
-        StringBuilder sb = new StringBuilder();
+        StringBuffer sb = new StringBuffer();   // the StringBuilder overloads of appendReplacement/appendTail need API 34
         while (m.find()) {
             String w = m.group();
             boolean hit = false;

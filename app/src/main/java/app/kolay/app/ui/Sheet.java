@@ -72,7 +72,12 @@ public final class Sheet {
         });
     }
 
-    public Sheet show() { if (!c.a.isFinishing()) d.show(); return this; }
+    /** Shows the sheet unless the activity is going away (then {@link Dialog#isShowing()} stays false). */
+    public Sheet show() {
+        if (c.a.isFinishing() || c.a.isDestroyed()) return this;
+        try { d.show(); } catch (WindowManager.BadTokenException ignored) { }   // window token already gone
+        return this;
+    }
 
     /** Slides the card down, then closes the dialog. */
     public void dismiss() {

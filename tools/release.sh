@@ -43,6 +43,10 @@ VC=$(sed -n 's/^versionCode=//p' "$PROP"); CUR=$(sed -n 's/^versionName=//p' "$P
 if curl -fsSL "https://github.com/$REPO/releases/latest/download/manifest.json" -o "$TMP/latest.json" 2>/dev/null; then
   LVC=$(sed -n 's/.*"versionCode":\([0-9]*\).*/\1/p' "$TMP/latest.json"); LVN=$(sed -n 's/.*"versionName":"\([^"]*\)".*/\1/p' "$TMP/latest.json")
   [ -n "$LVC" ] && [ "$LVC" -ge "$VC" ] && { VC=$LVC; CUR=$LVN; }
+elif gh release view >/dev/null 2>&1; then
+  # A release exists but its manifest could not be read (network hiccup): falling back to the base would publish a
+  # lower versionCode (phones would never update) under a wrong name. Fail; the next push/run retries.
+  echo "latest release exists but its manifest.json could not be read; not guessing the version"; exit 1
 fi
 VC=$(( VC + 1 ))
 # Default name: bump the three-digit minor (1.013 -> 1.014).

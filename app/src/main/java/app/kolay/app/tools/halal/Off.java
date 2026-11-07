@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 
 /** Open Food Facts product lookup (public, HTTPS). Only the barcode digits leave the device. */
 final class Off {
@@ -28,7 +27,7 @@ final class Off {
         if (status == 404) return null;
         if (status >= 400) throw new IOException("Ürün veritabanı HTTP " + status);
         String body;
-        try (InputStream is = c.getInputStream()) { body = new String(is.readAllBytes(), StandardCharsets.UTF_8); }
+        try (InputStream is = c.getInputStream()) { body = app.kolay.app.tools.Llm.readUtf8(is); }
         try {
             JSONObject root = new JSONObject(body);
             if (root.optInt("status", 0) != 1) return null;

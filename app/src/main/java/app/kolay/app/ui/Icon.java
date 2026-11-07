@@ -23,8 +23,7 @@ public final class Icon extends Drawable {
         float s = b.width() / 24f;
         c.save(); c.translate(b.left, b.top); c.scale(s, s);
         p.setStrokeWidth(2f);
-        path.reset();
-        switch (kind) {
+        if (path.isEmpty()) switch (kind) {   // the path is in grid units: built once, reused on every draw
             case BACK: path.moveTo(15, 5); path.lineTo(8, 12); path.lineTo(15, 19); break;
             case CHEVRON: path.moveTo(9, 5); path.lineTo(16, 12); path.lineTo(9, 19); break;
             case CHECK: path.moveTo(5, 12.5f); path.lineTo(10, 17.5f); path.lineTo(19, 7); break;

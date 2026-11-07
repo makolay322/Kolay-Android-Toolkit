@@ -44,10 +44,10 @@ final class Jobs {
         TextView stop = Ui.button(c, "İptal", Ui.Style.TONAL, null);
         s.body.addView(stop, Ui.lp(-1, c.dp(Ui.H_GHOST)));
 
-        final boolean[] cancel = {false};
+        final java.util.concurrent.atomic.AtomicBoolean cancel = new java.util.concurrent.atomic.AtomicBoolean();   // set on the UI thread, read by the worker
         final Object[] last = new Object[3];   // name, done, total (latest; read on the UI thread)
         final boolean[] posted = {false};
-        Runnable cancelIt = () -> { cancel[0] = true; stop.setText("İptal ediliyor…"); stop.setEnabled(false); };
+        Runnable cancelIt = () -> { cancel.set(true); stop.setText("İptal ediliyor…"); stop.setEnabled(false); };
         stop.setOnClickListener(v -> cancelIt.run());
         final boolean[] finished = {false};
         // Longer jobs continue with the screen off / app in the background (foreground service with its own İptal).
@@ -81,7 +81,7 @@ final class Jobs {
                 }
                 c.ui.post(paint);
             }
-            @Override public boolean cancelled() { return cancel[0]; }
+            @Override public boolean cancelled() { return cancel.get(); }
         };
         Ops.Resolver r = new Ops.Resolver() {
             Ops.Conflict all;
@@ -91,8 +91,8 @@ final class Jobs {
                 boolean[] remember = {false};
                 CountDownLatch l = new CountDownLatch(1);
                 c.ui.post(() -> ask(c, ex, in, (k, rem) -> { pick[0] = k; remember[0] = rem; l.countDown(); }));
-                try { l.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); cancel[0] = true; }
-                if (pick[0] == null) { cancel[0] = true; return Ops.Conflict.SKIP; }
+                try { l.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); cancel.set(true); }
+                if (pick[0] == null) { cancel.set(true); return Ops.Conflict.SKIP; }
                 if (remember[0]) all = pick[0];
                 return pick[0];
             }
@@ -106,6 +106,7 @@ final class Jobs {
                 finished[0] = true;
                 TransferService.end();
                 s.dismiss();
+                if (c.a.isDestroyed()) return;   // activity re-created meanwhile (e.g. dark mode switch): its pool and views are gone
                 if (!fr.errors.isEmpty()) {
                     StringBuilder b = new StringBuilder();
                     for (int i = 0; i < fr.errors.size() && i < 15; i++) b.append("• ").append(fr.errors.get(i)).append('\n');
@@ -136,5 +137,6 @@ final class Jobs {
         s.d.setCanceledOnTouchOutside(false);
         s.d.setOnDismissListener(d -> { if (!answered[0]) { answered[0] = true; a.pick(null, false); } });   // back = cancel the job
         s.show();
+        if (!s.d.isShowing() && !answered[0]) { answered[0] = true; a.pick(null, false); }   // activity gone: cancel, never leave the worker waiting
     }
 }
