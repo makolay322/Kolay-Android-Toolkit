@@ -90,12 +90,13 @@ public interface Host {
     void prayerSetReminderMask(int mask);
     /** Asks the launcher to add the prayer widget to the home screen; false when the launcher cannot do that. */
     boolean prayerPinWidget();
-    /** Widget appearance, the same for all placed widgets: {background colour, or 0 = follow the wallpaper; opacity 0..100}. */
+    /** Widget appearance, the same for all placed widgets: {background colour, or 0 = follow the wallpaper; opacity 0..100;
+     *  text colour, or 0 = dark or light by the background}. */
     int[] prayerWidgetStyle();
     /** Saves the widget appearance and repaints every placed widget at once. */
-    void prayerSetWidgetStyle(int background, int opacity);
+    void prayerSetWidgetStyle(int background, int opacity, int ink);
     /** The large widget layout drawn with an unsaved appearance (live preview; inflate with {@code apply}/{@code reapply}). */
-    android.widget.RemoteViews prayerWidgetPreview(int background, int opacity);
+    android.widget.RemoteViews prayerWidgetPreview(int background, int opacity, int ink);
     /** The wallpaper's main colour (what a transparent widget shows through). */
     int prayerWallpaperColor();
 

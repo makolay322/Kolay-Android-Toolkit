@@ -20,7 +20,7 @@ import java.util.Calendar;
  * times of that day. Three layouts by size (Android 12+: one RemoteViews per size, the launcher picks; older: from the
  * widget options). All text auto-sizes, so nothing clips. Background colour and transparency are the user's choice
  * ({@link PrayerWidgetConfig}); "Otomatik" follows the wallpaper (off-white on a dark one, near-black on a light one).
- * The text colour is picked from the resulting background's luminance. Tap = the app's prayer-times screen.
+ * The text colour is the user's choice too, or by default picked from the resulting background's luminance. Tap = the app's prayer-times screen.
  */
 public class PrayerWidget extends AppWidgetProvider {
     /** Must match Entry.ACTION_PRAYER in the app layer. */
@@ -54,20 +54,21 @@ public class PrayerWidget extends AppWidgetProvider {
 
     private static SharedPreferences prefs(Context c) { return c.getSharedPreferences("prayer", Context.MODE_PRIVATE); }
 
-    /** @return {background colour or {@link #AUTO}, opacity 0..100} */
+    /** @return {background colour or {@link #AUTO}, opacity 0..100, text colour or {@link #AUTO}} */
     static int[] style(Context c) {
         SharedPreferences p = prefs(c);
-        return new int[]{p.getInt("w_bg", AUTO), Math.max(0, Math.min(100, p.getInt("w_alpha", DEFAULT_OPACITY)))};
+        return new int[]{p.getInt("w_bg", AUTO), Math.max(0, Math.min(100, p.getInt("w_alpha", DEFAULT_OPACITY))), p.getInt("w_ink", AUTO)};
     }
 
     /** Saves the appearance and repaints every placed widget. */
-    static void setStyle(Context c, int bg, int opacity) {
-        prefs(c).edit().putInt("w_bg", bg == AUTO ? AUTO : bg | 0xFF000000).putInt("w_alpha", Math.max(0, Math.min(100, opacity))).apply();
+    static void setStyle(Context c, int bg, int opacity, int ink) {
+        prefs(c).edit().putInt("w_bg", bg == AUTO ? AUTO : bg | 0xFF000000).putInt("w_alpha", Math.max(0, Math.min(100, opacity)))
+                .putInt("w_ink", ink == AUTO ? AUTO : ink | 0xFF000000).apply();
         updateAll(c.getApplicationContext());
     }
 
     /** The full layout with the given (unsaved) appearance, for the live preview in the settings screen. */
-    static RemoteViews preview(Context c, int bg, int opacity) { return build(c, R.layout.widget_prayer_full, new int[]{bg, opacity}); }
+    static RemoteViews preview(Context c, int bg, int opacity, int ink) { return build(c, R.layout.widget_prayer_full, new int[]{bg, opacity, ink}); }
 
     /** The wallpaper's main colour (what shows through a transparent card); a neutral dark / light grey when unknown. */
     static int wallpaperColor(Context c) {
@@ -113,7 +114,8 @@ public class PrayerWidget extends AppWidgetProvider {
         float a = style[1] / 100f;
         // what the eye sees: the card blended over the wallpaper; dark or light text, whichever contrasts more
         int seen = Color.rgb(mix(Color.red(base), Color.red(wall), a), mix(Color.green(base), Color.green(wall), a), mix(Color.blue(base), Color.blue(wall), a));
-        int ink = Color.luminance(seen) > 0.179f ? INK_DARK : INK_LIGHT;   // equal-contrast point against black and white
+        int ink = style[2] != AUTO ? style[2] | 0xFF000000
+                : Color.luminance(seen) > 0.179f ? INK_DARK : INK_LIGHT;   // equal-contrast point against black and white
         int soft = (ink & 0x00FFFFFF) | 0xB3000000, faint = (ink & 0x00FFFFFF) | 0x73000000;
 
         RemoteViews v = new RemoteViews(c.getPackageName(), layout);
