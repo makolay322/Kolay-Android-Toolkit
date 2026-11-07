@@ -203,22 +203,30 @@ final class PdfEdit {
         return new PDRectangle(A4_W, A4_H);
     }
 
+    /** Pictures go into the PDF at no more than 300 dpi of their placed size (never upscaled). */
+    private static final float PDF_DPI = 300f, JPEG_QUALITY = 0.90f;
+
     /**
-     * A new page in {@code d} showing the picture whole, aspect kept, centred, at full resolution. The page takes the
-     * neighbour's paper size (never the picture's pixel size), landscape when the upright picture is wider than tall.
-     * JPEG goes in as it is (no re-compression; EXIF orientation applied by the drawing transform), PNG losslessly,
-     * other formats as a high-quality JPEG.
+     * A new page in {@code d} showing the picture whole, aspect kept, centred. The page takes the neighbour's paper
+     * size (never the picture's pixel size), landscape when the upright picture is wider than tall. The picture is
+     * downscaled to {@link #PDF_DPI} of its placed size; PNG goes in losslessly, everything else (JPEG included) as a
+     * JPEG at 90% quality. EXIF orientation is applied by the drawing transform.
      */
     private static PDPage picturePage(PDDocument d, File f, PDRectangle like) throws IOException {
-        PDImageXObject img = image(d, f);
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(f.getPath(), o);
+        if (o.outWidth <= 0 || o.outHeight <= 0) throw new IOException("image");
         int exif = exifRotation(f);
         boolean turned = exif == 90 || exif == 270;
-        float dw = turned ? img.getHeight() : img.getWidth(), dh = turned ? img.getWidth() : img.getHeight();
+        float dw = turned ? o.outHeight : o.outWidth, dh = turned ? o.outWidth : o.outHeight;
         float shortSide = Math.min(like.getWidth(), like.getHeight()), longSide = Math.max(like.getWidth(), like.getHeight());
         float pw = dw > dh ? longSide : shortSide, ph = dw > dh ? shortSide : longSide;
+        float s = Math.min(pw / dw, ph / dh), w = dw * s, h = dh * s, x = (pw - w) / 2, y = (ph - h) / 2;
+        float k = Math.min(1f, s * PDF_DPI / 72f);
+        PDImageXObject img = image(d, f, o, Math.max(1, Math.round(o.outWidth * k)), Math.max(1, Math.round(o.outHeight * k)));
         PDPage page = new PDPage(new PDRectangle(pw, ph));
         d.addPage(page);
-        float s = Math.min(pw / dw, ph / dh), w = dw * s, h = dh * s, x = (pw - w) / 2, y = (ph - h) / 2;
         com.tom_roush.pdfbox.util.Matrix m;
         switch (exif) {   // maps the image's unit square onto the upright placement (PDF y axis points up)
             case 90: m = new com.tom_roush.pdfbox.util.Matrix(0, -h, w, 0, x, y + h); break;
@@ -230,17 +238,18 @@ final class PdfEdit {
         return page;
     }
 
-    private static PDImageXObject image(PDDocument d, File f) throws IOException {
-        byte[] head = new byte[8];
-        int n;
-        try (InputStream in = new FileInputStream(f)) { n = in.read(head); }
-        if (n >= 3 && (head[0] & 0xFF) == 0xFF && (head[1] & 0xFF) == 0xD8 && (head[2] & 0xFF) == 0xFF) {
-            try (InputStream in = new BufferedInputStream(new FileInputStream(f))) { return JPEGFactory.createFromStream(d, in); }
-        }
-        boolean png = n >= 4 && (head[0] & 0xFF) == 0x89 && head[1] == 'P' && head[2] == 'N' && head[3] == 'G';
-        Bitmap b = BitmapFactory.decodeFile(f.getPath());
+    /** Decodes {@code f} (subsampled when much larger) to {@code tw} × {@code th} pixels and embeds it. */
+    private static PDImageXObject image(PDDocument d, File f, BitmapFactory.Options bounds, int tw, int th) throws IOException {
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inSampleSize = 1;
+        while (bounds.outWidth / (o.inSampleSize * 2) >= tw && bounds.outHeight / (o.inSampleSize * 2) >= th) o.inSampleSize *= 2;
+        Bitmap b = BitmapFactory.decodeFile(f.getPath(), o);
         if (b == null) throw new IOException("image");
-        try { return png ? LosslessFactory.createFromImage(d, b) : JPEGFactory.createFromImage(d, b, 0.95f); }
+        if (b.getWidth() > tw || b.getHeight() > th) {
+            Bitmap sc = Bitmap.createScaledBitmap(b, tw, th, true);
+            if (sc != b) { b.recycle(); b = sc; }
+        }
+        try { return "image/png".equals(bounds.outMimeType) ? LosslessFactory.createFromImage(d, b) : JPEGFactory.createFromImage(d, b, JPEG_QUALITY); }
         finally { b.recycle(); }
     }
 }
