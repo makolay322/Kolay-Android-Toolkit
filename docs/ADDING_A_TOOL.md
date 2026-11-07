@@ -1,6 +1,6 @@
 # Yeni araç ekleme
 
-Bir araç = `Tool` uygulaması + en az bir `Screen`. Ana sayfa 2 × 2 kart (Belgeler, Dini, Araçlar, Sohbet) ve altında tam genişlikte Dosyalar kartı gösterir; grup kartı `GroupScreen` ile o gruptaki araçları satır satır listeler (Belgeler kendi akışını açar: `tools/scan/DocsScreen`, araç listesi yok); kart animasyonu,
+Bir araç = `Tool` uygulaması + en az bir `Screen`. Ana sayfa 2 × 2 kart (Belgeler, Dini, Araçlar, Dosyalar) gösterir; grup kartı `GroupScreen` ile o gruptaki araçları satır satır listeler (Belgeler kendi akışını açar: `tools/scan/DocsScreen`, araç listesi yok); kart animasyonu,
 ikon kutusu, geçiş ve geri tuşu hazır gelir.
 
 ## 1. Araç sınıfı
