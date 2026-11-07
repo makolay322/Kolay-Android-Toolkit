@@ -69,7 +69,7 @@ public final class HomeScreen extends Screen {
             body.addView(row, Ui.lp(-1, -2, 0, 0, 0, gap));
         }
 
-        TextView foot = Ui.text(c, "Kolay-Android-Toolkit · Sürüm " + c.host.versionName(), Ui.T_CAP, p.muted, 500);
+        foot = Ui.text(c, "Kolay-Android-Toolkit · Sürüm " + c.host.versionName(), Ui.T_CAP, p.muted, 500);
         foot.setGravity(Gravity.CENTER);
         body.addView(foot, Ui.lp(-1, -2, 0, c.dp(20), 0, 0));
         entrance.add(foot);
@@ -93,7 +93,23 @@ public final class HomeScreen extends Screen {
         scrim.setAlpha(0f);
         page.addView(scrim, new FrameLayout.LayoutParams(-1, 0, Gravity.TOP));
         showWeather();
+        // Tall screens: let the cards grow into the empty space below the grid instead of leaving it blank.
+        View.OnLayoutChangeListener fit = (v, l, t, r, b, ol, ot, or, ob) -> fitCards();
+        sv.addOnLayoutChangeListener(fit);
+        hero.addOnLayoutChangeListener(fit);
         return page;
+    }
+
+    private TextView foot;
+    private final java.util.ArrayList<View> cardBodies = new java.util.ArrayList<>();
+
+    private void fitCards() {
+        if (sv == null || sv.getHeight() == 0 || hero.getHeight() == 0 || foot == null) return;
+        int free = sv.getHeight() - hero.getHeight() + c.dp(40) - c.dp(12) * 2 - c.dp(20) - foot.getHeight()
+                - c.dp(20) - c.insets.bottom;
+        int h = Math.max(c.dp(164), Math.min(c.dp(200), free / 2));
+        final int fh = h;   // applied after this layout pass: a request raised inside a layout listener is dropped
+        sv.post(() -> { for (View v : cardBodies) if (v.getMinimumHeight() != fh) v.setMinimumHeight(fh); });
     }
 
     @Override public void onInsets() {
@@ -260,6 +276,7 @@ public final class HomeScreen extends Screen {
         in.setOrientation(LinearLayout.VERTICAL);
         in.setPadding(c.dp(16), c.dp(16), c.dp(16), c.dp(16));
         in.setMinimumHeight(c.dp(164));
+        cardBodies.add(in);
         in.addView(Ui.toneTile(c, icon, t, 50, 25, 16));
         TextView name = Ui.text(c, title, Ui.T_HEAD, p.ink, 700);
         name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
