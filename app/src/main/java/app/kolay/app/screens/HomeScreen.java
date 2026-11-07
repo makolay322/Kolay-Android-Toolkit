@@ -2,8 +2,6 @@ package app.kolay.app.screens;
 
 import android.graphics.Outline;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Environment;
-import android.os.StatFs;
 import android.view.*;
 import android.widget.*;
 import app.kolay.app.tools.Tool;
@@ -19,22 +17,22 @@ import java.util.Locale;
 
 /**
  * Landing page. A gradient hero under the status bar (name, settings, greeting, date, weather now + 24 h strip, update notice), then four
- * group cards (Belgeler, Dini, Araçlar, Sohbet) overlapping its lower edge and a full-width Dosyalar card with the free space.
+ * group cards (Belgeler, Dini, Araçlar, Dosyalar) overlapping its lower edge.
  * A group card opens {@link GroupScreen}.
  */
 public final class HomeScreen extends Screen {
     private static final Locale TR = new Locale("tr", "TR");
     /** Tone index (Palette.tone) of each home group; a group's tool rows continue from there. */
-    private static final int T_DOCS = 0, T_FAITH = 2, T_TOOLS = 3, T_CHAT = 1, T_FILES = 5;
+    private static final int T_DOCS = 0, T_FAITH = 2, T_TOOLS = 3, T_FILES = 5;
 
     private final List<View> entrance = new ArrayList<>();
     private FrameLayout hero;
     private LinearLayout heroCol, banner;
-    private TextView greet, date, wxNow, wxCond, bannerText, filesSub;
+    private TextView greet, date, wxNow, wxCond, bannerText;
     private LinearLayout wxSide, wxHours;
     private View wxStrip;
     private boolean wxLoading;
-    private View scrim, filesFill;
+    private View scrim;
     private ScrollView sv;
     private LinearLayout col;
     private boolean pastHero;
@@ -58,7 +56,7 @@ public final class HomeScreen extends Screen {
             card("Belgeler", "Kamera · galeri · Wi-Fi tarayıcı", Icon.Kind.DOCSCAN, T_DOCS, () -> c.nav.push(new DocsScreen())),
             card("Dini", "Vakitler · kıble · cuma · helal", Icon.Kind.CRESCENT, T_FAITH, () -> group("Dini", "Vakitler, kıble, cuma, helal", Tools.FAITH, T_FAITH)),
             card("Araçlar", "QR · sıkıştır · YouTube · uygulamalar", Icon.Kind.APPS, T_TOOLS, () -> group("Araçlar", "Küçük yardımcılar", Tools.UTILITIES, T_TOOLS)),
-            card(Tools.CHAT.title(), Tools.CHAT.subtitle(), Tools.CHAT.icon(), T_CHAT, () -> c.nav.push(Tools.CHAT.open(c))),
+            card(Tools.FILES.title(), Tools.FILES.subtitle(), Tools.FILES.icon(), T_FILES, () -> c.nav.push(Tools.FILES.open(c))),
         };
         for (int i = 0; i < cards.length; i += 2) {
             LinearLayout row = new LinearLayout(c.a);
@@ -70,9 +68,6 @@ public final class HomeScreen extends Screen {
             }
             body.addView(row, Ui.lp(-1, -2, 0, 0, 0, gap));
         }
-        View files = filesCard();
-        body.addView(files, Ui.lp(-1, -2));
-        entrance.add(files);
 
         TextView foot = Ui.text(c, "Kolay-Android-Toolkit · Sürüm " + c.host.versionName(), Ui.T_CAP, p.muted, 500);
         foot.setGravity(Gravity.CENTER);
@@ -98,7 +93,6 @@ public final class HomeScreen extends Screen {
         scrim.setAlpha(0f);
         page.addView(scrim, new FrameLayout.LayoutParams(-1, 0, Gravity.TOP));
         showWeather();
-        loadStorage();
         return page;
     }
 
@@ -280,42 +274,6 @@ public final class HomeScreen extends Screen {
         return card;
     }
 
-    /** Full-width Dosyalar card: icon tile, title, free space of the internal storage with a usage bar, chevron. */
-    private View filesCard() {
-        Palette p = c.p;
-        Palette.Tone t = p.tone(T_FILES);
-        FrameLayout card = new FrameLayout(c.a);
-        styleCard(card);
-        LinearLayout row = new LinearLayout(c.a);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(c.dp(16), c.dp(16), c.dp(16), c.dp(16));
-        row.addView(Ui.toneTile(c, Tools.FILES.icon(), t, 50, 25, 16));
-        LinearLayout txt = new LinearLayout(c.a);
-        txt.setOrientation(LinearLayout.VERTICAL);
-        TextView name = Ui.text(c, Tools.FILES.title(), Ui.T_HEAD, p.ink, 700);
-        txt.addView(name);
-        filesSub = Ui.text(c, Tools.FILES.subtitle(), Ui.T_SUB, p.muted, 400);
-        filesSub.setSingleLine(true); filesSub.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        txt.addView(filesSub, Ui.lp(-1, -2, 0, c.dp(4), 0, 0));
-        FrameLayout track = new FrameLayout(c.a);
-        track.setBackground(Ui.rounded(c, p.surface2, 3));
-        filesFill = new View(c.a);
-        filesFill.setBackground(Ui.gradient(c, t.a, t.b, 3, GradientDrawable.Orientation.LEFT_RIGHT));
-        filesFill.setPivotX(0); filesFill.setScaleX(0f);
-        track.addView(filesFill, new FrameLayout.LayoutParams(-1, -1));
-        track.setVisibility(View.INVISIBLE);
-        txt.addView(track, Ui.lp(-1, c.dp(6), 0, c.dp(10), c.dp(8), 0));
-        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
-        tl.setMarginStart(c.dp(16));
-        row.addView(txt, tl);
-        row.addView(Ui.icon(c, Icon.Kind.CHEVRON, p.muted, 18), new LinearLayout.LayoutParams(c.dp(18), c.dp(18)));
-        card.addView(row, new FrameLayout.LayoutParams(-1, -2));
-        card.setContentDescription(Tools.FILES.title());
-        card.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); c.nav.push(Tools.FILES.open(c)); });
-        Ui.press(card);
-        return card;
-    }
-
     /** Card surface: rounded fill, ripple on top of the content, tinted shadow (light) or hairline (dark), clipped. */
     private void styleCard(FrameLayout card) {
         Palette p = c.p;
@@ -325,27 +283,6 @@ public final class HomeScreen extends Screen {
         card.setClipToOutline(true);
         if (!p.dark) Ui.softShadow(c, card, 3, p.shadow);
         card.setClickable(true);
-    }
-
-    /** Free space of the internal storage, read off the UI thread. */
-    private void loadStorage() {
-        c.io.execute(() -> {
-            long total, free;
-            try {
-                StatFs st = new StatFs(Environment.getExternalStorageDirectory().getPath());
-                total = st.getTotalBytes(); free = st.getAvailableBytes();
-            } catch (RuntimeException e) { return; }
-            if (total <= 0) return;
-            String s = "Dahili depolama · " + app.kolay.app.tools.files.FilesTool.size(free) + " boş";
-            float frac = (total - free) / (float) total;
-            c.ui.post(() -> {
-                if (filesSub == null) return;
-                filesSub.setText(s);
-                View track = (View) filesFill.getParent();
-                track.setVisibility(View.VISIBLE);
-                filesFill.animate().scaleX(frac).setDuration(Ui.D_SLOW).setInterpolator(Ui.EMPH).start();
-            });
-        });
     }
 
     private void group(String title, String subtitle, Tool[] tools, int tone) { c.nav.push(new GroupScreen(title, subtitle, tools, tone)); }
@@ -413,7 +350,7 @@ public final class HomeScreen extends Screen {
 
     @Override public void onResume() { if (c.host.updateReady()) showBanner(); refreshGreeting(); showWeather(); }
 
-    @Override public void onReturn() { refreshGreeting(); showWeather(); loadStorage(); }
+    @Override public void onReturn() { refreshGreeting(); showWeather(); }
 
     private void showBanner() {
         if (banner == null) return;
