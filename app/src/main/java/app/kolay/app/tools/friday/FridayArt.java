@@ -96,11 +96,11 @@ final class FridayArt {
         }
     }
 
-    /** Two crescents, one in each top corner, mirror images of each other (both open toward the title). */
+    /** Two small crescents flanking the title in the top strip, mirror images of each other (both open toward it). */
     private static void moon(Canvas cv, int w, int h, Theme t, Random r) {
-        float cy = h * (0.115f + r.nextFloat() * 0.015f);
-        crescent(cv, w * 0.12f, cy, h * 0.068f, 1, t);
-        crescent(cv, w * 0.88f, cy, h * 0.068f, -1, t);
+        float cy = h * (0.042f + r.nextFloat() * 0.006f);
+        crescent(cv, w * 0.315f, cy, h * 0.026f, 1, t);
+        crescent(cv, w * 0.685f, cy, h * 0.026f, -1, t);
     }
 
     private static void crescent(Canvas cv, float cx, float cy, float rad, float dir, Theme t) {
@@ -117,15 +117,15 @@ final class FridayArt {
         cv.drawPath(star(cx + dir * rad * 0.95f, cy - rad * 0.05f, rad * 0.30f, rad * 0.13f, 5), f);
     }
 
-    /** Random sparkles on the left half, each drawn again at its mirror position on the right. */
+    /** Random sparkles in the top strip beside the crescents, left half, each drawn again at its mirror position on the right. */
     private static void sparkles(Canvas cv, int w, int h, Theme t, Random r) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         int n = 22 + r.nextInt(12);
         for (int i = 0; i < n; i++) {
-            float x = r.nextFloat() * w / 2f, y = r.nextFloat() * h * 0.70f, s = 2f + r.nextFloat() * 5f * h / 1000f;
+            float x = r.nextFloat() * w / 2f, y = h * (0.012f + r.nextFloat() * 0.06f), s = 1.5f + r.nextFloat() * 3f * h / 1000f;
             boolean star = r.nextInt(3) == 0;
             int alpha = 90 + r.nextInt(150);
-            if (y > h * 0.06f && x > w * 0.17f) continue;   // keep clear of the title and the hadith panel
+            if (x > w * 0.27f) continue;                     // keep clear of the crescents and the title
             p.setColor(t.accent);
             p.setAlpha(alpha);
             for (float xx : new float[]{x, w - x}) {
@@ -135,8 +135,10 @@ final class FridayArt {
         }
     }
 
-    /** Domes and minarets along the bottom edge. */
+    /** Domes and minarets along the bottom edge, scaled down and faint: a quiet accent behind the hadith panel. */
     private static void mosque(Canvas cv, int w, int h, Theme t, Random r) {
+        cv.saveLayerAlpha(0, 0, w, h, 70);                        // one layer, so overlapping shapes stay uniformly faint
+        cv.scale(0.7f, 0.7f, w / 2f, h);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(t.mosque);
         float cx = w / 2f;                                          // centred: the silhouette mirrors about the axis
@@ -158,6 +160,7 @@ final class FridayArt {
             minaret(cv, p, cx - off, tip, h);
             minaret(cv, p, cx + off, tip, h);
         }
+        cv.restore();
     }
 
     private static void dome(Canvas cv, Paint p, float cx, float baseY, float rx, float ry) {
@@ -182,14 +185,15 @@ final class FridayArt {
         tp.setTextAlign(Paint.Align.CENTER);
 
         tp.setColor(t.text);
-        tp.setTextSize(80 * u);
+        tp.setTextSize(46 * u);
         tp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         tp.setShadowLayer(14 * u, 0, 3 * u, 0xB3000000);   // keeps the title legible over sparkles and the moon's glow
-        cv.drawText("Cumamız Mübarek Olsun", w / 2f, h * 0.165f, tp);
+        cv.drawText("Cumamız Mübarek Olsun", w / 2f, h * 0.062f, tp);
         tp.clearShadowLayer();
 
-        // Panel narrower than the canvas (0.64·w), centred: equal side margins and hadith lines that stay readable.
-        float pw = w * 0.64f, pl = (w - pw) / 2f, pr = pl + pw, pt = h * 0.225f, pb = h * 0.775f;
+        // The panel is the focus: it fills the canvas below the thin title strip (0.95·w × 0.87·h), centred; the
+        // pattern and mosque show faintly through it.
+        float pw = w * 0.95f, pl = (w - pw) / 2f, pr = pl + pw, pt = h * 0.09f, pb = h * 0.96f;
         Paint pp = new Paint(Paint.ANTI_ALIAS_FLAG);
         pp.setColor(t.panel);
         float rad = 28 * u;
@@ -197,33 +201,40 @@ final class FridayArt {
         pp.setStyle(Paint.Style.STROKE); pp.setStrokeWidth(3 * u); pp.setColor(t.accent); pp.setAlpha(150);
         cv.drawRoundRect(new RectF(pl, pt, pr, pb), rad, rad, pp);
 
-        float pad = 48 * u;
+        float pad = 36 * u;
         float inner = (pr - pl) - 2 * pad;
 
         tp.setTypeface(Typeface.DEFAULT_BOLD);
         tp.setColor(t.accent);
-        tp.setTextSize(26 * u);
+        tp.setTextSize(22 * u);
         tp.setLetterSpacing(0.18f);
-        float labelY = pt + pad + 20 * u;
+        float labelY = pt + pad + 14 * u;
         cv.drawText("HADÎS-İ ŞERÎF", w / 2f, labelY, tp);
         tp.setLetterSpacing(0f);
 
         // source line sits at the bottom of the panel; the hadith is fitted in between, largest size that fits
         tp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.ITALIC));
-        tp.setTextSize(34 * u);
+        tp.setTextSize(30 * u);
         float srcY = pb - pad * 0.7f;
         cv.drawText("— " + source, w / 2f, srcY, tp);
 
-        float top = labelY + 34 * u, bottom = srcY - 62 * u;
+        float top = labelY + 26 * u, bottom = srcY - 50 * u;
         TextPaint hp = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         hp.setColor(t.text);
         hp.setTypeface(Typeface.create(Typeface.SERIF, Typeface.NORMAL));
         String body = "“" + hadith + "”";
+        // Largest size at which the balanced, unhyphenated layout fits the panel height and no single word is wider
+        // than a line (so words are never split).
+        String[] words = body.split("\\s+");
         StaticLayout lay = null;
-        for (float size = 60 * u; size >= 24 * u; size -= 2 * u) {
+        for (float size = 140 * u; size >= 24 * u; size -= 2 * u) {
             hp.setTextSize(size);
+            float widest = 0;
+            for (String wd : words) widest = Math.max(widest, hp.measureText(wd));
+            if (widest > inner) continue;
             lay = StaticLayout.Builder.obtain(body, 0, body.length(), hp, Math.round(inner))
-                    .setAlignment(Layout.Alignment.ALIGN_CENTER).setLineSpacing(0, 1.18f).build();
+                    .setAlignment(Layout.Alignment.ALIGN_CENTER).setLineSpacing(0, 1.18f)
+                    .setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_BALANCED).setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE).build();
             if (lay.getHeight() <= bottom - top) break;
         }
         cv.save();
