@@ -186,18 +186,22 @@ final class NamazScreen extends Screen {
         // Hero: the next prayer and a live countdown.
         LinearLayout hero = new LinearLayout(c.a);
         hero.setOrientation(LinearLayout.VERTICAL);
-        hero.setPadding(c.dp(18), c.dp(14), c.dp(18), c.dp(14));
-        hero.setBackground(Ui.rounded(c, c.p.primarySoft, 22));
-        hero.addView(Ui.text(c, n != null && n[2] == 1 ? "Sıradaki vakit · yarın" : "Sıradaki vakit", 13, c.p.onPrimarySoft, 500));
+        hero.setPadding(c.dp(20), c.dp(16), c.dp(20), c.dp(16));
+        // Same gradient as the home hero: the next prayer is this page's headline.
+        hero.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{c.p.heroA, c.p.heroMid, c.p.heroB}));
+        ((android.graphics.drawable.GradientDrawable) hero.getBackground()).setCornerRadius(c.dp(Ui.R_CARD));
+        Ui.roundOutline(c, hero, Ui.R_CARD);
+        if (!c.p.dark) Ui.softShadow(c, hero, 4, c.p.heroA);
+        hero.addView(Ui.text(c, n != null && n[2] == 1 ? "Sıradaki vakit · yarın" : "Sıradaki vakit", 13, (c.p.onHero & 0x00FFFFFF) | 0xD9000000, 600));
         LinearLayout row = new LinearLayout(c.a);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        heroName = Ui.text(c, "", 24, c.p.onPrimarySoft, 700);
-        heroTime = Ui.text(c, "", 36, c.p.onPrimarySoft, 700);
+        heroName = Ui.text(c, "", 26, c.p.onHero, 800);
+        heroTime = Ui.text(c, "", 38, c.p.onHero, 800);
         heroTime.setFontFeatureSettings("tnum");
         row.addView(heroName, new LinearLayout.LayoutParams(0, -2, 1));
         row.addView(heroTime);
         hero.addView(row, Ui.lp(-1, -2, 0, c.dp(4), 0, 0));
-        heroLeft = Ui.text(c, "", 14, c.p.onPrimarySoft, 500);
+        heroLeft = Ui.text(c, "", 14, (c.p.onHero & 0x00FFFFFF) | 0xD9000000, 600);
         heroLeft.setFontFeatureSettings("tnum");
         hero.addView(heroLeft, Ui.lp(-1, -2, 0, c.dp(2), 0, 0));
         body.addView(hero, Ui.lp(-1, -2));
@@ -221,10 +225,10 @@ final class NamazScreen extends Screen {
             LinearLayout r = new LinearLayout(c.a);
             r.setGravity(Gravity.CENTER_VERTICAL);
             r.setPadding(c.dp(12), 0, c.dp(6), 0);
-            if (isNext) r.setBackground(Ui.rounded(c, c.p.surface2, 16));
+            if (isNext) r.setBackground(Ui.rounded(c, c.p.primarySoft, 16));
             int fg = past ? c.p.muted : c.p.ink;
-            TextView nm = Ui.text(c, NAMES[i], 16, fg, isNext ? 700 : 500);
-            TextView tm = Ui.text(c, clock(today[i]), 17, isNext ? c.p.primary : fg, isNext ? 700 : 500);
+            TextView nm = Ui.text(c, NAMES[i], 16, isNext ? c.p.onPrimarySoft : fg, isNext ? 700 : 500);
+            TextView tm = Ui.text(c, clock(today[i]), 17, isNext ? c.p.onPrimarySoft : fg, isNext ? 700 : 500);
             tm.setFontFeatureSettings("tnum");
             r.addView(nm, new LinearLayout.LayoutParams(0, -2, 1));
             r.addView(tm);
@@ -297,5 +301,5 @@ final class NamazScreen extends Screen {
 
     private static String clock(long t) { return new SimpleDateFormat("HH:mm", Locale.GERMANY).format(new Date(t)); }
 
-    private void say(String s) { Toast.makeText(c.a, s, Toast.LENGTH_LONG).show(); }
+    private void say(String s) { Ui.toastLong(c, s); }
 }

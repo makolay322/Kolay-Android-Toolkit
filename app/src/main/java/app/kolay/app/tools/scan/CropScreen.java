@@ -57,7 +57,7 @@ final class CropScreen extends Screen {
         LinearLayout bb = Ui.bottomBar(c);
         apply = Ui.button(c, "Uygula", Ui.Style.PRIMARY, Icon.Kind.CHECK);
         apply.setOnClickListener(v -> {
-            if (!convex(quad)) { Toast.makeText(c.a, "Köşeler çapraz: çerçeveyi düzelt", Toast.LENGTH_SHORT).show(); return; }
+            if (!convex(quad)) { Ui.toast(c, "Köşeler çapraz: çerçeveyi düzelt"); return; }
             Ui.haptic(v, HapticFeedbackConstants.CONFIRM);
             if (s.pages.contains(pg)) {
                 pg.quad = quad.clone(); pg.rotation = rotation;
@@ -86,7 +86,7 @@ final class CropScreen extends Screen {
             final Bitmap out = b;
             c.ui.post(() -> {
                 if (destroyed) { if (out != null) out.recycle(); return; }
-                if (out == null) { Toast.makeText(c.a, "Görüntü açılamadı", Toast.LENGTH_SHORT).show(); c.nav.pop(); return; }
+                if (out == null) { Ui.toast(c, "Görüntü açılamadı"); c.nav.pop(); return; }
                 bmp = out;
                 stage.removeAllViews();
                 qv = new QuadView();
@@ -107,7 +107,7 @@ final class CropScreen extends Screen {
             c.ui.post(() -> {
                 detecting = false;
                 if (destroyed) { b.recycle(); return; }   // onDestroy left it to us
-                if (r == null) { Toast.makeText(c.a, "Sayfa kenarı bulunamadı", Toast.LENGTH_SHORT).show(); return; }
+                if (r == null) { Ui.toast(c, "Sayfa kenarı bulunamadı"); return; }
                 quad = r; qv.invalidate();
             });
         });

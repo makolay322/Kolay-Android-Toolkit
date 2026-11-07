@@ -17,7 +17,17 @@ public final class Ui {
     public static final Interpolator EMPH = new PathInterpolator(0.05f, 0.7f, 0.1f, 1f);   // emphasized decelerate: entering
     public static final Interpolator STD = new PathInterpolator(0.2f, 0f, 0f, 1f);         // standard
     public static final Interpolator EXIT = new PathInterpolator(0.3f, 0f, 0.8f, 0.15f);   // leaving
-    public static final Interpolator POP = new OvershootInterpolator(2.4f);
+    public static final Interpolator POP = new OvershootInterpolator(1.6f);
+
+    /** Motion durations (ms): small state changes, most transitions, the largest moves. Nothing in the app runs longer. */
+    public static final int D_FAST = 150, D_MED = 200, D_SLOW = 250;
+    /** Delay between items of a staggered entrance (ms). */
+    public static final int STAGGER = 30;
+
+    /** Type scale (sp): display (home greeting), page title, card title, body, secondary, caption/label. */
+    public static final float T_DISPLAY = 30, T_TITLE = 22, T_HEAD = 17, T_BODY = 15, T_SUB = 13, T_CAP = 12;
+    /** Corner radii (dp): cards, buttons, inputs, icon tiles, chips. */
+    public static final float R_CARD = 24, R_BTN = 16, R_INPUT = 14, R_TILE = 14, R_CHIP = 12;
 
     public enum Style { PRIMARY, TONAL, GHOST }
 
@@ -47,24 +57,87 @@ public final class Ui {
         Drawable content = c.p.dark ? outlined(c, fill, c.p.line, radiusDp) : rounded(c, fill, radiusDp);
         GradientDrawable mask = rounded(c, Color.WHITE, radiusDp);
         v.setBackground(new RippleDrawable(ColorStateList.valueOf(c.p.ripple), content, mask));
+        roundOutline(c, v, radiusDp);
+        if (raised && !c.p.dark) softShadow(c, v, 3, c.p.shadow);
+    }
+
+    /** Rounded outline (for shadows and clipping) that follows the view's size. */
+    public static void roundOutline(Ctx c, View v, float radiusDp) {
         final float r = c.dp(radiusDp);
         v.setOutlineProvider(new ViewOutlineProvider() {
             @Override public void getOutline(View view, Outline o) { o.setRoundRect(0, 0, view.getWidth(), view.getHeight(), r); }
         });
-        if (raised && !c.p.dark) v.setElevation(c.dp(2));
     }
+
+    /** Elevation with a tinted (not grey) shadow: reads as depth without dirtying the light theme. */
+    public static void softShadow(Ctx c, View v, float elevationDp, int tint) {
+        v.setElevation(c.dp(elevationDp));
+        v.setOutlineAmbientShadowColor(tint);
+        v.setOutlineSpotShadowColor(tint);
+    }
+
+    /** Ripple only (no fill): list rows and menu entries. */
+    public static RippleDrawable ripple(Ctx c, float radiusDp) {
+        return new RippleDrawable(ColorStateList.valueOf(c.p.ripple), null, rounded(c, Color.WHITE, radiusDp));
+    }
+
+    /** Linear gradient with rounded corners; {@code o} e.g. TL_BR for a diagonal wash. */
+    public static GradientDrawable gradient(Ctx c, int from, int to, float radiusDp, GradientDrawable.Orientation o) {
+        GradientDrawable d = new GradientDrawable(o, new int[]{from, to});
+        d.setCornerRadius(c.dp(radiusDp));
+        return d;
+    }
+
+    /** False when the user turned animations off (developer option scale 0 or the accessibility "remove animations"). */
+    public static boolean motion() { return android.animation.ValueAnimator.areAnimatorsEnabled(); }
 
     /** Subtle scale-down while the finger is on the view. Does not consume the touch. */
     public static void press(View v) {
         v.setOnTouchListener((view, e) -> {
             switch (e.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN: view.animate().scaleX(0.97f).scaleY(0.97f).setDuration(90).setInterpolator(STD).start(); break;
+                case MotionEvent.ACTION_DOWN: view.animate().scaleX(0.97f).scaleY(0.97f).setDuration(100).setInterpolator(STD).start(); break;
                 case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL:
-                    view.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(POP).start(); break;
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(D_MED).setInterpolator(POP).start(); break;
             }
             return false;
         });
     }
+
+    /** Vivid icon tile: the tone's gradient, a white icon and a shadow in the tone's own color. */
+    public static FrameLayout toneTile(Ctx c, Icon.Kind k, Palette.Tone t, float sizeDp, float iconDp, float radiusDp) {
+        FrameLayout f = new FrameLayout(c.a);
+        f.setBackground(gradient(c, t.a, t.b, radiusDp, GradientDrawable.Orientation.TL_BR));
+        f.addView(icon(c, k, Color.WHITE, iconDp), new FrameLayout.LayoutParams(c.dp(iconDp), c.dp(iconDp), Gravity.CENTER));
+        roundOutline(c, f, radiusDp);
+        if (!c.p.dark) softShadow(c, f, 4, t.a);
+        f.setLayoutParams(new ViewGroup.LayoutParams(c.dp(sizeDp), c.dp(sizeDp)));
+        return f;
+    }
+
+    /** Soft icon tile: a pale fill with the icon in the matching deep color. */
+    public static FrameLayout softTile(Ctx c, Icon.Kind k, int bg, int fg, float sizeDp, float iconDp, float radiusDp) {
+        FrameLayout f = new FrameLayout(c.a);
+        f.setBackground(rounded(c, bg, radiusDp));
+        f.addView(icon(c, k, fg, iconDp), new FrameLayout.LayoutParams(c.dp(iconDp), c.dp(iconDp), Gravity.CENTER));
+        f.setLayoutParams(new ViewGroup.LayoutParams(c.dp(sizeDp), c.dp(sizeDp)));
+        return f;
+    }
+
+    /** Thin hairline between rows of a card. */
+    public static View divider(Ctx c, int insetStartDp) {
+        View v = new View(c.a);
+        v.setBackgroundColor(c.p.line);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, Math.max(1, c.dp(0.75f)));
+        lp.setMarginStart(c.dp(insetStartDp));
+        v.setLayoutParams(lp);
+        return v;
+    }
+
+    /** Short message at the bottom of the page, in the app's style (replaces system toasts). */
+    public static void toast(Ctx c, CharSequence msg) { Snack.show(c, msg, false); }
+
+    /** Like {@link #toast} but stays a little longer (errors, longer sentences). */
+    public static void toastLong(Ctx c, CharSequence msg) { Snack.show(c, msg, true); }
 
     public static void haptic(View v, int kind) { v.performHapticFeedback(kind); }
 
@@ -111,8 +184,15 @@ public final class Ui {
 
     /** Fade + rise entrance, used with a small per-item delay for staggered lists. */
     public static void appear(View v, long delayMs) {
-        v.setAlpha(0f); v.setTranslationY(v.getResources().getDisplayMetrics().density * 22);
-        v.animate().alpha(1f).translationY(0).setStartDelay(delayMs).setDuration(420).setInterpolator(EMPH).start();
+        if (!motion()) { v.animate().cancel(); v.setAlpha(1f); v.setTranslationY(0); return; }
+        v.setAlpha(0f); v.setTranslationY(v.getResources().getDisplayMetrics().density * 14);
+        v.animate().alpha(1f).translationY(0).setStartDelay(delayMs).setDuration(D_SLOW).setInterpolator(EMPH).start();
+    }
+
+    /** Staggered {@link #appear} over a list of views, the delay capped so long lists do not trail. */
+    public static void stagger(java.util.List<? extends View> views, long startMs) {
+        long d = startMs; int i = 0;
+        for (View v : views) { appear(v, d); if (++i < 8) d += STAGGER; }
     }
 
     /** Cross-fades a label's text with a tiny vertical slide. */
@@ -121,14 +201,14 @@ public final class Ui {
         float d = t.getResources().getDisplayMetrics().density * 5;
         t.animate().alpha(0f).translationY(-d).setDuration(90).withEndAction(() -> {
             t.setText(s); t.setTranslationY(d);
-            t.animate().alpha(1f).translationY(0).setDuration(160).setInterpolator(STD).start();
+            t.animate().alpha(1f).translationY(0).setDuration(D_FAST).setInterpolator(STD).start();
         }).start();
     }
 
     /** Uppercase section label above a card or list. */
     public static TextView label(Ctx c, String s) {
-        TextView t = text(c, s, 12, c.p.muted, 600);
-        t.setLetterSpacing(0.1f);
+        TextView t = text(c, s, T_CAP, c.p.muted, 700);
+        t.setLetterSpacing(0.12f);
         return t;
     }
 
@@ -137,7 +217,7 @@ public final class Ui {
         LinearLayout l = new LinearLayout(c.a);
         l.setOrientation(LinearLayout.VERTICAL);
         l.setPadding(c.dp(padDp), c.dp(padDp), c.dp(padDp), c.dp(padDp));
-        surface(c, l, fill, 22, fill == c.p.surface);
+        surface(c, l, fill, R_CARD, fill == c.p.surface);
         return l;
     }
 
@@ -147,10 +227,24 @@ public final class Ui {
         e.setInputType(inputType);
         e.setSingleLine(true); e.setHint(hint);
         e.setTextColor(c.p.ink); e.setHintTextColor(c.p.muted); e.setTextSize(15);
-        e.setBackground(rounded(c, c.p.surface2, 14));
+        e.setBackground(inputBg(c));
         e.setPadding(c.dp(14), c.dp(14), c.dp(14), c.dp(14));
         e.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        e.setTypeface(Typeface.DEFAULT);   // password fields would otherwise switch to monospace
+        int v = inputType & android.text.InputType.TYPE_MASK_VARIATION;
+        if ((inputType & android.text.InputType.TYPE_MASK_CLASS) == android.text.InputType.TYPE_CLASS_TEXT
+                && (v == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD || v == android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD))
+            e.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());   // setSingleLine replaced the masking
         return e;
+    }
+
+    /** Input background: soft fill, accent outline while focused. */
+    public static Drawable inputBg(Ctx c) {
+        StateListDrawable d = new StateListDrawable();
+        d.addState(new int[]{android.R.attr.state_focused}, outlined(c, c.p.surface2, c.p.primary, R_INPUT));
+        d.addState(new int[0], rounded(c, c.p.surface2, R_INPUT));
+        d.setEnterFadeDuration(D_FAST); d.setExitFadeDuration(D_FAST);
+        return d;
     }
 
     /** Two equal-width views side by side with the standard gap. */
@@ -168,18 +262,15 @@ public final class Ui {
         LinearLayout row = new LinearLayout(c.a);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(c.dp(14), 0, c.dp(16), 0);
-        surface(c, row, p.surface, 22, true);
+        surface(c, row, p.surface, 20, true);
         row.setClickable(true);
-        FrameLayout badge = new FrameLayout(c.a);
-        badge.setBackground(rounded(c, p.softBg(idx), 14));
-        badge.addView(icon(c, icon, p.softFg(idx), 22), new FrameLayout.LayoutParams(c.dp(22), c.dp(22), Gravity.CENTER));
-        row.addView(badge, new LinearLayout.LayoutParams(c.dp(46), c.dp(46)));
+        row.addView(toneTile(c, icon, p.tone(idx), 46, 22, R_TILE), new LinearLayout.LayoutParams(c.dp(46), c.dp(46)));
         LinearLayout txt = new LinearLayout(c.a);
         txt.setOrientation(LinearLayout.VERTICAL);
-        TextView name = text(c, title, 16, p.ink, 600);
+        TextView name = text(c, title, 16, p.ink, 700);
         name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         txt.addView(name);
-        TextView sub = text(c, subtitle, 13, p.muted, 400);
+        TextView sub = text(c, subtitle, T_SUB, p.muted, 400);
         sub.setSingleLine(true); sub.setEllipsize(android.text.TextUtils.TruncateAt.END);
         txt.addView(sub, lp(-1, -2, 0, c.dp(3), 0, 0));
         LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
@@ -208,11 +299,14 @@ public final class Ui {
         LinearLayout l = new LinearLayout(c.a);
         l.setOrientation(LinearLayout.VERTICAL); l.setGravity(Gravity.CENTER);
         l.setPadding(c.dp(28), c.dp(24), c.dp(28), c.dp(48));
-        FrameLayout badge = new FrameLayout(c.a);
-        badge.setBackground(rounded(c, c.p.primarySoft, 22));
-        badge.addView(icon(c, icon, c.p.onPrimarySoft, 30), new FrameLayout.LayoutParams(c.dp(30), c.dp(30), Gravity.CENTER));
-        l.addView(badge, new LinearLayout.LayoutParams(c.dp(68), c.dp(68)));
-        TextView t = text(c, title, 18, c.p.ink, 600); t.setGravity(Gravity.CENTER);
+        FrameLayout halo = new FrameLayout(c.a);
+        halo.setBackground(oval(c.p.dark ? Palette.mix(c.p.bg, c.p.primarySoft, 0.55f) : c.p.primarySoft));
+        FrameLayout badge = softTile(c, icon, c.p.surface, c.p.primary, 64, 30, 22);
+        if (!c.p.dark) { roundOutline(c, badge, 22); softShadow(c, badge, 4, c.p.shadow); }
+        else badge.setBackground(outlined(c, c.p.surface, c.p.line, 22));
+        halo.addView(badge, new FrameLayout.LayoutParams(c.dp(64), c.dp(64), Gravity.CENTER));
+        l.addView(halo, new LinearLayout.LayoutParams(c.dp(104), c.dp(104)));
+        TextView t = text(c, title, 19, c.p.ink, 700); t.setGravity(Gravity.CENTER);
         l.addView(t, lp(-2, -2, 0, c.dp(18), 0, 0));
         if (body != null && !body.isEmpty()) {
             TextView b = text(c, body, 14, c.p.muted, 400); b.setGravity(Gravity.CENTER); b.setLineSpacing(0, 1.25f);
@@ -269,7 +363,7 @@ public final class Ui {
             item.addView(t, new LinearLayout.LayoutParams(-2, -2));
             item.setClickable(true);
             item.setContentDescription(labels[i] + (on ? ", seçili" : ""));
-            if (on) item.setBackground(rounded(c, c.p.primary, 12));
+            if (on) { item.setBackground(rounded(c, c.p.primary, 12)); roundOutline(c, item, 12); if (!c.p.dark) softShadow(c, item, 2, c.p.primary); }
             else {
                 final int idx = i;
                 item.setOnClickListener(v -> { haptic(v, HapticFeedbackConstants.CLOCK_TICK); onPick.accept(idx); });
@@ -287,7 +381,7 @@ public final class Ui {
         if (!"Kopyalandı".contentEquals(before)) btn.setTag(before);
         btn.setText("Kopyalandı");
         style(c, btn, st, Icon.Kind.CHECK);
-        btn.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).withEndAction(() -> btn.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(POP).start()).start();
+        btn.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).withEndAction(() -> btn.animate().scaleX(1f).scaleY(1f).setDuration(D_MED).setInterpolator(POP).start()).start();
         c.ui.postDelayed(() -> {
             if (btn.isAttachedToWindow() && "Kopyalandı".contentEquals(btn.getText())) {
                 Object t = btn.getTag();
@@ -295,6 +389,10 @@ public final class Ui {
                 style(c, btn, st, Icon.Kind.COPY);
             }
         }, 1600);
+    }
+
+    public static GradientDrawable oval(int color) {
+        GradientDrawable d = new GradientDrawable(); d.setShape(GradientDrawable.OVAL); d.setColor(color); return d;
     }
 
     public static LinearLayout.LayoutParams lp(int w, int h) { return new LinearLayout.LayoutParams(w, h); }

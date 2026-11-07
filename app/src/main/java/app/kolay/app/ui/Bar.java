@@ -17,7 +17,7 @@ public final class Bar extends View {
     public void set(float v) {
         target = Math.max(0, Math.min(1, v));
         if (anim != null) anim.cancel();
-        anim = ValueAnimator.ofFloat(shown, target); anim.setDuration(600); anim.setInterpolator(Ui.STD);
+        anim = ValueAnimator.ofFloat(shown, target); anim.setDuration(Ui.D_SLOW); anim.setInterpolator(Ui.STD);
         anim.addUpdateListener(a -> { shown = (float) a.getAnimatedValue(); invalidate(); });
         anim.start();
     }

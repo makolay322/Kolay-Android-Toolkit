@@ -108,7 +108,7 @@ final class VerdictScreen extends Screen {
 
     @Override public void onShown() {
         long d = 0;
-        for (View v : parts) if (v != null) { Ui.appear(v, d); d += 70; }
+        for (View v : parts) if (v != null) { Ui.appear(v, d); d += Ui.STAGGER * 2; }
         if (verdict != null) Ui.haptic(parts[0], HapticFeedbackConstants.CONFIRM);
     }
 

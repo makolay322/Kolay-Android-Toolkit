@@ -61,8 +61,7 @@ public final class DocsScreen extends Screen {
     }
 
     @Override public void onShown() {
-        long d = 40;
-        for (View v : rows) { Ui.appear(v, d); d += 55; }
+        Ui.stagger(rows, 0);
         if (shared != null) { shared = null; c.nav.push(new PagesScreen(s, true)); }
     }
 
@@ -78,7 +77,7 @@ public final class DocsScreen extends Screen {
 
     private void gallery() {
         try { c.a.startActivityForResult(PhotoPick.intent(true), REQ_GALLERY); }
-        catch (ActivityNotFoundException e) { Toast.makeText(c.a, "Galeri açılamadı", Toast.LENGTH_SHORT).show(); }
+        catch (ActivityNotFoundException e) { Ui.toast(c, "Galeri açılamadı"); }
     }
 
     @Override public void onActivityResult(int req, int result, Intent data) {
@@ -92,7 +91,7 @@ public final class DocsScreen extends Screen {
     private void back() {
         if (s.count() > 0 && SystemClock.uptimeMillis() - backArmedAt > 3000) {
             backArmedAt = SystemClock.uptimeMillis();
-            Toast.makeText(c.a, s.count() + " sayfa silinecek. Çıkmak için tekrar geri dokun.", Toast.LENGTH_SHORT).show();
+            Ui.toast(c, s.count() + " sayfa silinecek. Çıkmak için tekrar geri dokun.");
             return;
         }
         c.nav.pop();

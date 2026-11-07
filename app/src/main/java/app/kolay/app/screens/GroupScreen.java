@@ -11,9 +11,10 @@ import java.util.List;
 final class GroupScreen extends Screen {
     private final String title, subtitle;
     private final Tool[] tools;
+    private final int tone;   // Palette.tone index of the group's home card; rows continue from it
     private final List<View> rows = new ArrayList<>();
 
-    GroupScreen(String title, String subtitle, Tool[] tools) { this.title = title; this.subtitle = subtitle; this.tools = tools; }
+    GroupScreen(String title, String subtitle, Tool[] tools, int tone) { this.title = title; this.subtitle = subtitle; this.tools = tools; this.tone = tone; }
 
     @Override public View create() {
         LinearLayout page = new LinearLayout(c.a);
@@ -24,10 +25,10 @@ final class GroupScreen extends Screen {
         col.setPadding(c.dp(Ui.GUTTER), c.dp(4), c.dp(Ui.GUTTER), c.dp(24));
         for (int i = 0; i < tools.length; i++) {
             Tool t = tools[i];
-            View row = Ui.navRow(c, t.icon(), t.title(), t.subtitle(), i, () -> c.nav.push(t.open(c)));
+            View row = Ui.navRow(c, t.icon(), t.title(), t.subtitle(), tone + i, () -> c.nav.push(t.open(c)));
             row.setAlpha(0f);
             rows.add(row);
-            col.addView(row, Ui.lp(-1, c.dp(76), 0, 0, 0, c.dp(12)));
+            col.addView(row, Ui.lp(-1, c.dp(78), 0, 0, 0, c.dp(12)));
         }
         ScrollView sv = new ScrollView(c.a);
         sv.setVerticalScrollBarEnabled(false);
@@ -37,7 +38,6 @@ final class GroupScreen extends Screen {
     }
 
     @Override public void onShown() {
-        long d = 40;
-        for (View v : rows) { Ui.appear(v, d); d += 55; }
+        Ui.stagger(rows, 0);
     }
 }

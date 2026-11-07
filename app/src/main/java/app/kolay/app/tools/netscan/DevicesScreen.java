@@ -166,7 +166,7 @@ public final class DevicesScreen extends Screen {
 
     private void manual() {
         Device d = Device.manual(input.getText().toString());
-        if (d == null) { Toast.makeText(c.a, "Geçerli bir adres gir (ör. 192.168.1.20)", Toast.LENGTH_SHORT).show(); return; }
+        if (d == null) { Ui.toast(c, "Geçerli bir adres gir (ör. 192.168.1.20)"); return; }
         InputMethodManager im = (InputMethodManager) c.a.getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
         if (im != null) im.hideSoftInputFromWindow(input.getWindowToken(), 0);
         store.addHost(d.spec());

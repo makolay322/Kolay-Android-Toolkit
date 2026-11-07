@@ -21,5 +21,14 @@ public abstract class Screen {
     public void onActivityResult(int req, int result, android.content.Intent data) {}
     /** @return true if consumed (e.g. cancelled something) instead of leaving the screen. */
     public boolean onBack() { return false; }
+    /**
+     * True: the page draws under the status and navigation bars (e.g. a hero gradient) and pads itself from {@code c.insets}
+     * in {@link #onInsets()}. False (default): {@link Nav} keeps the page inside the bars and above the keyboard.
+     */
+    public boolean edgeToEdge() { return false; }
+    /** Insets changed (bars, keyboard); only called for {@link #edgeToEdge()} pages, also once after {@link #create()}. */
+    public void onInsets() {}
+    /** Dark status bar icons while this page is on top; default: dark in the light theme. */
+    public boolean darkStatusIcons() { return !c.p.dark; }
     public void onDestroy() {}
 }

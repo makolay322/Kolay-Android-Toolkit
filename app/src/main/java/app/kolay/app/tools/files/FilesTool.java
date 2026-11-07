@@ -12,4 +12,6 @@ public final class FilesTool implements Tool {
     @Override public String subtitle() { return "Klasörler · kopyala · taşı · ZIP"; }
     @Override public Icon.Kind icon() { return Icon.Kind.FOLDER; }
     @Override public Screen open(Ctx c) { return new FilesScreen(); }
+    /** "8,9 GB": the same size format as the file manager (the home card shows the free space with it). */
+    public static String size(long bytes) { return Files.size(bytes); }
 }

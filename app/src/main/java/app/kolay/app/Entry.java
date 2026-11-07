@@ -22,15 +22,19 @@ public final class Entry {
         c = new Ctx(host, p);
         android.app.Activity a = c.a;
 
-        a.getWindow().setStatusBarColor(p.bg);
-        a.getWindow().setNavigationBarColor(p.bg);
-        int flags = View.SYSTEM_UI_FLAG_VISIBLE;
+        // Edge-to-edge: transparent bars, the pages are padded by the insets in Nav (the home hero draws under the status bar).
+        android.view.Window w = a.getWindow();
+        w.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        w.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        w.setStatusBarContrastEnforced(false);
+        w.setNavigationBarContrastEnforced(false);
+        if (android.os.Build.VERSION.SDK_INT >= 30) w.setDecorFitsSystemWindows(false);
+        int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
         if (!p.dark) flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-        a.getWindow().getDecorView().setSystemUiVisibility(flags);
+        w.getDecorView().setSystemUiVisibility(flags);
 
         FrameLayout root = new FrameLayout(a);
         root.setBackgroundColor(p.bg);
-        root.setFitsSystemWindows(true);
         a.setContentView(root);
 
         new Nav(c, root).push(new HomeScreen());

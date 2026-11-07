@@ -260,10 +260,10 @@ final class QrMakeScreen extends Screen {
             final Uri u = out; final String e = err;
             c.ui.post(() -> {
                 if (destroyed) return;
-                if (u == null) { Toast.makeText(c.a, e, Toast.LENGTH_SHORT).show(); return; }
+                if (u == null) { Ui.toast(c, e); return; }
                 if (doShare) c.a.startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("image/png")
                     .putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), null));
-                else Toast.makeText(c.a, "Pictures/Kolay klasörüne kaydedildi", Toast.LENGTH_SHORT).show();
+                else Ui.toast(c, "Pictures/Kolay klasörüne kaydedildi");
             });
         });
     }

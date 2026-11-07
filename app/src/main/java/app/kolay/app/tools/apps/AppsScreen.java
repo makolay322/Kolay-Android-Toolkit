@@ -269,7 +269,7 @@ final class AppsScreen extends Screen {
     private void runAll() {
         boolean any = false;
         for (Item it : items) if (tracked(it.app.pkg)) { queue.add(new Job(it, true)); any = true; }
-        if (!any) { Toast.makeText(c.a, "Takip edilen uygulama yok", Toast.LENGTH_SHORT).show(); return; }
+        if (!any) { Ui.toast(c, "Takip edilen uygulama yok"); return; }
         for (Job j : queue) status(j.it, "Sırada", c.p.muted, null, null);
         setRunning(true);
         next();

@@ -21,6 +21,7 @@ import android.widget.TextView;
 import app.kolay.app.ui.Header;
 import app.kolay.app.ui.Icon;
 import app.kolay.app.ui.Screen;
+import app.kolay.app.ui.Sheet;
 import app.kolay.app.ui.Ui;
 import java.io.IOException;
 import java.text.Collator;
@@ -54,6 +55,7 @@ final class BrowserScreen extends Screen {
     private final LinkedHashSet<String> sel = new LinkedHashSet<>();
     private final Map<String, Integer> scroll = new HashMap<>();
     private int gen;
+    private boolean loading;   // a listing is running (the delayed "Yükleniyor…" state only shows while it is)
     private Integer jumpTo = 0;   // list position to show after the next load (new folder); null keeps the current scroll
     private String error;
 
@@ -208,6 +210,9 @@ final class BrowserScreen extends Screen {
             row.addView(action(Icon.Kind.CUT, "Taşı", () -> toClip(true)), new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(action(Icon.Kind.SHARE, "Paylaş", () -> { if (local()) Files.share(c, selected()); else Files.toast(c, "Ağdaki dosyalar doğrudan paylaşılamaz; önce telefona kopyala"); }), new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(action(Icon.Kind.TRASH, "Sil", this::askDelete), new LinearLayout.LayoutParams(0, -2, 1));
+            row.setPadding(c.dp(6), c.dp(4), c.dp(6), c.dp(4));
+            Ui.surface(c, row, c.p.surface, 22, true);   // floating action bar over the list
+            row.setClickable(false);
             bottom.addView(row);
             bottom.setVisibility(View.VISIBLE);
         } else if (!Files.clip.isEmpty() && dirMode() && !atServerRoot()) {
@@ -227,8 +232,8 @@ final class BrowserScreen extends Screen {
         b.setOrientation(LinearLayout.VERTICAL);
         b.setGravity(Gravity.CENTER);
         b.setPadding(0, c.dp(8), 0, c.dp(6));
-        b.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(c.p.ripple), null, Ui.rounded(c, 0xFFFFFFFF, 14)));
-        b.addView(Ui.icon(c, k, c.p.ink, 22));
+        b.setBackground(Ui.ripple(c, 14));
+        b.addView(Ui.icon(c, k, c.p.primary, 22));
         b.addView(Ui.text(c, label, 12, c.p.ink, 500), Ui.lp(-2, -2, 0, c.dp(4), 0, 0));
         b.setClickable(true);
         b.setContentDescription(label);
@@ -258,7 +263,8 @@ final class BrowserScreen extends Screen {
     private void load() {
         int g = ++gen;
         String p = path;
-        c.ui.postDelayed(() -> { if (g == gen && items.isEmpty()) showState(Ui.busy(c, "Yükleniyor…", null)); }, 250);
+        loading = true;
+        c.ui.postDelayed(() -> { if (g == gen && loading && items.isEmpty()) showState(Ui.busy(c, "Yükleniyor…", null)); }, 250);
         c.io.execute(() -> {
             List<FileItem> got; String err = null;
             try { got = dirMode() ? src.list(p) : loader.apply(c.a); }
@@ -266,6 +272,7 @@ final class BrowserScreen extends Screen {
             List<FileItem> fg = got; String fe = err;
             c.ui.post(() -> {
                 if (g != gen) return;
+                loading = false;
                 items = fg; error = fe;
                 apply();
                 if (jumpTo != null) { list.setSelection(jumpTo); jumpTo = null; }
@@ -724,7 +731,7 @@ final class BrowserScreen extends Screen {
             this.grid = grid;
             setOrientation(grid ? VERTICAL : HORIZONTAL);
             setGravity(grid ? Gravity.CENTER_HORIZONTAL : Gravity.CENTER_VERTICAL);
-            setPadding(c.dp(grid ? 6 : 10), c.dp(grid ? 8 : 8), c.dp(grid ? 6 : 10), c.dp(8));
+            setPadding(c.dp(grid ? 6 : 10), c.dp(grid ? 8 : 9), c.dp(grid ? 6 : 10), c.dp(grid ? 8 : 9));
             badge = new FrameLayout(c.a);
             icon = new ImageView(c.a);
             thumb = new ImageView(c.a);
@@ -737,7 +744,7 @@ final class BrowserScreen extends Screen {
             addView(badge, new LayoutParams(c.dp(s), c.dp(s)));
             LinearLayout txt = new LinearLayout(c.a);
             txt.setOrientation(VERTICAL);
-            name = Ui.text(c, "", grid ? 13 : 15, c.p.ink, 500);
+            name = Ui.text(c, "", grid ? 13 : 15, c.p.ink, 600);
             name.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
             if (grid) { name.setMaxLines(2); name.setGravity(Gravity.CENTER); } else name.setSingleLine(true);
             txt.addView(name, new LayoutParams(-1, -2));
@@ -752,9 +759,10 @@ final class BrowserScreen extends Screen {
 
         void bind(FileItem it) {
             boolean on = sel.contains(it.path);
-            setBackground(on ? Ui.rounded(c, c.p.primarySoft, 16) : null);
-            badge.setBackground(Ui.rounded(c, it.dir ? c.p.softBg(0) : c.p.surface2, grid ? 18 : 12));
-            icon.setImageDrawable(new Icon(on ? Icon.Kind.CHECK : Files.icon(it), it.dir ? c.p.softFg(0) : c.p.muted));
+            setBackground(on ? Ui.rounded(c, c.p.primarySoft, 16) : Ui.ripple(c, 16));
+            app.kolay.app.ui.Palette.Tone t = Files.tone(c.p, it);
+            badge.setBackground(on ? Ui.rounded(c, c.p.primary, grid ? 18 : 14) : Ui.rounded(c, t != null ? t.soft : c.p.surface2, grid ? 18 : 14));
+            icon.setImageDrawable(new Icon(on ? Icon.Kind.CHECK : Files.icon(it), on ? c.p.onPrimary : t != null ? t.onSoft : c.p.muted));
             icon.setVisibility(VISIBLE);
             name.setText(it.name);
             name.setAlpha(it.hidden() ? 0.6f : 1f);

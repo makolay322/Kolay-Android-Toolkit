@@ -13,6 +13,7 @@ import android.widget.TextView;
 import app.kolay.app.ui.Header;
 import app.kolay.app.ui.Icon;
 import app.kolay.app.ui.Screen;
+import app.kolay.app.ui.Sheet;
 import app.kolay.app.ui.Ui;
 import java.io.File;
 import java.util.List;
@@ -71,12 +72,12 @@ final class FilesScreen extends Screen {
         docs.append(")");
         String apk = MediaStore.MediaColumns.MIME_TYPE + "='application/vnd.android.package-archive' OR " + MediaStore.MediaColumns.DISPLAY_NAME + " LIKE '%.apk'";
         View[] tiles = {
-            tile("Görseller", Icon.Kind.IMAGE, 0, () -> category("Görseller", img, null)),
-            tile("Videolar", Icon.Kind.PLAY, 1, () -> category("Videolar", vid, null)),
-            tile("Sesler", Icon.Kind.MUSIC, 2, () -> category("Sesler", aud, null)),
-            tile("Belgeler", Icon.Kind.DOC, 0, () -> category("Belgeler", docs.toString(), Files.DOC_MIMES)),
-            tile("İndirilenler", Icon.Kind.DOWNLOAD, 1, () -> c.nav.push(new BrowserScreen(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()))),
-            tile("APK'lar", Icon.Kind.APPS, 2, () -> category("APK'lar", apk, null)),
+            tile("Görseller", Icon.Kind.IMAGE, c.p.rose, () -> category("Görseller", img, null)),
+            tile("Videolar", Icon.Kind.PLAY, c.p.red, () -> category("Videolar", vid, null)),
+            tile("Sesler", Icon.Kind.MUSIC, c.p.amber, () -> category("Sesler", aud, null)),
+            tile("Belgeler", Icon.Kind.DOC, c.p.sky, () -> category("Belgeler", docs.toString(), Files.DOC_MIMES)),
+            tile("İndirilenler", Icon.Kind.DOWNLOAD, c.p.green, () -> c.nav.push(new BrowserScreen(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()))),
+            tile("APK'lar", Icon.Kind.APPS, c.p.teal, () -> category("APK'lar", apk, null)),
         };
         for (int i = 0; i < tiles.length; i += 3) {
             LinearLayout row = new LinearLayout(c.a);
@@ -114,13 +115,10 @@ final class FilesScreen extends Screen {
         card.setClickable(true);
         LinearLayout top = new LinearLayout(c.a);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout badge = new FrameLayout(c.a);
-        badge.setBackground(Ui.rounded(c, c.p.softBg(0), 14));
-        badge.addView(Ui.icon(c, Icon.Kind.FOLDER, c.p.softFg(0), 22), new FrameLayout.LayoutParams(c.dp(22), c.dp(22), Gravity.CENTER));
-        top.addView(badge, new LinearLayout.LayoutParams(c.dp(46), c.dp(46)));
+        top.addView(Ui.toneTile(c, Icon.Kind.FOLDER, c.p.sky, 46, 22, Ui.R_TILE), new LinearLayout.LayoutParams(c.dp(46), c.dp(46)));
         LinearLayout txt = new LinearLayout(c.a);
         txt.setOrientation(LinearLayout.VERTICAL);
-        txt.addView(Ui.text(c, v.label, 16, c.p.ink, 600));
+        txt.addView(Ui.text(c, v.label, 16, c.p.ink, 700));
         long used = v.total - v.free;
         txt.addView(Ui.text(c, Files.size(used) + " / " + Files.size(v.total) + " kullanılıyor · " + Files.size(v.free) + " boş", 13, c.p.muted, 400), Ui.lp(-2, -2, 0, c.dp(3), 0, 0));
         LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
@@ -132,7 +130,7 @@ final class FilesScreen extends Screen {
         track.setBackground(Ui.rounded(c, c.p.surface2, 4));
         View fill = new View(c.a);
         float frac = v.total > 0 ? used / (float) v.total : 0;
-        fill.setBackground(Ui.rounded(c, frac > 0.9f ? c.p.danger : c.p.primary, 4));
+        fill.setBackground(frac > 0.9f ? Ui.rounded(c, c.p.danger, 4) : Ui.gradient(c, c.p.sky.a, c.p.sky.b, 4, android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT));
         fill.setPivotX(0); fill.setScaleX(frac);
         track.addView(fill, new FrameLayout.LayoutParams(-1, -1));
         card.addView(track, Ui.lp(-1, c.dp(8), 0, c.dp(14), 0, 0));
@@ -142,17 +140,14 @@ final class FilesScreen extends Screen {
         return card;
     }
 
-    private View tile(String title, Icon.Kind icon, int idx, Runnable open) {
+    private View tile(String title, Icon.Kind icon, app.kolay.app.ui.Palette.Tone tone, Runnable open) {
         LinearLayout t = new LinearLayout(c.a);
         t.setOrientation(LinearLayout.VERTICAL);
         t.setGravity(Gravity.CENTER_HORIZONTAL);
         t.setPadding(c.dp(8), c.dp(14), c.dp(8), c.dp(12));
-        Ui.surface(c, t, c.p.surface, 22, true);
+        Ui.surface(c, t, c.p.surface, 20, true);
         t.setClickable(true);
-        FrameLayout badge = new FrameLayout(c.a);
-        badge.setBackground(Ui.rounded(c, c.p.softBg(idx), 14));
-        badge.addView(Ui.icon(c, icon, c.p.softFg(idx), 22), new FrameLayout.LayoutParams(c.dp(22), c.dp(22), Gravity.CENTER));
-        t.addView(badge, new LinearLayout.LayoutParams(c.dp(44), c.dp(44)));
+        t.addView(Ui.toneTile(c, icon, tone, 44, 22, Ui.R_TILE), new LinearLayout.LayoutParams(c.dp(44), c.dp(44)));
         TextView name = Ui.text(c, title, 13, c.p.ink, 600);
         name.setSingleLine(true); name.setEllipsize(android.text.TextUtils.TruncateAt.END);
         t.addView(name, Ui.lp(-2, -2, 0, c.dp(8), 0, 0));
@@ -191,11 +186,12 @@ final class FilesScreen extends Screen {
         LinearLayout r = new LinearLayout(c.a);
         r.setGravity(Gravity.CENTER_VERTICAL);
         r.setPadding(c.dp(10), 0, c.dp(10), 0);
-        r.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(c.p.ripple), null, Ui.rounded(c, 0xFFFFFFFF, 16)));
+        r.setBackground(Ui.ripple(c, 16));
         FrameLayout badge = new FrameLayout(c.a);
-        badge.setBackground(Ui.rounded(c, c.p.surface2, 12));
+        app.kolay.app.ui.Palette.Tone tn = Files.tone(c.p, it);
+        badge.setBackground(Ui.rounded(c, tn != null ? tn.soft : c.p.surface2, 12));
         badge.setClipToOutline(true);
-        android.widget.ImageView ic = Ui.icon(c, Files.icon(it), c.p.muted, 20);
+        android.widget.ImageView ic = Ui.icon(c, Files.icon(it), tn != null ? tn.onSoft : c.p.muted, 20);
         badge.addView(ic, new FrameLayout.LayoutParams(c.dp(20), c.dp(20), Gravity.CENTER));
         android.widget.ImageView th = new android.widget.ImageView(c.a);
         th.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);

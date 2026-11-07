@@ -93,7 +93,7 @@ final class SheetPane extends LinearLayout {
                     setBusy(false);
                     if (full.rowCount() == 0) { message("Bu sayfa boş."); return; }
                     grid.measureColumns(); grid.invalidate();
-                    if (full.truncated) Toast.makeText(c.a, "Çok büyük sayfa: yalnızca ilk kısmı gösteriliyor.", Toast.LENGTH_LONG).show();
+                    if (full.truncated) Ui.toastLong(c, "Çok büyük sayfa: yalnızca ilk kısmı gösteriliyor.");
                     if (grid.getTag() != full) grid.setSheet(full);
                 });
             } catch (Exception | OutOfMemoryError e) {

@@ -134,7 +134,7 @@ final class FridayScreen extends Screen {
             final Uri u = out; final String e = err; final Bitmap target = b;
             c.ui.post(() -> {
                 if (destroyed) return;
-                if (u == null) { Toast.makeText(c.a, e, Toast.LENGTH_SHORT).show(); return; }
+                if (u == null) { Ui.toast(c, e); return; }
                 if (bmp == target) saved = u;     // ignore if the card changed while saving
                 done(u, share, true);
             });
@@ -144,7 +144,7 @@ final class FridayScreen extends Screen {
     private void done(Uri u, boolean share, boolean fresh) {
         if (share) c.a.startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("image/jpeg")
                 .putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), null));
-        else Toast.makeText(c.a, fresh ? "Pictures/Kolay klasörüne kaydedildi" : "Zaten kaydedildi", Toast.LENGTH_SHORT).show();
+        else Ui.toast(c, fresh ? "Pictures/Kolay klasörüne kaydedildi" : "Zaten kaydedildi");
     }
 
     @Override public void onDestroy() {

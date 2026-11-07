@@ -141,7 +141,7 @@ final class ExportScreen extends Screen {
         }
         boolean any = false;
         for (ScanSession.Page pg : s.pages) any |= !pg.broken;
-        if (!any) { Toast.makeText(c.a, "Kaydedilecek okunabilir sayfa yok", Toast.LENGTH_SHORT).show(); return; }
+        if (!any) { Ui.toast(c, "Kaydedilecek okunabilir sayfa yok"); return; }
         String n = clean(name.getText().toString());
         name.setText(n);
         c.a.getSharedPreferences("scan", 0).edit().putBoolean("pdf", pdf).putBoolean("ocr", ocr).apply();
@@ -259,7 +259,7 @@ final class ExportScreen extends Screen {
             if (destroyed) return;
             running = false;
             if (e != null) {
-                if (!e.isEmpty()) Toast.makeText(c.a, "Kaydedilemedi: " + e, Toast.LENGTH_LONG).show();
+                if (!e.isEmpty()) Ui.toastLong(c, "Kaydedilemedi: " + e);
                 c.nav.replace(new ExportScreen(s));   // back to a fresh form
                 return;
             }
@@ -338,7 +338,7 @@ final class ExportScreen extends Screen {
         else i = new Intent(Intent.ACTION_SEND_MULTIPLE).setType("image/jpeg").putParcelableArrayListExtra(Intent.EXTRA_STREAM, new ArrayList<>(outputs));
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try { c.a.startActivity(Intent.createChooser(i, null)); }
-        catch (Exception e) { Toast.makeText(c.a, "Paylaşılamadı", Toast.LENGTH_SHORT).show(); }
+        catch (Exception e) { Ui.toast(c, "Paylaşılamadı"); }
     }
 
     private void copy(TextView btn) {

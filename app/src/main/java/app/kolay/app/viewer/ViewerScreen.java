@@ -1,6 +1,5 @@
 package app.kolay.app.viewer;
 
-import android.app.AlertDialog;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.text.InputType;
@@ -103,7 +102,7 @@ final class ViewerScreen extends Screen {
             fail("Dosya bulunamadı", "Dosya taşınmış, silinmiş ya da artık erişilemiyor olabilir.");
         } catch (Exception | OutOfMemoryError e) {
             if (destroyed) return;
-            if (closer != null) post(() -> Toast.makeText(c.a, "Belgenin bir kısmı okunamadı.", Toast.LENGTH_LONG).show());
+            if (closer != null) post(() -> Ui.toastLong(c, "Belgenin bir kısmı okunamadı."));
             else fail("Belge açılamadı", "Dosya bozuk, parolalı ya da desteklenmeyen bir sürümde olabilir.");
         }
     }
@@ -415,19 +414,9 @@ final class ViewerScreen extends Screen {
 
     /** Small number dialog (1…max). */
     static void askNumber(Ctx c, String title, int max, IntConsumer go) {
-        EditText in = Ui.input(c, "1 – " + max, InputType.TYPE_CLASS_NUMBER);
-        FrameLayout wrap = new FrameLayout(c.a);
-        wrap.setPadding(c.dp(20), c.dp(8), c.dp(20), 0);
-        wrap.addView(in);
-        AlertDialog d = new AlertDialog.Builder(c.a).setTitle(title).setView(wrap)
-            .setPositiveButton("Git", (dlg, w) -> {
-                try {
-                    int n = Integer.parseInt(in.getText().toString().trim());
-                    go.accept(Math.max(1, Math.min(max, n)));
-                } catch (NumberFormatException ignored) {}
-            })
-            .setNegativeButton("Vazgeç", null).create();
-        d.show();
-        in.requestFocus();
+        app.kolay.app.ui.Sheet.input(c, title, "1 – " + max, "", InputType.TYPE_CLASS_NUMBER, "Git", t -> {
+            try { go.accept(Math.max(1, Math.min(max, Integer.parseInt(t)))); return null; }
+            catch (NumberFormatException e) { return "1 ile " + max + " arasında bir sayı yaz"; }
+        });
     }
 }

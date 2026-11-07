@@ -1,5 +1,6 @@
 package app.kolay.app.tools.scan;
 
+import app.kolay.app.ui.Ui;
 import android.graphics.Bitmap;
 import app.kolay.app.doc.Imaging;
 import app.kolay.app.doc.QuadDetector;
@@ -103,7 +104,7 @@ public final class ScanSession {
     /** Gallery or shared pictures: copied into the cache (the read grant may end), then outlined. */
     void addUris(List<android.net.Uri> uris) {
         if (uris.size() > MAX_IMPORT) {
-            android.widget.Toast.makeText(c.a, "En fazla " + MAX_IMPORT + " görüntü alındı, " + (uris.size() - MAX_IMPORT) + " tanesi eklenmedi", android.widget.Toast.LENGTH_LONG).show();
+            Ui.toastLong(c, "En fazla " + MAX_IMPORT + " görüntü alındı, " + (uris.size() - MAX_IMPORT) + " tanesi eklenmedi");
             uris = uris.subList(0, MAX_IMPORT);
         }
         for (android.net.Uri u : uris) {

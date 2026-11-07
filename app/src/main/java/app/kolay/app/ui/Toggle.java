@@ -29,7 +29,7 @@ public final class Toggle extends View {
     public void set(boolean v, boolean animate) {
         checked = v;
         if (!animate) { t = v ? 1 : 0; invalidate(); return; }
-        ValueAnimator a = ValueAnimator.ofFloat(t, v ? 1 : 0); a.setDuration(280); a.setInterpolator(Ui.POP);
+        ValueAnimator a = ValueAnimator.ofFloat(t, v ? 1 : 0); a.setDuration(Ui.D_MED); a.setInterpolator(Ui.POP);
         a.addUpdateListener(x -> { t = (float) x.getAnimatedValue(); invalidate(); });
         a.start();
     }

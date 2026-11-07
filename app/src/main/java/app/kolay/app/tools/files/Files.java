@@ -1,5 +1,6 @@
 package app.kolay.app.tools.files;
 
+import app.kolay.app.ui.Ui;
 import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -14,9 +15,9 @@ import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.Settings;
 import android.webkit.MimeTypeMap;
-import android.widget.Toast;
 import app.kolay.app.ui.Ctx;
 import app.kolay.app.ui.Icon;
+import app.kolay.app.ui.Sheet;
 import app.kolay.app.viewer.Viewer;
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -123,6 +124,22 @@ final class Files {
         if (e.equals("apk")) return Icon.Kind.APPS;
         if (Arrays.asList("zip", "rar", "7z", "tar", "gz").contains(e)) return Icon.Kind.LAYERS;
         return Icon.Kind.DOC;
+    }
+
+    /** Color family of a file type (tile behind its icon), or null for "other" (neutral tile). */
+    static app.kolay.app.ui.Palette.Tone tone(app.kolay.app.ui.Palette p, FileItem it) {
+        if (it.dir) return p.blue;
+        String m = mime(it.name), e = ext(it.name);
+        if (m.startsWith("image/")) return p.rose;
+        if (m.startsWith("video/")) return p.red;
+        if (m.startsWith("audio/")) return p.amber;
+        if (e.equals("apk")) return p.teal;
+        if (Arrays.asList("zip", "rar", "7z", "tar", "gz").contains(e)) return p.violet;
+        if (e.equals("pdf")) return p.red;
+        if (Arrays.asList("xls", "xlsx", "ods", "csv").contains(e)) return p.green;          // office colors: sheets green,
+        if (Arrays.asList("ppt", "pptx", "odp").contains(e)) return p.amber;                // slides orange,
+        if (Arrays.asList("doc", "docx", "odt", "rtf", "txt", "md").contains(e)) return p.sky;  // text blue
+        return null;
     }
 
     static boolean thumbable(FileItem it) {
@@ -275,5 +292,5 @@ final class Files {
         if (!paths.isEmpty()) android.media.MediaScannerConnection.scanFile(c.getApplicationContext(), paths.toArray(new String[0]), null, null);
     }
 
-    static void toast(Ctx c, String s) { Toast.makeText(c.a, s, Toast.LENGTH_SHORT).show(); }
+    static void toast(Ctx c, String s) { Ui.toast(c, s); }
 }

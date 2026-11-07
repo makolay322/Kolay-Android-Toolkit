@@ -149,7 +149,7 @@ public final class TessScreen extends Screen {
                 return;
             }
             r.confirmDelete = false;
-            if (!c.host.tessDelete(r.lang)) Toast.makeText(c.a, "Silinemedi", Toast.LENGTH_SHORT).show();
+            if (!c.host.tessDelete(r.lang)) Ui.toast(c, "Silinemedi");
             Ui.haptic(r.action, HapticFeedbackConstants.CONFIRM);
             refreshAll();
             return;
@@ -187,7 +187,7 @@ public final class TessScreen extends Screen {
                 if (destroyed) return;
                 r.running = false;
                 r.action.setEnabled(true);
-                if (e2 != null && !e2.isEmpty()) Toast.makeText(c.a, "İndirilemedi: " + e2, Toast.LENGTH_LONG).show();
+                if (e2 != null && !e2.isEmpty()) Ui.toastLong(c, "İndirilemedi: " + e2);
                 else if (e2 == null) Ui.haptic(r.action, HapticFeedbackConstants.CONFIRM);
                 refreshAll();
             });

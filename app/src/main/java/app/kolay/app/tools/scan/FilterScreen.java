@@ -137,7 +137,7 @@ final class FilterScreen extends Screen {
                 if (destroyed || out == null) {
                     if (out != null) out.recycle();
                     for (Bitmap t : sm) if (t != null) t.recycle();
-                    if (!destroyed) { Toast.makeText(c.a, "Önizleme hazırlanamadı", Toast.LENGTH_SHORT).show(); c.nav.pop(); }
+                    if (!destroyed) { Ui.toast(c, "Önizleme hazırlanamadı"); c.nav.pop(); }
                     return;
                 }
                 base = out;

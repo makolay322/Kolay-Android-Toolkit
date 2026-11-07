@@ -15,11 +15,12 @@ public final class Header {
     public Header(Ctx c, String title, String sub, Runnable onBack, View trailing) {
         view = new LinearLayout(c.a);
         view.setGravity(Gravity.CENTER_VERTICAL);
-        view.setPadding(c.dp(Ui.GUTTER), c.dp(10), c.dp(Ui.GUTTER), c.dp(12));
+        view.setPadding(c.dp(Ui.GUTTER), c.dp(12), c.dp(Ui.GUTTER), c.dp(14));
         view.addView(Ui.iconButton(c, Icon.Kind.BACK, "Geri", onBack));
         LinearLayout t = new LinearLayout(c.a);
         t.setOrientation(LinearLayout.VERTICAL);
-        TextView tt = Ui.text(c, title, 22, c.p.ink, 700);
+        TextView tt = Ui.text(c, title, Ui.T_TITLE, c.p.ink, 800);
+        tt.setLetterSpacing(-0.01f);
         tt.setSingleLine(true); tt.setEllipsize(android.text.TextUtils.TruncateAt.END);
         t.addView(tt);
         subtitle = Ui.text(c, sub, 13, c.p.muted, 400);

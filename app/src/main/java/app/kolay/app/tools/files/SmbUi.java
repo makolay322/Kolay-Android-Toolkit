@@ -8,6 +8,7 @@ import android.widget.TextView;
 import app.kolay.app.tools.netscan.Lan;
 import app.kolay.app.ui.Ctx;
 import app.kolay.app.ui.Icon;
+import app.kolay.app.ui.Sheet;
 import app.kolay.app.ui.Ui;
 import java.io.IOException;
 import java.util.ArrayList;

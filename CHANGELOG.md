@@ -9,6 +9,16 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti (1.009) — Arayüz yenilendi
+- **Ana sayfa:** durum çubuğunun altına uzanan degrade başlık (selam, tarih, sıradaki namaz vakti ve kalan süre, dokununca Namaz Vakitleri; konum yoksa konum seçme kısayolu; yeni sürüm bildirimi de burada). Grup kartları başlığın alt kenarına biner; her grubun kendi rengi, degrade ikon kutusu ve köşede hafif ışıması var. Dosyalar kartı dahili depolamadaki boş yeri ve doluluk çubuğunu gösterir.
+- **Ortak tasarım sistemi:** sabit kategori renkleri (gruplar ve dosya türleri hep aynı renkte), yazı ölçeği, köşe/süre belirteçleri, açık temada renkli yumuşak gölgeler, odaklanınca vurgu çerçeveli metin alanları. Tüm ekranlar aynı parçaları kullanır.
+- **Kenardan kenara:** şeffaf durum ve gezinme çubukları; sayfalar çubuklar ve klavye kadar içeri itilir.
+- **Dosyalar:** dosya türüne göre renkli ikonlar (görsel, video/PDF, ses, tablo, sunum, metin, arşiv, APK), satırlarda dokunma dalgası, seçimde yüzen işlem çubuğu. Boş sonuçlu bir listenin “Yükleniyor…”da takılı kalması düzeltildi.
+- **Diyaloglar ve mesajlar:** tüm diyaloglar tutamaçlı, aşağıdan yükselen alt sayfa (sayfaya git dahil); sistem “toast”ları yerine sayfanın altında uygulamanın renginde kısa mesaj.
+- **Sohbet:** boş ekran, degrade kendi balonların, yuvarlak giriş alanı. **Namaz Vakitleri:** sıradaki vakit kartı ana sayfayla aynı degradede.
+- **Hareket:** geçişler 150–250 ms'ye kısaltıldı; sistemde animasyonlar kapalıysa hareketler atlanır.
+- Düzeltme: Ayarlar'daki anahtar alanı yazılan anahtarı açık gösteriyordu; artık maskelenir.
+
 ### Eklendi (1.007) — Eski Office dosyaları (.doc / .xls / .ppt)
 - Belge Görüntüleyici artık eski **Word (.doc)**, **Excel (.xls)** ve **PowerPoint (.ppt)** dosyalarını da açar. Okuyucu APK'yı büyütmemek için içinde değil: böyle bir dosya ilk açıldığında boyutu yazan bir ekran çıkar, **İndir**'e basınca bir kerelik eklenti (yaklaşık 1,5 MB) ilerleme çubuğuyla iner (iptal edilebilir) ve dosya hemen açılır.
 - **.doc:** paragraflar, kalın/italik/altı çizili, başlıklar, madde işaretli ve numaralı listeler, tablolar (metin olarak). **.xls:** tüm görünür sayfalar, kayıtlı değerler (formül hesaplanmaz), tarih/sayı/yüzde Türkçe gösterimle. **.ppt:** her slayt için “Slayt N” başlığı altında metin kutuları ve madde işaretleri. Resim ve sayfa düzeni gösterilmez; .ppt içindeki tabloların metni henüz çıkmaz.

@@ -98,7 +98,7 @@ final class YoutubeScreen extends Screen {
     private void start() {
         if (busy) return;
         String id = Transcript.videoId(link.getText().toString());
-        if (id == null) { Toast.makeText(c.a, "Geçerli bir YouTube bağlantısı yapıştır", Toast.LENGTH_SHORT).show(); return; }
+        if (id == null) { Ui.toast(c, "Geçerli bir YouTube bağlantısı yapıştır"); return; }
         busy = true;
         Ui.haptic(go, HapticFeedbackConstants.VIRTUAL_KEY);
         go.setEnabled(false);

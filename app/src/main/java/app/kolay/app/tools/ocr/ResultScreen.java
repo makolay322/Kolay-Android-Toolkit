@@ -90,10 +90,8 @@ final class ResultScreen extends Screen {
     }
 
     @Override public void onShown() {
-        body.setTranslationY(c.dp(20));
-        body.animate().alpha(1f).translationY(0).setDuration(420).setInterpolator(Ui.EMPH).start();
-        bar.setTranslationY(c.dp(40));
-        bar.animate().alpha(1f).translationY(0).setStartDelay(120).setDuration(420).setInterpolator(Ui.EMPH).start();
+        Ui.appear(body, 0);
+        Ui.appear(bar, Ui.STAGGER * 2);
     }
 
     /** Sends the local text out for cleanup (loose prompt in general mode, page order + fixes in medical mode); pressing again shows the local text. */
@@ -115,7 +113,7 @@ final class ResultScreen extends Screen {
                 cleaning = false;
                 if (!clean.isAttachedToWindow()) return;
                 clean.setEnabled(true);
-                if (e != null) { clean.setText(CLEAN_LABEL); android.widget.Toast.makeText(c.a, e, android.widget.Toast.LENGTH_LONG).show(); return; }
+                if (e != null) { clean.setText(CLEAN_LABEL); Ui.toastLong(c, e); return; }
                 cleaned = true; text = r; out.setText(r);
                 clean.setText("Yerel metni göster");
                 Ui.style(c, clean, Ui.Style.TONAL, Icon.Kind.DOC);

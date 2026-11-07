@@ -73,10 +73,13 @@ final class ChatScreen extends Screen {
         input = Ui.input(c, "Bir şey sor veya yapıştır…", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
                 | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         input.setSingleLine(false); input.setMaxLines(6); input.setMinHeight(c.dp(Ui.H_BTN));
-        input.setPadding(c.dp(14), c.dp(13), c.dp(14), c.dp(13));
+        input.setPadding(c.dp(18), c.dp(14), c.dp(18), c.dp(14));
+        input.setBackground(chatInputBg());
         bar.addView(input, new LinearLayout.LayoutParams(0, -2, 1));
         send = new FrameLayout(c.a);
-        send.setBackground(Ui.rounded(c, c.p.primary, 26));
+        send.setBackground(Ui.oval(c.p.primary));
+        Ui.roundOutline(c, send, 26);
+        if (!c.p.dark) Ui.softShadow(c, send, 3, c.p.primary);
         send.addView(Ui.icon(c, Icon.Kind.SEND, c.p.onPrimary, 22), new FrameLayout.LayoutParams(c.dp(22), c.dp(22), Gravity.CENTER));
         send.setContentDescription("Gönder"); send.setClickable(true);
         send.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); submit(); });
@@ -89,12 +92,30 @@ final class ChatScreen extends Screen {
         refreshSend();
     }
 
+    /** Pill-shaped field: soft fill, accent outline while focused. */
+    private android.graphics.drawable.Drawable chatInputBg() {
+        android.graphics.drawable.StateListDrawable d = new android.graphics.drawable.StateListDrawable();
+        d.addState(new int[]{android.R.attr.state_focused}, Ui.outlined(c, c.p.surface, c.p.primary, 26));
+        d.addState(new int[0], c.p.dark ? Ui.outlined(c, c.p.surface, c.p.line, 26) : Ui.rounded(c, c.p.surface, 26));
+        return d;
+    }
+
+    /** Bubble shape: round, with the corner nearest the sender's edge tucked in. */
+    private android.graphics.drawable.GradientDrawable bubbleBg(boolean mine) {
+        float r = c.dp(20), k = c.dp(6);
+        android.graphics.drawable.GradientDrawable d = mine
+            ? new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{c.p.heroA, c.p.heroMid})
+            : new android.graphics.drawable.GradientDrawable();
+        if (!mine) { d.setColor(c.p.surface); if (c.p.dark) d.setStroke(Math.max(1, c.dp(1)), c.p.line); }
+        d.setCornerRadii(mine ? new float[]{r, r, r, r, k, k, r, r} : new float[]{r, r, r, r, r, r, k, k});
+        return d;
+    }
+
     /** Empty-state hint shown until the first message. */
     private View hint() {
-        TextView hint = Ui.text(c, "Bir şey sor ya da bir metni yapıştırıp ne yapılacağını yaz. Konuşma yalnızca bu ekran "
-                + "açıkken tutulur; çıkınca silinir.", 14, c.p.muted, 400);
-        hint.setLineSpacing(0, 1.25f);
-        hint.setLayoutParams(Ui.lp(-1, -2, c.dp(4), c.dp(8), c.dp(4), 0));
+        View hint = Ui.state(c, Icon.Kind.CHAT, "Ne sormak istersin?", "Bir şey sor ya da bir metni yapıştırıp ne yapılacağını yaz. "
+                + "Konuşma yalnızca bu ekran açıkken tutulur; çıkınca silinir.", null, null);
+        hint.setLayoutParams(Ui.lp(-1, -2, 0, c.dp(48), 0, 0));
         return hint;
     }
 
@@ -183,12 +204,13 @@ final class ChatScreen extends Screen {
         LinearLayout row = new LinearLayout(c.a);
         row.setOrientation(LinearLayout.VERTICAL);
         row.setGravity(mine ? Gravity.END : Gravity.START);
-        TextView t = Ui.text(c, text, 15, mine ? c.p.onPrimary : c.p.ink, 400);
+        TextView t = Ui.text(c, text, 15, mine ? c.p.onHero : c.p.ink, 400);
         t.setLineSpacing(0, 1.25f);
         t.setTextIsSelectable(true);
         t.setMaxWidth(Math.round(c.a.getResources().getDisplayMetrics().widthPixels * 0.82f));
         t.setPadding(c.dp(14), c.dp(10), c.dp(14), c.dp(11));
-        t.setBackground(Ui.rounded(c, mine ? c.p.primary : c.p.surface2, 18));
+        t.setBackground(bubbleBg(mine));
+        if (!mine && !c.p.dark) { Ui.roundOutline(c, t, 20); Ui.softShadow(c, t, 1.5f, c.p.shadow); }
         row.addView(t, new LinearLayout.LayoutParams(-2, -2));
         if (!mine) {
             TextView copy = Ui.text(c, "Kopyala", 13, c.p.muted, 600);
@@ -210,7 +232,7 @@ final class ChatScreen extends Screen {
         LinearLayout b = new LinearLayout(c.a);
         b.setGravity(Gravity.CENTER_VERTICAL);
         b.setPadding(c.dp(14), c.dp(11), c.dp(16), c.dp(11));
-        b.setBackground(Ui.rounded(c, c.p.surface2, 18));
+        b.setBackground(bubbleBg(false));
         b.addView(new Arc(c.a, c.p.primarySoft, c.p.primary, c.dp(2.5f)), Ui.lp(c.dp(16), c.dp(16), 0, 0, c.dp(10), 0));
         b.addView(Ui.text(c, "Yazıyor…", 14, c.p.muted, 500));
         LinearLayout row = new LinearLayout(c.a);

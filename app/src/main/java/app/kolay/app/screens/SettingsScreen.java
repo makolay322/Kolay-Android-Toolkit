@@ -75,10 +75,10 @@ public final class SettingsScreen extends Screen {
             pl.addView(row(Icon.Kind.DOC, "Eski Office eklentisi", ".doc · .xls · .ppt · " + app.kolay.app.doc.Langs.mb(c.host.officePluginSize()), null));
             TextView del = Ui.button(c, "Eski Office eklentisini sil", Ui.Style.TONAL, Icon.Kind.TRASH);
             del.setOnClickListener(v -> {
-                if (!c.host.officePluginDelete()) { Toast.makeText(c.a, "Silinemedi", Toast.LENGTH_SHORT).show(); return; }
+                if (!c.host.officePluginDelete()) { Ui.toast(c, "Silinemedi"); return; }
                 app.kolay.app.viewer.LegacyOffice.install(null);
                 Ui.haptic(v, HapticFeedbackConstants.CONFIRM);
-                Toast.makeText(c.a, "Eklenti silindi; gerekirse yeniden indirilir.", Toast.LENGTH_SHORT).show();
+                Ui.toast(c, "Eklenti silindi; gerekirse yeniden indirilir.");
                 v.setEnabled(false); v.setAlpha(0.45f);
             });
             pl.addView(del, Ui.lp(-1, c.dp(Ui.H_GHOST), 0, c.dp(14), 0, 0));
@@ -93,7 +93,7 @@ public final class SettingsScreen extends Screen {
         LinearLayout gh = row(Icon.Kind.LINK, "Sürüm sayfası", "GitHub", Ui.icon(c, Icon.Kind.CHEVRON, p.muted, 18));
         gh.setClickable(true);
         gh.setPadding(0, c.dp(4), 0, c.dp(4));
-        Ui.surface(c, gh, p.surface, 12, false);
+        gh.setBackground(Ui.ripple(c, 12));
         Ui.press(gh);
         gh.setOnClickListener(v -> c.a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(c.host.releasesUrl()))));
         ab.addView(gh);
@@ -112,21 +112,21 @@ public final class SettingsScreen extends Screen {
 
     @Override public void onShown() {
         long d = 0;
-        for (View v : entrance) { Ui.appear(v, d); d += 35; }
+        Ui.stagger(entrance, d);
     }
 
     private String keyLabel() { return c.host.secret(LLM_SECRET).isEmpty() ? "Ayarlanmadı" : "Kayıtlı"; }
 
     private void saveKey() {
         String s = key.getText().toString().trim();
-        if (s.isEmpty()) { Toast.makeText(c.a, "Önce anahtarı yapıştır", Toast.LENGTH_SHORT).show(); return; }
+        if (s.isEmpty()) { Ui.toast(c, "Önce anahtarı yapıştır"); return; }
         try {
             c.host.setSecret(LLM_SECRET, s);
             key.setText("");
             Ui.swapText(keyState, keyLabel());
             Ui.haptic(key, HapticFeedbackConstants.CONFIRM);
-            Toast.makeText(c.a, "Kaydedildi", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) { Toast.makeText(c.a, e.getMessage(), Toast.LENGTH_LONG).show(); }
+            Ui.toast(c, "Kaydedildi");
+        } catch (Exception e) { Ui.toastLong(c, e.getMessage()); }
     }
 
     private void checkNow() {
@@ -172,15 +172,14 @@ public final class SettingsScreen extends Screen {
         LinearLayout l = new LinearLayout(c.a);
         l.setOrientation(LinearLayout.VERTICAL);
         l.setPadding(c.dp(16), c.dp(16), c.dp(16), c.dp(16));
-        Ui.surface(c, l, c.p.surface, 22, true);
+        Ui.surface(c, l, c.p.surface, Ui.R_CARD, true);
         l.setLayoutParams(Ui.lp(-1, -2));
         return l;
     }
 
     private View divider() {
-        View v = new View(c.a);
-        v.setBackgroundColor(c.p.line);
-        v.setLayoutParams(Ui.lp(-1, 1, 0, c.dp(12), 0, c.dp(12)));
+        View v = Ui.divider(c, 54);
+        ((LinearLayout.LayoutParams) v.getLayoutParams()).setMargins(c.dp(54), c.dp(12), 0, c.dp(12));
         return v;
     }
 
@@ -189,14 +188,10 @@ public final class SettingsScreen extends Screen {
     private LinearLayout row(Icon.Kind icon, String title, String sub, View trailing) {
         LinearLayout r = new LinearLayout(c.a);
         r.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout tile = new FrameLayout(c.a);
-        int idx = rows++;
-        tile.setBackground(Ui.rounded(c, c.p.softBg(idx), 12));
-        tile.addView(Ui.icon(c, icon, c.p.softFg(idx), 20), new FrameLayout.LayoutParams(c.dp(20), c.dp(20), Gravity.CENTER));
-        r.addView(tile, new LinearLayout.LayoutParams(c.dp(40), c.dp(40)));
+        r.addView(Ui.toneTile(c, icon, c.p.tone(rows++), 40, 20, 12), new LinearLayout.LayoutParams(c.dp(40), c.dp(40)));
         LinearLayout t = new LinearLayout(c.a);
         t.setOrientation(LinearLayout.VERTICAL);
-        t.addView(Ui.text(c, title, 16, c.p.ink, 600));
+        t.addView(Ui.text(c, title, 16, c.p.ink, 700));
         if (sub != null) t.addView(Ui.text(c, sub, 13, c.p.muted, 400), Ui.lp(-2, -2, 0, c.dp(2), 0, 0));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
         lp.setMarginStart(c.dp(14)); lp.setMarginEnd(c.dp(8));

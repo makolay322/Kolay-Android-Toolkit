@@ -325,7 +325,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
 
     private void shoot(boolean auto) {
         if (shooting || cameraCard.getVisibility() != View.VISIBLE) return;
-        if (!cam.capture(deviceRotation)) { if (!auto) Toast.makeText(c.a, "Kamera hazır değil", Toast.LENGTH_SHORT).show(); return; }
+        if (!cam.capture(deviceRotation)) { if (!auto) Ui.toast(c, "Kamera hazır değil"); return; }
         shooting = true;
         armed = false;
         lastShot = SystemClock.uptimeMillis();
@@ -378,7 +378,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         leaveForChild();
         try { c.a.startActivityForResult(PhotoPick.intent(true), REQ_GALLERY); }
         catch (ActivityNotFoundException e) {
-            Toast.makeText(c.a, "Galeri açılamadı", Toast.LENGTH_SHORT).show();
+            Ui.toast(c, "Galeri açılamadı");
             away = false;
             ensureCamera();
         }

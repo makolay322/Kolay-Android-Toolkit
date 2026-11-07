@@ -117,7 +117,7 @@ public final class PagesScreen extends Screen {
 
     private boolean usable(View v) {
         if (s.pages.isEmpty()) return false;
-        if (!s.allReady()) { Toast.makeText(c.a, "Sayfalar hazırlanıyor, bir an bekle", Toast.LENGTH_SHORT).show(); return false; }
+        if (!s.allReady()) { Ui.toast(c, "Sayfalar hazırlanıyor, bir an bekle"); return false; }
         Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY);
         return true;
     }
