@@ -65,7 +65,7 @@ final class SmbUi {
         View[] cred = {eUser, ePass, eDom};
         sh.toggle("Misafir olarak bağlan", guest[0], v -> { guest[0] = v; for (View x : cred) x.setVisibility(v ? View.GONE : View.VISIBLE); });
         for (View x : cred) x.setVisibility(guest[0] ? View.GONE : View.VISIBLE);
-        TextView msg = Ui.text(c, "Parola telefonda şifreli saklanır. Yalnızca yerel ağdaki sunuculara bağlanılır; SMB 2 ve 3 desteklenir (SMB1 güvensiz olduğu için yok).", 13, c.p.muted, 400);
+        TextView msg = Ui.text(c, "Parola telefonda şifreli saklanır. Yalnızca yerel ağdaki ya da Tailscale'deki sunuculara bağlanılır (Tailscale adresi elle girilir); SMB 2 ve 3 desteklenir (SMB1 güvensiz olduğu için yok).", 13, c.p.muted, 400);
         sh.body.addView(msg, Ui.lp(-1, -2, c.dp(4), c.dp(4), 0, c.dp(4)));
         boolean[] busy = {false}, force = {false};
         sh.actions("Vazgeç", "Kaydet", false, () -> {
@@ -105,7 +105,7 @@ final class SmbUi {
             msg.setText("Bağlanılıyor…");
             c.io.execute(() -> {
                 String res; boolean policy = false;
-                try (SmbSource t = new SmbSource(trial, Lan::isLan)) { res = t.check(); }
+                try (SmbSource t = new SmbSource(trial, Lan::isLanOrTailscale)) { res = t.check(); }
                 catch (SmbSource.Fatal e) { res = e.getMessage(); policy = true; }
                 catch (IOException e) { res = null; String m = e.getMessage(); force[0] = true; c.ui.post(() -> error(c, msg, m + "\nYine de kaydetmek için Kaydet'e tekrar dokun.")); }
                 String fr = res; boolean fp = policy;

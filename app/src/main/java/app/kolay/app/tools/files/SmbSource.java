@@ -48,7 +48,7 @@ import javax.net.SocketFactory;
 /**
  * A Samba / Windows file server (SMB 2.0.2 – 3.1.1, smbj). Paths: "/" lists the shares, "/share/dir/file" is inside one.
  * One connection + session per server, reused by every screen; a dropped or idle connection is re-opened once, transparently.
- * Signing and encryption follow what the server requires; SMB1 is not spoken. Only LAN addresses are dialled: every socket
+ * Signing and encryption follow what the server requires; SMB1 is not spoken. Only LAN and Tailscale addresses are dialled: every socket
  * goes through {@link LanSockets}, which resolves the name once and refuses public addresses (so DFS or a DNS trick cannot
  * point it elsewhere either). Pure Java (no Android types): testable on a desktop JVM. Credentials and file contents are never logged.
  */
@@ -277,7 +277,7 @@ public final class SmbSource implements FileSource, Closeable {
     }
 
     static String notLan(String host) {
-        return "Güvenlik: Samba bağlantısı yalnızca yerel ağdaki (özel adresli) sunuculara yapılır; “" + host + "” genel bir adres.";
+        return "Güvenlik: Samba bağlantısı yalnızca yerel ağdaki (özel adresli) ya da Tailscale'deki sunuculara yapılır; “" + host + "” genel bir adres.";
     }
 
     private interface Op<T> { T run() throws IOException; }
@@ -319,7 +319,7 @@ public final class SmbSource implements FileSource, Closeable {
             if (t instanceof Status) return (Status) t;
             if (t instanceof SMBApiException) return new Status((SMBApiException) t);
             if (t instanceof Fatal) return (Fatal) t;
-            if (t instanceof Lan.NotLan) return new Fatal("Güvenlik: yalnızca yerel ağdaki sunuculara bağlanılır.");
+            if (t instanceof Lan.NotLan) return new Fatal("Güvenlik: yalnızca yerel ağdaki ya da Tailscale'deki sunuculara bağlanılır.");
             if (t instanceof SocketTimeoutException || t instanceof java.util.concurrent.TimeoutException) return new IOException("Sunucu yanıt vermiyor (zaman aşımı)", e);
             if (t instanceof ConnectException || t instanceof NoRouteToHostException) return new IOException("Sunucuya bağlanılamadı (kapalı ya da bu ağda değil)", e);
         }
@@ -394,7 +394,7 @@ public final class SmbSource implements FileSource, Closeable {
 
     // ---------------------------------------------------------------- sockets
 
-    /** Every socket smbj opens: resolved once, LAN addresses only, connect timeout, TCP keep-alive. */
+    /** Every socket smbj opens: resolved once, LAN/Tailscale addresses only, connect timeout, TCP keep-alive. */
     private final class LanSockets extends SocketFactory {
         @Override public Socket createSocket(String host, int port) throws IOException {
             InetAddress a;

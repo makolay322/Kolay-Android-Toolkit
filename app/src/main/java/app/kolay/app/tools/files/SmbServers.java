@@ -75,7 +75,7 @@ final class SmbServers {
     /** The shared source for {@code s} (created on first use). */
     static synchronized SmbSource source(SmbSource.Server s) {
         SmbSource src = OPEN.get(s.id);
-        if (src == null) { src = new SmbSource(s, Lan::isLan); OPEN.put(s.id, src); }
+        if (src == null) { src = new SmbSource(s, Lan::isLanOrTailscale); OPEN.put(s.id, src); }
         return src;
     }
 
