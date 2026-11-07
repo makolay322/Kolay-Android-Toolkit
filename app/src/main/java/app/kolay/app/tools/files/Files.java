@@ -280,6 +280,36 @@ final class Files {
         return out;
     }
 
+    /**
+     * "Büyük dosyalar": the {@code max} biggest files of at least {@code min} bytes under {@code root}, biggest first.
+     * Hidden folders and Android/data, Android/obb are skipped; returns early (what it has so far) once {@code stop} is set.
+     */
+    static List<FileItem> largest(String root, long min, int max, java.util.concurrent.atomic.AtomicBoolean stop) {
+        java.util.PriorityQueue<FileItem> top = new java.util.PriorityQueue<>(max + 1, (a, b) -> Long.compare(a.size, b.size));
+        java.util.ArrayDeque<File> dirs = new java.util.ArrayDeque<>();
+        dirs.push(new File(root));
+        String skipData = new File(root, "Android/data").getPath(), skipObb = new File(root, "Android/obb").getPath();
+        while (!dirs.isEmpty() && !stop.get()) {
+            File[] kids = dirs.pop().listFiles();
+            if (kids == null) continue;
+            for (File f : kids) {
+                if (f.getName().startsWith(".")) continue;
+                if (f.isDirectory()) {
+                    String p = f.getPath();
+                    if (!p.equals(skipData) && !p.equals(skipObb)) dirs.push(f);
+                    continue;
+                }
+                long len = f.length();
+                if (len < min || (top.size() >= max && len <= top.peek().size)) continue;
+                top.add(new FileItem(f.getPath(), false, len, f.lastModified()));
+                if (top.size() > max) top.poll();
+            }
+        }
+        List<FileItem> out = new ArrayList<>(top);
+        out.sort((a, b) -> Long.compare(b.size, a.size));
+        return out;
+    }
+
     /** Tells the media index about changed paths (a missing path drops its stale entry). */
     static void rescan(Context c, List<String> paths) {
         if (!paths.isEmpty()) android.media.MediaScannerConnection.scanFile(c.getApplicationContext(), paths.toArray(new String[0]), null, null);

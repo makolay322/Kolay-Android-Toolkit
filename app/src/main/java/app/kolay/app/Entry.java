@@ -15,6 +15,8 @@ import app.kolay.shell.Host;
 
 /** UI entry point: sets up theme, navigation and the home screen inside {@code MainActivity}, which forwards its lifecycle here. */
 public final class Entry {
+    /** Must match PrayerWidget.ACTION_PRAYER in the shell (widget tap). */
+    static final String ACTION_PRAYER = "app.kolay.action.PRAYER";
     private Ctx c;
 
     public void onCreate(Host host, Bundle saved) {
@@ -44,6 +46,11 @@ public final class Entry {
         if (saved == null && in != null && QrTool.ACTION_QR.equals(in.getAction())) {
             in.setAction(Intent.ACTION_MAIN);
             c.nav.push(new QrTool().open(c));
+        }
+        // Tapped prayer-time widget: the prayer times on top of home.
+        if (saved == null && in != null && ACTION_PRAYER.equals(in.getAction())) {
+            in.setAction(Intent.ACTION_MAIN);
+            c.nav.push(new app.kolay.app.tools.namaz.NamazTool().open(c));
         }
         // Pictures shared via "Metne çevir": straight to text recognition in the documents flow. Only content:// pictures
         // (the share grant), consumed like the others. Checked before text: a picture share may carry a caption too.

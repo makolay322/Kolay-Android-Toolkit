@@ -14,10 +14,14 @@ import java.io.IOException;
 /**
  * Read-only content:// links for "Paylaş" / "Birlikte aç" (a minimal stand-in for AndroidX's FileProvider).
  * Not exported: other apps can read only the single links the app hands them with a read grant. App-private files are never served, except the
- * temporary copies of network files in {@code cache/smb-open/} (see {@code Files.openRemote}).
+ * temporary copies of network files in {@code cache/smb-open/} (see {@code Files.openRemote}) and installed apps' APKs under {@code /data/app/}
+ * (world-readable anyway; "Uygulama APK'ları"), which may carry a display name ({@code ?n=}) instead of "base.apk".
  */
 public final class ShareProvider extends ContentProvider {
     static final String AUTHORITY = "app.kolay.files";
+
+    /** A link whose display name is {@code name} instead of the file's own name. */
+    static Uri uri(String path, String name) { return uri(path).buildUpon().appendQueryParameter("n", name).build(); }
 
     public static Uri uri(String path) { return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath("f").appendEncodedPath(Uri.encode(path, "/").replaceFirst("^/", "")).build(); }
 
@@ -29,6 +33,7 @@ public final class ShareProvider extends ContentProvider {
             String c = f.getCanonicalPath(), own = new File(getContext().getApplicationInfo().dataDir).getCanonicalPath();
             String fetched = new File(getContext().getCacheDir(), "smb-open").getCanonicalPath() + "/";   // network files copied for "open"
             if (c.startsWith(fetched) && f.isFile()) return f;
+            if (c.startsWith("/data/app/") && c.endsWith(".apk") && f.isFile()) return f;   // an installed app's (split) APK
             if (c.startsWith(own + "/") || (c.startsWith("/data/") && !c.startsWith("/data/media/")) || !f.isFile()) throw new FileNotFoundException();
         } catch (IOException e) { throw new FileNotFoundException(); }
         return f;
@@ -45,7 +50,7 @@ public final class ShareProvider extends ContentProvider {
         MatrixCursor m = new MatrixCursor(proj, 1);
         Object[] row = new Object[proj.length];
         for (int i = 0; i < proj.length; i++)
-            row[i] = OpenableColumns.DISPLAY_NAME.equals(proj[i]) ? f.getName() : OpenableColumns.SIZE.equals(proj[i]) ? f.length() : null;
+            row[i] = OpenableColumns.DISPLAY_NAME.equals(proj[i]) ? (u.getQueryParameter("n") != null ? u.getQueryParameter("n") : f.getName()) : OpenableColumns.SIZE.equals(proj[i]) ? f.length() : null;
         m.addRow(row);
         return m;
     }

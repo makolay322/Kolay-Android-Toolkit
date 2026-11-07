@@ -47,6 +47,7 @@ final class BrowserScreen extends Screen {
     private final String rootLabel;                       // a Samba server's name (its "/" lists the shares); null for the phone
     private final String fixedTitle;                      // non-null in list mode
     private final Function<Context, List<FileItem>> loader;
+    private final AtomicBoolean loaderStop;               // "Büyük dosyalar": stops the storage walk; the list is size-sorted and not reloaded on resume
     private String path;
 
     private List<Files.Volume> vols;
@@ -78,10 +79,13 @@ final class BrowserScreen extends Screen {
     BrowserScreen(String path) { this(LocalSource.INSTANCE, path, null); }
 
     /** Browse {@code path} of {@code src}; {@code rootLabel} names a network source's root. */
-    BrowserScreen(FileSource src, String path, String rootLabel) { this.src = src; this.path = path; this.rootLabel = rootLabel; this.fixedTitle = null; this.loader = null; }
+    BrowserScreen(FileSource src, String path, String rootLabel) { this.src = src; this.path = path; this.rootLabel = rootLabel; this.fixedTitle = null; this.loader = null; this.loaderStop = null; }
 
     /** A flat list (e.g. "Görseller"), loaded off the UI thread. */
-    BrowserScreen(String title, Function<Context, List<FileItem>> loader) { this.src = LocalSource.INSTANCE; this.rootLabel = null; this.path = null; this.fixedTitle = title; this.loader = loader; }
+    BrowserScreen(String title, Function<Context, List<FileItem>> loader) { this(title, loader, null); }
+
+    /** A flat list from a slow loader that checks {@code stop} (set when the screen goes away); shown biggest first. */
+    BrowserScreen(String title, Function<Context, List<FileItem>> loader, AtomicBoolean stop) { this.src = LocalSource.INSTANCE; this.rootLabel = null; this.path = null; this.fixedTitle = title; this.loader = loader; this.loaderStop = stop; }
 
     private boolean dirMode() { return loader == null; }
 
@@ -96,6 +100,7 @@ final class BrowserScreen extends Screen {
     @Override public View create() {
         SharedPreferences pr = Files.prefs(c.a);
         sort = pr.getInt("sort", 0); asc = pr.getBoolean("asc", true); grid = pr.getBoolean("grid", false); hidden = pr.getBoolean("hidden", false);
+        if (loaderStop != null) { sort = 2; asc = false; }
         vols = local() ? Files.volumes(c.a) : Collections.singletonList(new Files.Volume(rootLabel, "/", 0, 0));
 
         page = new LinearLayout(c.a);
@@ -264,7 +269,7 @@ final class BrowserScreen extends Screen {
         int g = ++gen;
         String p = path;
         loading = true;
-        c.ui.postDelayed(() -> { if (g == gen && loading && items.isEmpty()) showState(Ui.busy(c, "Yükleniyor…", null)); }, 250);
+        c.ui.postDelayed(() -> { if (g == gen && loading && items.isEmpty()) showState(Ui.busy(c, loaderStop != null ? "Depolama taranıyor…" : "Yükleniyor…", null)); }, 250);
         c.io.execute(() -> {
             List<FileItem> got; String err = null;
             try { got = dirMode() ? src.list(p) : loader.apply(c.a); }
@@ -365,11 +370,11 @@ final class BrowserScreen extends Screen {
         return true;
     }
 
-    @Override public void onReturn() { if (!searching || !recursive) load(); }
+    @Override public void onReturn() { if (loaderStop == null && (!searching || !recursive)) load(); }
 
-    @Override public void onResume() { if (!searching || !recursive) load(); }
+    @Override public void onResume() { if (loaderStop == null && (!searching || !recursive)) load(); }
 
-    @Override public void onDestroy() { gen++; if (searchStop != null) searchStop.set(true); }
+    @Override public void onDestroy() { gen++; if (searchStop != null) searchStop.set(true); if (loaderStop != null) loaderStop.set(true); }
 
     // ------------------------------------------------------------ menus
 
@@ -400,7 +405,7 @@ final class BrowserScreen extends Screen {
         s.show();
     }
 
-    private void saveSort() { Files.prefs(c.a).edit().putInt("sort", sort).putBoolean("asc", asc).apply(); }
+    private void saveSort() { if (loaderStop != null) return; Files.prefs(c.a).edit().putInt("sort", sort).putBoolean("asc", asc).apply(); }
 
     private void selectionMenu() {
         List<FileItem> s = selected();
@@ -768,7 +773,7 @@ final class BrowserScreen extends Screen {
             name.setAlpha(it.hidden() ? 0.6f : 1f);
             String where = !dirMode() || (searching && recursive) ? shortPath(FileSource.parent(it.path)) : null;
             String meta = it.dir ? Files.date(it.modified) : Files.size(it.size) + " · " + Files.date(it.modified);
-            sub.setText(where != null ? where : meta);
+            sub.setText(where == null ? meta : loaderStop != null ? where + " · " + Files.size(it.size) : where);   // big files: path, then size (start is ellipsized)
             thumb.setImageDrawable(null);
             thumb.setTag(null);
             if (!on && local() && Files.thumbable(it)) Thumbs.load(thumb, it, c.dp(grid ? 88 : 44), () -> icon.setVisibility(INVISIBLE));

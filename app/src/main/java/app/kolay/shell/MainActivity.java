@@ -1,6 +1,7 @@
 package app.kolay.shell;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -33,6 +34,8 @@ public class MainActivity extends Activity {
         ui.onCreate(new HostImpl(), saved);
         UpdateJob.schedule(this);
         Updater.checkAsync(this, false);
+        Context app = getApplicationContext();   // the widget follows the wallpaper: repaint whenever the app opens
+        new Thread(() -> { try { PrayerWidget.updateAll(app); } catch (Throwable ignored) { } }).start();
     }
 
     /**

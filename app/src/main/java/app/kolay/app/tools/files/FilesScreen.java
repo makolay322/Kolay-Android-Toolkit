@@ -70,14 +70,13 @@ final class FilesScreen extends Screen {
         StringBuilder docs = new StringBuilder(MediaStore.MediaColumns.MIME_TYPE + " IN (");
         for (int i = 0; i < Files.DOC_MIMES.length; i++) docs.append(i == 0 ? "?" : ",?");
         docs.append(")");
-        String apk = MediaStore.MediaColumns.MIME_TYPE + "='application/vnd.android.package-archive' OR " + MediaStore.MediaColumns.DISPLAY_NAME + " LIKE '%.apk'";
         View[] tiles = {
             tile("Görseller", Icon.Kind.IMAGE, c.p.rose, () -> category("Görseller", img, null)),
             tile("Videolar", Icon.Kind.PLAY, c.p.red, () -> category("Videolar", vid, null)),
             tile("Sesler", Icon.Kind.MUSIC, c.p.amber, () -> category("Sesler", aud, null)),
             tile("Belgeler", Icon.Kind.DOC, c.p.sky, () -> category("Belgeler", docs.toString(), Files.DOC_MIMES)),
             tile("İndirilenler", Icon.Kind.DOWNLOAD, c.p.green, () -> c.nav.push(new BrowserScreen(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()))),
-            tile("APK'lar", Icon.Kind.APPS, c.p.teal, () -> category("APK'lar", apk, null)),
+            tile("APK'lar", Icon.Kind.APPS, c.p.teal, () -> c.nav.push(new ApksScreen())),
         };
         for (int i = 0; i < tiles.length; i += 3) {
             LinearLayout row = new LinearLayout(c.a);
@@ -88,6 +87,12 @@ final class FilesScreen extends Screen {
             }
             col.addView(row, Ui.lp(-1, -2, 0, 0, 0, c.dp(Ui.GAP)));
         }
+
+        col.addView(Ui.navRow(c, Icon.Kind.LAYERS, "Büyük dosyalar", "Yer kaplayan en büyük dosyalar (10 MB üstü)", 4, () -> {
+            java.util.concurrent.atomic.AtomicBoolean stop = new java.util.concurrent.atomic.AtomicBoolean();
+            String root = Environment.getExternalStorageDirectory().getPath();
+            c.nav.push(new BrowserScreen("Büyük dosyalar", ctx -> Files.largest(root, 10L << 20, 100, stop), stop));
+        }), Ui.lp(-1, c.dp(68), 0, 0, 0, c.dp(Ui.GAP)));
 
         List<String> marks = Files.bookmarks(c.a);
         if (!marks.isEmpty()) {
