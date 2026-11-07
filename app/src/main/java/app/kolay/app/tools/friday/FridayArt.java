@@ -191,9 +191,12 @@ final class FridayArt {
         cv.drawText("Cumamız Mübarek Olsun", w / 2f, h * 0.062f, tp);
         tp.clearShadowLayer();
 
-        // The panel is the focus: it fills the canvas below the thin title strip (0.95·w × 0.87·h), centred; the
-        // pattern and mosque show faintly through it.
-        float pw = w * 0.95f, pl = (w - pw) / 2f, pr = pl + pw, pt = h * 0.09f, pb = h * 0.96f;
+        // The panel is the focus, centred below the thin title strip: 75% of the area of the earlier 0.95·w × 0.87·h
+        // panel (both sides × √0.75, about 0.823·w × 0.753·h), same centre (0.525·h); the pattern and mosque show
+        // faintly through it and around it.
+        final float k = (float) Math.sqrt(0.75);
+        float pw = w * 0.95f * k, ph = h * 0.87f * k, cy = h * 0.525f;
+        float pl = (w - pw) / 2f, pr = pl + pw, pt = cy - ph / 2f, pb = cy + ph / 2f;
         Paint pp = new Paint(Paint.ANTI_ALIAS_FLAG);
         pp.setColor(t.panel);
         float rad = 28 * u;

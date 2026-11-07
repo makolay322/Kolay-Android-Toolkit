@@ -9,6 +9,13 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Daha küçük APK, Cuma görselinde daha küçük hadis paneli
+- **APK ≈ 6,8 MB → ≈ 4,2 MB** (her güncelleme daha az indirir). Özellik kaldırılmadı:
+  - PDF motorunun kullanılmayan yazı tipleri ve tabloları çıkarıldı (Adobe CJK CMap'leri, 14 standart yazı tipinin AFM ölçüleri, LiberationSans, glif listeleri, Unicode/Bidi tabloları; ≈ 1,6 MB). PDF düzenle yalnızca sayfa işlemleri yaptığı için bunları hiç okumaz.
+  - Uygulama kodu (`classes.dex`) sıkıştırılmış olarak paketlenir (≈ 0,9 MB daha az indirme; kurulumda bir kez açılır).
+  - Samba (smbj) ve PdfBox için geniş “hepsini tut” küçültme kuralları daraltıldı (≈ 0,1 MB).
+- **Cuma Mesajı:** hadis paneli önceki alanının %75'ine indi (her kenar × 0,866: görselin ≈ %82'si genişlik, ≈ %75'i yükseklik), aynı merkezde; çevresinde desen görünür. Yazı yine panele sığan en büyük boyutta.
+
 ### Eklendi — PDF düzenle (sayfa işlemleri)
 - **Belgeler → PDF düzenle**, Dosyalar'da PDF menüsü → **PDF düzenle** ve PDF görüntüleyicide kalem düğmesi: sayfalar ızgarada; basılı tutup sürükleyerek sırala, 90° döndür, sil, başka PDF ekle, galeriden görüntü sayfası ekle.
 - Metin ve çizimler korunur (sayfalar resme çevrilmez); döndürme kayıpsız (`/Rotate`).

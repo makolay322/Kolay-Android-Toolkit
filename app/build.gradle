@@ -29,13 +29,21 @@ android {
             minifyEnabled true          // R8: drops unused code (mostly from ZXing) and optimizes the rest
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            optimization { keepRules { ignoreFrom('com.tom-roush:pdfbox-android') } }   // its broad keeps; the one needed is in proguard-rules.pro
         }
     }
+    // PdfBox-Android's assets (CJK CMaps, AFM metrics, LiberationSans, glyph lists, Unicode tables; ~1.6 MB) are read only
+    // by its font and text-extraction classes (CMapParser, Standard14Fonts, FontMapperImpl, GlyphList, OpenTypeScript,
+    // PDFTextStripper). The page editor never reaches them, and R8 removes all of those classes, so nothing left in the
+    // APK could open these files. Default aapt pattern + the PdfBox asset folder.
+    androidResources { ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:<dir>tom_roush' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     // Smaller download: every update fetches the whole APK, and the Tesseract libraries are ~80% of it. Compressed native
     // libraries are unpacked once at install time (a few MB more on the phone, about half the download).
     packaging {
         jniLibs { useLegacyPackaging true }
+        // Same trade for the code: a deflated classes.dex is about half the download (ART extracts it once at install).
+        dex { useLegacyPackaging true }
         // BouncyCastle's data files (post-quantum test vectors, X.509 messages) and multi-release OSGi manifests: unused by smbj (~1.2 MB)
         resources { excludes += ['org/bouncycastle/**', 'META-INF/versions/**'] }
     }

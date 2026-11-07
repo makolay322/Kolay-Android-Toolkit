@@ -6,9 +6,12 @@
 -dontobfuscate
 -keepattributes SourceFile,LineNumberTable
 
-# smbj (Samba): its event bus (mbassador) finds @Handler methods by reflection; keep smbj and the bus whole. BouncyCastle is used
-# only through smbj's direct calls (BCSecurityProvider, no JCA lookup), so R8 may shrink it. Kerberos/GSS and slf4j bindings are absent on Android.
--keep class com.hierynomus.** { *; }
+# smbj (Samba): its event bus (mbassador) finds @Handler methods by reflection, so those methods (and their annotations) and the
+# bus itself are kept; the rest of smbj/asn-one has no reflection of its own (only SmbConfig's default Kerberos factory, which is
+# replaced by NtlmAuthenticator) and is shrunk like any code (~300 KB less dex). BouncyCastle is used only through smbj's direct
+# calls (BCSecurityProvider, no JCA lookup), so R8 may shrink it. Kerberos/GSS and slf4j bindings are absent on Android.
+-keepclassmembers class * { @net.engio.mbassy.listener.Handler <methods>; }
+-keepattributes *Annotation*
 -keep class net.engio.mbassy.** { *; }
 -dontwarn org.ietf.jgss.**
 -dontwarn javax.security.auth.kerberos.**
@@ -20,3 +23,7 @@
 # decoder are absent, so those PDFs are not supported.
 -dontwarn org.bouncycastle.**
 -dontwarn com.gemalto.jp2.**
+# The AAR's own rules are ignored (build.gradle: optimization.keepRules.ignoreFrom): they keep the whole tagged-PDF
+# structure package (documentinterchange.**), which the editor never uses. Only its reflective part is needed here:
+# SecurityHandlerFactory creates the (standard password) security handler through its constructor.
+-keep class * extends com.tom_roush.pdfbox.pdmodel.encryption.SecurityHandler { public <init>(...); }
