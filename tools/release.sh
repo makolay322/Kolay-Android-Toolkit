@@ -40,7 +40,9 @@ REPO=$(git config remote.origin.url | sed -E 's#.*github.com[:/]##; s#\.git$##')
 # --- version: one above the latest published manifest (fallback: the base in app/version.properties) ---
 PROP=app/version.properties
 VC=$(sed -n 's/^versionCode=//p' "$PROP"); CUR=$(sed -n 's/^versionName=//p' "$PROP")
-if curl -fsSL "https://github.com/$REPO/releases/latest/download/manifest.json" -o "$TMP/latest.json" 2>/dev/null; then
+# The download CDN sometimes answers 504 for minutes; the API (gh release download) is the fallback.
+if curl -fsSL "https://github.com/$REPO/releases/latest/download/manifest.json" -o "$TMP/latest.json" 2>/dev/null \
+   || gh release download --pattern manifest.json --output "$TMP/latest.json" --clobber 2>/dev/null; then
   LVC=$(sed -n 's/.*"versionCode":\([0-9]*\).*/\1/p' "$TMP/latest.json"); LVN=$(sed -n 's/.*"versionName":"\([^"]*\)".*/\1/p' "$TMP/latest.json")
   [ -n "$LVC" ] && [ "$LVC" -ge "$VC" ] && { VC=$LVC; CUR=$LVN; }
 elif gh release view >/dev/null 2>&1; then
