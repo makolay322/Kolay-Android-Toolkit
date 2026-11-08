@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Empty splash icon: the app opens straight away; the "Ko" entrance plays on the home screen's logo instead. -->
+<!-- Empty splash icon: the app opens straight away. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="@android:color/transparent"/>
 </shape>

@@ -9,6 +9,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Sade logo
+- Ana sayfadaki animasyonlu logo ve arkasındaki koyu kutu kaldırıldı; yerine başlık renginde sabit, tek renkli “Ko” işareti.
+
 ### Değişti — PDF düzenleyicide görüntü sıkıştırma
 - Eklenen görüntüler 300 dpi'ye küçültülüp %90 kaliteli JPEG olarak gömülür (PNG kayıpsız kalır); PDF'ler küçülür. Tarama sonrası PDF kaydı zaten A4 300 dpi / %90'dı.
 

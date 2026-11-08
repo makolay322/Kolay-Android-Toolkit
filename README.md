@@ -38,7 +38,7 @@
 | **Fotoğraf Sıkıştır** | Seçilen fotoğrafın %90 kaliteli JPEG kopyasını `Pictures/Kolay`'a kaydeder. |
 | **QR Kod** | Hızlı QR okuma (bildirim panelindeki hızlı ayar kutucuğundan da açılır) ve QR oluşturma: metin/bağlantı, Wi-Fi (şifreyle bağlanma) veya kişi kartı; kaydet / paylaş. |
 
-Ana sayfadaki “Ko” logosu günün saatine göre renk değiştirir; O harfi birkaç saniyede bir madeni para gibi kendi ekseninde döner.
+Ana sayfanın üst köşesinde sade, tek renkli “Ko” logosu durur (animasyonsuz).
 Yeni araç eklemek: [docs/ADDING_A_TOOL.md](docs/ADDING_A_TOOL.md).
 
 ## 📲 Kurulum

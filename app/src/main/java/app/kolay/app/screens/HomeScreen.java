@@ -142,12 +142,7 @@ public final class HomeScreen extends Screen {
 
         LinearLayout top = new LinearLayout(c.a);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout mark = new FrameLayout(c.a);
-        mark.setBackground(Ui.rounded(c, p.surface, 14));
-        Ui.roundOutline(c, mark, 14);
-        Ui.softShadow(c, mark, 3, 0xFF000000);
-        mark.addView(new Logo(c.a, p.dark), new FrameLayout.LayoutParams(c.dp(30), c.dp(22), Gravity.CENTER));
-        top.addView(mark, new LinearLayout.LayoutParams(c.dp(42), c.dp(42)));
+        top.addView(new Logo(c.a, p.onHero), new LinearLayout.LayoutParams(c.dp(36), c.dp(27)));
         TextView name = Ui.text(c, "Kolay", 20, p.onHero, 800);
         name.setLetterSpacing(-0.01f);
         top.addView(name, Ui.lp(0, -2, c.dp(12), 0, 0, 0));
