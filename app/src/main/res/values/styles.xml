@@ -8,4 +8,13 @@
         <item name="android:navigationBarColor">@color/window_bg</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>
+    <!-- Share popup: see-through window, the sheet is the only thing drawn -->
+    <style name="Theme.Kolay.Popup" parent="Theme.Kolay">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

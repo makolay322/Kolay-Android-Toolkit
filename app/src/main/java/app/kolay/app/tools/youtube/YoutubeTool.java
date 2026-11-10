@@ -13,6 +13,7 @@ public final class YoutubeTool implements Tool {
     @Override public Icon.Kind icon() { return Icon.Kind.PLAY; }
     @Override public Screen open(Ctx c) { return new YoutubeScreen(); }
 
-    /** Opened from the system share sheet ("YouTube Özet"): the shared text is filled in and the summary starts at once. */
-    public Screen openShared(Ctx c, String sharedText) { return new YoutubeScreen(sharedText); }
+
+    /** Share-sheet popup over the sharing app: a sheet that fetches and shows the summary; closing it closes the activity. */
+    public void popup(Ctx c, String sharedText) { YoutubePopup.show(c, sharedText); }
 }

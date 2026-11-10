@@ -24,6 +24,18 @@ public final class Entry {
         c = new Ctx(host, p);
         android.app.Activity a = c.a;
 
+        // Share-sheet "YouTube Özet": no app UI at all. The activity is transparent and only shows the summary sheet over the sharing app.
+        if (a instanceof app.kolay.shell.YoutubePopup) {
+            FrameLayout shell = new FrameLayout(a);
+            a.setContentView(shell);
+            new Nav(c, shell);
+            Intent pin = a.getIntent();
+            String text = pin == null ? null : pin.getStringExtra(Intent.EXTRA_TEXT);
+            if (saved == null) new YoutubeTool().popup(c, text);
+            else a.finish();   // process death restore: nothing to resume
+            return;
+        }
+
         // Edge-to-edge: transparent bars, the pages are padded by the insets in Nav (the home hero draws under the status bar).
         android.view.Window w = a.getWindow();
         w.setStatusBarColor(android.graphics.Color.TRANSPARENT);
@@ -76,13 +88,6 @@ public final class Entry {
             String t = in.getType();
             in.setAction(Intent.ACTION_MAIN);
             c.nav.push(Viewer.external(u, t));
-        }
-        // Shared from another app via "YouTube Özet": open the summary screen with the link. Consumed so recreate() does not repeat it.
-        if (saved == null && in != null && Intent.ACTION_SEND.equals(in.getAction()) && in.getStringExtra(Intent.EXTRA_TEXT) != null) {
-            String text = in.getStringExtra(Intent.EXTRA_TEXT);
-            in.setAction(Intent.ACTION_MAIN);
-            in.removeExtra(Intent.EXTRA_TEXT);
-            c.nav.push(new YoutubeTool().openShared(c, text));
         }
     }
 

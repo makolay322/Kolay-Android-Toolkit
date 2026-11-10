@@ -52,15 +52,18 @@
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/></intent-filter>
         </activity>
-        <!-- Share-sheet entry "YouTube Özet": same activity, started with ACTION_SEND; the UI reads the shared link. -->
-        <activity-alias android:name=".YoutubeShare" android:targetActivity=".MainActivity" android:exported="true"
-            android:label="YouTube Özet" android:icon="@mipmap/ic_launcher">
+        <!-- Share-sheet entry "YouTube Özet": a transparent popup (summary sheet over the sharing app), not the app. Own task, not in Recents. -->
+        <activity android:name=".YoutubePopup" android:exported="true" android:theme="@style/Theme.Kolay.Popup"
+            android:label="YouTube Özet" android:icon="@mipmap/ic_launcher"
+            android:taskAffinity="" android:excludeFromRecents="true" android:noHistory="true"
+            android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout">
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="text/plain"/>
             </intent-filter>
-        </activity-alias>
+        </activity>
         <!-- Share-sheet entry "Metne çevir": pictures from other apps go to text recognition (general mode, on the device). No PDF. -->
         <activity-alias android:name=".OcrShare" android:targetActivity=".MainActivity" android:exported="true"
             android:label="Metne çevir" android:icon="@mipmap/ic_launcher">

@@ -7,17 +7,10 @@ import android.content.Intent;
 import android.text.InputType;
 import android.view.*;
 import android.widget.*;
-import app.kolay.app.tools.Llm;
 import app.kolay.app.ui.*;
 
 /** Link field -> transcript (original language) -> Turkish summary, all on one screen. Nothing is stored. */
 final class YoutubeScreen extends Screen {
-    private static final int MAX_CHARS = 400_000;
-    private static final String PROMPT =
-        "Aşağıda bir YouTube videosunun transkripti var (dil: %s). Videoyu TÜRKÇE özetle. "
-        + "Önce 1-2 cümlelik genel özet, ardından ana noktaları madde madde yaz; önemli sayı, isim ve sonuçları koru. "
-        + "Transkriptte olmayan hiçbir bilgi ekleme. Çıktı düz metin olsun, markdown başlığı veya kod bloğu kullanma.\n\nTRANSKRİPT:\n";
-
     private EditText link;
     private TextView go, status, result;
     private LinearLayout statusRow;
@@ -26,11 +19,6 @@ final class YoutubeScreen extends Screen {
     private volatile boolean destroyed;
     private boolean busy;
     private String summary = "";
-    private final String shared;   // text received from the share sheet, or null
-
-    YoutubeScreen() { this(null); }
-    YoutubeScreen(String shared) { this.shared = shared; }
-
     @Override public View create() {
         Palette p = c.p;
         LinearLayout page = new LinearLayout(c.a);
@@ -112,8 +100,7 @@ final class YoutubeScreen extends Screen {
             try {
                 Transcript.Result t = Transcript.fetch(id);
                 post(() -> Ui.swapText(status, "Özetleniyor… (" + t.lang + " transkript)"));
-                String text = t.text.length() > MAX_CHARS ? t.text.substring(0, MAX_CHARS) : t.text;
-                out = Llm.generate(c.host, String.format(PROMPT, t.lang) + text);
+                out = Summary.generate(c.host, t);
                 if (out.isEmpty()) err = "Özet üretilemedi";
             } catch (Exception e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); }
             final String o = out, e = err;
@@ -124,9 +111,9 @@ final class YoutubeScreen extends Screen {
     private void done(String out, String err) {
         busy = false; go.setEnabled(true);
         if (err != null) { spinner.setVisibility(View.GONE); status.setTextColor(c.p.danger); Ui.swapText(status, err); return; }
-        summary = out;
+        summary = Summary.plain(out);
         statusRow.setVisibility(View.GONE);
-        result.setText(out);
+        result.setText(Summary.render(c, out));
         resultCard.setVisibility(View.VISIBLE); actions.setVisibility(View.VISIBLE);
         Ui.appear(resultCard, 0); Ui.appear(actions, 80);
         Ui.haptic(go, HapticFeedbackConstants.CONFIRM);
@@ -138,13 +125,6 @@ final class YoutubeScreen extends Screen {
         ClipData clip = ClipData.newPlainText("Özet", summary);
         ((ClipboardManager) c.a.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(clip);
         Ui.flashCopied(c, btn, Ui.Style.TONAL);
-    }
-
-    @Override public void onShown() {
-        if (shared == null) return;
-        link.setText(shared.trim());
-        link.setSelection(link.length());
-        if (Transcript.videoId(shared) != null) start();
     }
 
     @Override public void onDestroy() { destroyed = true; }

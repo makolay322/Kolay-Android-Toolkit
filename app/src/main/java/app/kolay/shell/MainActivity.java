@@ -32,6 +32,7 @@ public class MainActivity extends Activity {
         try { ensureTessdata(); } catch (RuntimeException e) { Log.e(TAG, "tessdata", e); }
         ui = new Entry();
         ui.onCreate(new HostImpl(), saved);
+        if (this instanceof YoutubePopup) return;   // the share popup does none of the app's housekeeping
         UpdateJob.schedule(this);
         Updater.checkAsync(this, false);
         Context app = getApplicationContext();   // the widget follows the wallpaper: repaint whenever the app opens
