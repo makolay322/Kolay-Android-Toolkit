@@ -165,6 +165,9 @@ public final class Ui {
         TextView b = text(c, label, 16, 0, 600);
         b.setGravity(Gravity.CENTER); b.setClickable(true); b.setFocusable(true);
         b.setPadding(c.dp(20), 0, c.dp(20), 0);
+        // fixed-height buttons: a long label shrinks (down to 11sp) instead of being cut off
+        b.setMaxLines(1);
+        b.setAutoSizeTextTypeUniformWithConfiguration(11, 16, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
         style(c, b, st, k);
         press(b);
         return b;

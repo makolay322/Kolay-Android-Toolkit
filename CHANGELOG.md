@@ -9,6 +9,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Düzeltildi — Büyük yazı tipinde taşma
+- Sistem yazı boyutu çok büyük seçildiğinde yazılar düğmelere ve sabit yükseklikli satırlara sığmıyordu. Uygulama artık sistem yazı boyutunu en fazla 1,3 kata kadar uyguluyor; düğme etiketleri ise sığmazsa küçülüyor (en az 11 sp), kesilmiyor.
+
 ### Değişti — YouTube özeti paylaşım penceresi
 - Başka uygulamadan "YouTube Özet" ile gönderilen bağlantı artık Kolay'ı açmaz: paylaşan uygulamanın üstünde alttan bir pencere olarak özet gösterilir; kapatınca (Kapat, dışına dokunma, geri) doğrudan paylaşan uygulamaya dönülür. Pencerede Kopyala ve Paylaş vardır.
 - Özet istemi yeniden yazıldı: "Kısaca", "Ana noktalar" (tek fikirli kısa maddeler, önemli ifade kalın) ve "Akılda kalsın" bölümleri; selamlaşma/reklam atlanır, otomatik transkript hataları düzeltilir. Başlıklar, madde imleri ve kalın yazı hem pencerede hem uygulamadaki özet ekranında biçimli gösterilir; kopyalanan metin düz yazıdır.

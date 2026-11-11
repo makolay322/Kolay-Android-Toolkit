@@ -25,6 +25,19 @@ public class MainActivity extends Activity {
     private SecretStore secrets;
     private Entry ui;
 
+    /** The layouts use fixed-height rows and buttons: the system font size is honoured up to this factor so text still fits. */
+    private static final float MAX_FONT_SCALE = 1.3f;
+
+    @Override protected void attachBaseContext(Context base) {
+        android.content.res.Configuration cfg = base.getResources().getConfiguration();
+        if (cfg.fontScale > MAX_FONT_SCALE) {
+            cfg = new android.content.res.Configuration(cfg);
+            cfg.fontScale = MAX_FONT_SCALE;
+            base = base.createConfigurationContext(cfg);
+        }
+        super.attachBaseContext(base);
+    }
+
     @Override protected void onCreate(Bundle saved) {
         super.onCreate(saved);
         secrets = new SecretStore(this);
