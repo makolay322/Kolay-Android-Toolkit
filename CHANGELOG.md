@@ -9,6 +9,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Düzeltildi — Gemini/YouTube geçici 503 hatası
+- Gemini veya YouTube geçici olarak 500/502/503/504 dönerse istek bekleyip otomatik yeniden denenir (Gemini'de son denemede `gemini-flash-latest` modeli); hâlâ yoğunsa mesaj "Gemini şu an yoğun" olarak daha anlaşılır gösterilir.
+
 ### Düzeltildi — Büyük yazı tipinde taşma
 - Sistem yazı boyutu çok büyük seçildiğinde yazılar düğmelere ve sabit yükseklikli satırlara sığmıyordu. Uygulama artık sistem yazı boyutunu en fazla 1,3 kata kadar uyguluyor; düğme etiketleri ise sığmazsa küçülüyor (en az 11 sp), kesilmiyor.
 

@@ -15,6 +15,9 @@ import java.util.List;
 /** Minimal Gemini calls (text, single prompt or multi-turn chat) using the key from Settings. Nothing is logged or stored. */
 public final class Llm {
     private static final String MODEL = "gemini-flash-lite-latest";
+    /** Tried on the last attempt when the primary model keeps answering 5xx (overloaded). */
+    private static final String FALLBACK_MODEL = "gemini-flash-latest";
+    private static final int ATTEMPTS = 3;
     private Llm() {}
 
     public static String generate(Host host, String prompt) throws Exception {
@@ -61,21 +64,28 @@ public final class Llm {
             .put("generationConfig", new JSONObject().put("temperature", temperature).put("maxOutputTokens", maxTokens));
         if (system != null && !system.isEmpty())
             body.put("systemInstruction", new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", system))));
-        HttpURLConnection c = (HttpURLConnection) new URL("https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent").openConnection();
-        c.setRequestMethod("POST"); c.setDoOutput(true); c.setConnectTimeout(10000); c.setReadTimeout(readTimeoutMs);
-        c.setRequestProperty("Content-Type", "application/json");
-        c.setRequestProperty("x-goog-api-key", key);
-        try (OutputStream o = c.getOutputStream()) { o.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
-        int code = c.getResponseCode();
-        String resp;
-        try (InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream()) {
-            resp = is == null ? "" : readUtf8(is);   // error stream is null when the body is empty
-        } finally { c.disconnect(); }
+        int code = 0;
+        String resp = "";
+        for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
+            String model = attempt == ATTEMPTS - 1 ? FALLBACK_MODEL : MODEL;
+            HttpURLConnection c = (HttpURLConnection) new URL("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent").openConnection();
+            c.setRequestMethod("POST"); c.setDoOutput(true); c.setConnectTimeout(10000); c.setReadTimeout(readTimeoutMs);
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("x-goog-api-key", key);
+            try (OutputStream o = c.getOutputStream()) { o.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
+            code = c.getResponseCode();
+            try (InputStream is = code < 400 ? c.getInputStream() : c.getErrorStream()) {
+                resp = is == null ? "" : readUtf8(is);   // error stream is null when the body is empty
+            } finally { c.disconnect(); }
+            // 500/502/503/504 are usually momentary overload on Google's side: wait a little, retry, finally try the other model
+            if (code != 500 && code != 502 && code != 503 && code != 504) break;
+            if (attempt < ATTEMPTS - 1) Thread.sleep(1500L * (attempt + 1));
+        }
         if (code == 429) throw new IOException("Kullanım sınırı doldu; biraz sonra tekrar dene");
         if (code == 401 || code == 403 || (code == 400 && resp.contains("API key")))
             throw new IOException("Anahtar kabul edilmedi (HTTP " + code + "); Ayarlar'dan kontrol et");
         if (code == 400) throw new IOException("İstek reddedildi (HTTP 400)");
-        if (code >= 400) throw new IOException("Sunucu hatası (HTTP " + code + ")");
+        if (code >= 400) throw new IOException("Gemini şu an yoğun (HTTP " + code + "); birkaç dakika sonra tekrar dene");
         JSONArray cand = new JSONObject(resp).optJSONArray("candidates");
         if (cand == null || cand.length() == 0) throw new IOException("Yanıt gelmedi (içerik engellenmiş olabilir)");
         JSONObject content = cand.getJSONObject(0).optJSONObject("content");

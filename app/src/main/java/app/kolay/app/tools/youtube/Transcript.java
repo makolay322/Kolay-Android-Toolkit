@@ -81,6 +81,16 @@ final class Transcript {
     private static String post(String url, String json) throws Exception { return send(url, json); }
 
     private static String send(String url, String json) throws Exception {
+        for (int attempt = 0; ; attempt++) {
+            try { return sendOnce(url, json); }
+            catch (IOException e) {   // 5xx from YouTube is usually momentary: retry twice
+                if (attempt >= 2 || !e.getMessage().matches("YouTube HTTP 5\\d\\d")) throw e;
+                Thread.sleep(1000L * (attempt + 1));
+            }
+        }
+    }
+
+    private static String sendOnce(String url, String json) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(10000); c.setReadTimeout(30000);
         c.setRequestProperty("User-Agent", UA);
