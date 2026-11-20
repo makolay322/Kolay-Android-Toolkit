@@ -10,10 +10,13 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 import java.io.*;
 import java.util.regex.*;
 
-/** Processed pages of a document flow -> Tesseract (medical: deu; general: the chosen languages) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
+/** Whole original pictures of a document flow (not the cropped pages) -> Tesseract (medical: deu; general: the chosen languages) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
 final class Ocr {
-    /** Pages are rendered at this size, then {@link OcrEngine#prepare} brings the long side to 2400 px (~200 dpi on A4). */
-    private static final long RENDER_PX = 6_000_000L;
+    /**
+     * Long side of the whole picture handed to Tesseract: the page is only part of the photo, so a little more than the
+     * 2400 px of a cropped page keeps the text at a similar resolution.
+     */
+    private static final int WHOLE_SIDE = 3000;
     private static final String PROMPT =
         "Aşağıda, Almanca bir tıbbi belgenin (rapor, epikriz, bulgu, reçete, faks vb.) sayfalarının Tesseract OCR çıktıları var. "
         + "Sayfalar KARIŞIK sırada gönderilmiş olabilir; her biri '=== SAYFA n ===' satırıyla başlar. "
@@ -56,10 +59,13 @@ final class Ocr {
         return tess = a;
     }
 
-    /** The page as straightened, rotated and filtered in the flow, then grayscale + mild contrast, long side ≤ 2400 px. */
+    /**
+     * The whole original picture (uncropped, unfiltered, turned like the page): the outline only matters for the saved file,
+     * and a wrong outline must never cut text off. Grayscale + mild contrast, long side ≤ {@link #WHOLE_SIDE}.
+     */
     private static Bitmap load(ScanSession.Job j) throws IOException {
-        Bitmap b = j.render(RENDER_PX);
-        try { return OcrEngine.prepare(b); } finally { b.recycle(); }
+        Bitmap b = j.whole(WHOLE_SIDE);
+        try { return OcrEngine.prepare(b, WHOLE_SIDE); } finally { b.recycle(); }
     }
 
     /** Tesseract text of one page ("" when none); the page bitmap is recycled even when reading fails. */

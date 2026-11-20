@@ -9,8 +9,9 @@ import app.kolay.app.ui.*;
 import java.util.List;
 
 /**
- * Reads the processed pages of a document flow (as cropped, rotated and filtered there); shows live status, a gliding bar
- * and elapsed time. Back / Cancel aborts and returns to the pages. The flow and its pages stay: they end with its root.
+ * Reads the pages of a document flow (each whole original picture, turned as there; not cropped or filtered); shows live
+ * status, a gliding bar and elapsed time. Back / Cancel aborts and returns to the pages. The flow and its pages stay: they
+ * end with its root.
  */
 public final class ProgressScreen extends Screen {
     private final ScanSession s;

@@ -51,9 +51,12 @@ public final class OcrEngine implements AutoCloseable {
      * Grayscale + mild contrast stretch, longest side ≤ {@link #MAX_SIDE} (the preprocessing of the OCR tool). Returns a new
      * bitmap; the caller recycles both.
      */
-    public static Bitmap prepare(Bitmap src) {
+    public static Bitmap prepare(Bitmap src) { return prepare(src, MAX_SIDE); }
+
+    /** {@link #prepare(Bitmap)} with another cap for the longest side. */
+    public static Bitmap prepare(Bitmap src, int maxSide) {
         int m = Math.max(src.getWidth(), src.getHeight());
-        float k = m > MAX_SIDE ? MAX_SIDE / (float) m : 1f;
+        float k = m > maxSide ? maxSide / (float) m : 1f;
         int w = Math.max(1, Math.round(src.getWidth() * k)), h = Math.max(1, Math.round(src.getHeight() * k));
         Bitmap out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         ColorMatrix cm = new ColorMatrix(); cm.setSaturation(0);

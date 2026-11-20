@@ -113,6 +113,27 @@ final class CropScreen extends Screen {
         });
     }
 
+    /**
+     * Corners put back into page order after a drag: a corner dragged past its neighbour crosses the outline (a bow tie,
+     * refused on apply) or swaps with it (TL / TR: the straightened page comes out mirrored). Sorted by angle around their centre (a simple
+     * polygon), then TL, TR, BR, BL.
+     */
+    static float[] tidy(float[] q) {
+        float mx = (q[0] + q[2] + q[4] + q[6]) / 4, my = (q[1] + q[3] + q[5] + q[7]) / 4;
+        Integer[] idx = {0, 1, 2, 3};
+        java.util.Arrays.sort(idx, (a, b) -> Double.compare(Math.atan2(q[a * 2 + 1] - my, q[a * 2] - mx), Math.atan2(q[b * 2 + 1] - my, q[b * 2] - mx)));
+        float[] c = new float[8];
+        for (int i = 0; i < 4; i++) { c[i * 2] = q[idx[i] * 2]; c[i * 2 + 1] = q[idx[i] * 2 + 1]; }
+        return QuadDetector.order(c);
+    }
+
+    /** Shoelace sum (twice the signed area); positive for TL, TR, BR, BL in picture coordinates (y down). */
+    static float area(float[] q) {
+        float a = 0;
+        for (int i = 0; i < 4; i++) { int j = i * 2, k = ((i + 1) % 4) * 2; a += q[j] * q[k + 1] - q[k] * q[j + 1]; }
+        return a;
+    }
+
     static boolean convex(float[] q) {
         float sign = 0;
         for (int i = 0; i < 4; i++) {
@@ -137,7 +158,7 @@ final class CropScreen extends Screen {
             dot = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG), dim = new Paint();
         private final Path path = new Path(), clip = new Path();
         private final float handle = c.dp(11), slop = c.dp(40), loupe = c.dp(56), inset = c.dp(14);
-        private float scale, ox, oy, rw, rh, touchX;
+        private float scale, ox, oy, rw, rh, touchX, grabX, grabY;   // grab: handle minus finger, kept while dragging
         private int drag = -1;
 
         QuadView() {
@@ -232,7 +253,11 @@ final class CropScreen extends Screen {
                         float d = (float) Math.hypot(x - vx(i), y - vy(i));
                         if (d < best) { best = d; drag = i; }
                     }
-                    if (drag >= 0) { getParent().requestDisallowInterceptTouchEvent(true); Ui.haptic(this, HapticFeedbackConstants.CLOCK_TICK); }
+                    if (drag >= 0) {
+                        grabX = vx(drag) - x; grabY = vy(drag) - y;   // the corner does not jump under the finger
+                        getParent().requestDisallowInterceptTouchEvent(true);
+                        Ui.haptic(this, HapticFeedbackConstants.CLOCK_TICK);
+                    }
                     touchX = x;
                     invalidate();
                     return true;
@@ -240,13 +265,14 @@ final class CropScreen extends Screen {
                 case MotionEvent.ACTION_MOVE: {
                     if (drag < 0) return true;
                     touchX = x;
-                    float u = Math.max(0, Math.min(1, (x - ox) / (rw * scale))), v = Math.max(0, Math.min(1, (y - oy) / (rh * scale)));
+                    float u = Math.max(0, Math.min(1, (x + grabX - ox) / (rw * scale))), v = Math.max(0, Math.min(1, (y + grabY - oy) / (rh * scale)));
                     float[] o = unrot(u, v);
                     quad[drag * 2] = o[0]; quad[drag * 2 + 1] = o[1];
                     invalidate();
                     return true;
                 }
                 case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL:
+                    if (drag >= 0 && !(convex(quad) && area(quad) > 0)) quad = tidy(quad);   // crossed or mirrored
                     drag = -1; invalidate(); return true;
             }
             return true;

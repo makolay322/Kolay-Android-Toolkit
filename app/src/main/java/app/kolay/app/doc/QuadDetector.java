@@ -76,7 +76,72 @@ public final class QuadDetector {
     public float[] detect(Bitmap b) {
         load(b);
         float[] q = run();
-        return q != null ? refine(b, q) : null;
+        return q != null ? sharpen(b, q) : null;
+    }
+
+    /**
+     * Camera still (b, upright) with the live outline from the preview as a hint (normalised, in the still's coordinates;
+     * may be null). The still is searched as in {@link #detect(Bitmap)}; when both outlines exist but disagree, the one
+     * better supported by the still's own edges (perimeter coverage) wins. When the still yields nothing, the hint is used.
+     * The winner is refined on the bitmap and sanity-checked ({@link #sane}); null when nothing usable is left.
+     */
+    public float[] detectStill(Bitmap b, float[] hint) {
+        load(b);
+        float[] q = run();
+        float qc = conf;
+        if (hint != null && !sane(hint, b.getWidth(), b.getHeight())) hint = null;
+        float[] pick = q;
+        if (hint != null && (q == null || farApart(q, hint) && coverage(hint) > qc)) pick = hint;
+        if (pick == null) return null;
+        float[] r = sharpen(b, pick);
+        return sane(r, b.getWidth(), b.getHeight()) ? r : sane(pick, b.getWidth(), b.getHeight()) ? pick : null;
+    }
+
+    private static boolean farApart(float[] a, float[] b) {
+        for (int i = 0; i < 8; i++) if (Math.abs(a[i] - b[i]) > 0.04f) return true;
+        return false;
+    }
+
+    /** Edge coverage (0..1) of a normalised outline on the current edge map; 0 when its shape is implausible. */
+    private float coverage(float[] qn) {
+        float[] q = new float[8];
+        for (int i = 0; i < 8; i += 2) {
+            q[i] = Math.max(0, Math.min(w - 1, qn[i] * w - 0.5f));
+            q[i + 1] = Math.max(0, Math.min(h - 1, qn[i + 1] * h - 0.5f));
+        }
+        float per = 0;
+        for (int i = 0; i < 4; i++) { int a = i * 2, c = ((i + 1) % 4) * 2; per += (float) Math.hypot(q[c] - q[a], q[c + 1] - q[a + 1]); }
+        return per > 0 ? score(q, Math.min(w, h) * 0.15f, w * h * 0.10f) / per : 0;
+    }
+
+    /** Refines twice: a wide band first, then a narrow one around the improved sides (less pull from nearby text). */
+    private float[] sharpen(Bitmap b, float[] q) {
+        return refine(b, refine(b, q, 2f), 1f);
+    }
+
+    /**
+     * Plausible page outline (normalised TL, TR, BR, BL on a {@code bw} × {@code bh} picture): convex, interior angles
+     * 30°..150°, at least 8 % of the picture, sides not degenerate and the straightened page no longer than 4:1.
+     */
+    public static boolean sane(float[] q, int bw, int bh) {
+        if (q == null || q.length != 8) return false;
+        float[] p = new float[8];
+        for (int i = 0; i < 8; i += 2) { p[i] = q[i] * bw; p[i + 1] = q[i + 1] * bh; }
+        float sign = 0, area = 0;
+        for (int i = 0; i < 4; i++) {
+            int a = i * 2, b = ((i + 1) % 4) * 2, c = ((i + 2) % 4) * 2;
+            float ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], vx = p[c] - p[b], vy = p[c + 1] - p[b + 1];
+            float lu = (float) Math.hypot(ux, uy), lv = (float) Math.hypot(vx, vy);
+            if (lu < 1 || lv < 1) return false;
+            float cr = ux * vy - uy * vx;
+            if (sign == 0) sign = Math.signum(cr); else if (Math.signum(cr) != sign) return false;
+            if (Math.abs((ux * vx + uy * vy) / (lu * lv)) > 0.866f) return false;   // turn outside 30°..150°
+            area += p[a] * p[b + 1] - p[b] * p[a + 1];
+        }
+        if (Math.abs(area) / 2 < 0.08f * bw * bh) return false;
+        float ow = (float) Math.max(Math.hypot(p[2] - p[0], p[3] - p[1]), Math.hypot(p[4] - p[6], p[5] - p[7]));
+        float oh = (float) Math.max(Math.hypot(p[6] - p[0], p[7] - p[1]), Math.hypot(p[4] - p[2], p[5] - p[3]));
+        return Math.max(ow, oh) <= 4 * Math.min(ow, oh);
     }
 
     /**
@@ -85,7 +150,7 @@ public final class QuadDetector {
      * cover a plausible part of the picture and be darker outside than inside along its sides (a page on a background,
      * not a table, box or photo printed on the page).
      */
-    public float[] detectImport(Bitmap b) { load(b); float[] q = importRun(); return q != null ? refine(b, q) : full(); }
+    public float[] detectImport(Bitmap b) { load(b); float[] q = importRun(); return q != null ? sharpen(b, q) : full(); }
 
     /** {@link #detectImport(Bitmap)} for a luma plane. */
     public float[] detectImport(byte[] luma, int stride, int width, int height) {
@@ -139,19 +204,33 @@ public final class QuadDetector {
         colour = true;
     }
 
+    /**
+     * Box-averaged small copy (like the camera path): a bilinear downscale by 3 or more samples only a few source pixels per
+     * output pixel, so text and paper grain alias into noise edges that the camera frames never show.
+     */
     private void load(Bitmap b) {
         int bw = b.getWidth(), bh = b.getHeight();
-        float k = Math.min(1f, TARGET / (float) Math.max(bw, bh));
-        int sw = Math.max(8, Math.round(bw * k)), sh = Math.max(8, Math.round(bh * k));
-        Bitmap s = Bitmap.createScaledBitmap(b, sw, sh, true);
-        int[] px = new int[sw * sh];
-        s.getPixels(px, 0, sw, 0, 0, sw, sh);
-        if (s != b) s.recycle();
+        int f = Math.max(1, (Math.max(bw, bh) + TARGET - 1) / TARGET);
+        int sw = (bw + f - 1) / f, sh = (bh + f - 1) / f;
         alloc(sw, sh);
-        for (int i = 0; i < px.length; i++) {
-            int c = px[i], r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, bl = c & 0xFF;
-            int y = (r * 77 + g * 150 + bl * 29) >> 8;
-            img[i] = y; cu[i] = ((bl - y) * 144) >> 8; cv[i] = ((r - y) * 183) >> 8;   // ≈ YUV scaling
+        sw = w; sh = h;
+        int[] row = new int[bw * f];
+        int[] sr = new int[sw], sg = new int[sw], sb = new int[sw], sn = new int[sw];
+        for (int y = 0; y < sh; y++) {
+            int y0 = y * f, rows = Math.min(f, bh - y0);
+            java.util.Arrays.fill(sr, 0); java.util.Arrays.fill(sg, 0); java.util.Arrays.fill(sb, 0); java.util.Arrays.fill(sn, 0);
+            if (rows > 0) {
+                b.getPixels(row, 0, bw, 0, y0, bw, rows);
+                for (int r = 0; r < rows; r++) for (int px = 0, o = r * bw; px < bw; px++) {
+                    int c = row[o + px], x = px / f;
+                    sr[x] += (c >> 16) & 0xFF; sg[x] += (c >> 8) & 0xFF; sb[x] += c & 0xFF; sn[x]++;
+                }
+            }
+            for (int x = 0; x < sw; x++) {
+                int n = Math.max(1, sn[x]), r = sr[x] / n, g = sg[x] / n, bl = sb[x] / n, i = y * sw + x;
+                int yy = (r * 77 + g * 150 + bl * 29) >> 8;
+                img[i] = yy; cu[i] = ((bl - yy) * 144) >> 8; cv[i] = ((r - yy) * 183) >> 8;   // ≈ YUV scaling
+            }
         }
         colour = true;
     }
@@ -501,14 +580,14 @@ public final class QuadDetector {
     /**
      * Refines a found outline (normalised, ordered) on the bitmap it came from: per side, at up to {@link #REFINE_SAMPLES}
      * points between 10 % and 90 % of its length, the strongest luma/chroma step on a short axis-aligned profile across the
-     * side (± two detection pixels); a weighted total-least-squares line through those steps (one outlier pass), then the
-     * corners re-intersected. A side without enough steps, or a corner moving too far, keeps the coarse outline.
+     * side (± {@code band} detection pixels); a weighted total-least-squares line through those steps (one outlier pass), then
+     * the corners re-intersected. A side without enough steps, or a corner moving too far, keeps the coarse outline.
      */
-    private float[] refine(Bitmap b, float[] qn) {
+    private float[] refine(Bitmap b, float[] qn, float band) {
         int bw = b.getWidth(), bh = b.getHeight();
         float s = Math.max(bw / (float) w, bh / (float) h);
         if (s < 1.5f) return qn;
-        int r = (int) Math.ceil(2 * s), len = 2 * r + 1;
+        int r = (int) Math.ceil(band * s), len = 2 * r + 1;
         int[] prof = new int[len + 2];
         float[] px = new float[REFINE_SAMPLES], py = new float[REFINE_SAMPLES], pw = new float[REFINE_SAMPLES];
         float[] c = new float[8];
@@ -552,7 +631,7 @@ public final class QuadDetector {
             if (Math.abs(det) < 0.25f) return qn;
             float t = ((lines[q] - lines[p]) * d2y - (lines[q + 1] - lines[p + 1]) * d2x) / det;
             float x = lines[p] + d1x * t, y = lines[p + 1] + d1y * t;
-            if (Math.hypot(x - c[i * 2], y - c[i * 2 + 1]) > 3 * s) return qn;
+            if (Math.hypot(x - c[i * 2], y - c[i * 2 + 1]) > 1.5f * band * s) return qn;
             out[i * 2] = clamp01(x / bw); out[i * 2 + 1] = clamp01(y / bh);
         }
         return out;

@@ -23,7 +23,8 @@ import java.util.List;
 public final class ScanSession {
     /** Preview renders (list, strip, filter choice) stay around this size. */
     static final long THUMB_PX = 360_000L;
-    private static final long DETECT_PX = 1_200_000L;
+    /** Outline search size: the detector works on a ~360 px copy; the sides are refined on this (~3 MP). */
+    private static final long DETECT_PX = 3_000_000L;
     /** Larger pictures are not copied in (the page is marked unreadable); decoding is sampled down anyway. */
     private static final long MAX_IMPORT_BYTES = 64L << 20;
     /** Pictures taken in at once (gallery pick or share); the rest is dropped with a notice. */
@@ -32,7 +33,7 @@ public final class ScanSession {
     private static final java.util.Set<String> LIVE = new java.util.HashSet<>();
 
     static final class Page {
-        final File file;
+        final File file;                      // the whole original picture; cropping happens on render, the file stays as taken
         float[] quad = QuadDetector.full();   // normalised, upright original; TL, TR, BR, BL
         int rotation;                         // clockwise, applied after straightening
         Imaging.Filter filter;
@@ -88,7 +89,7 @@ public final class ScanSession {
         render(p);
     }
 
-    /** Camera still: written to the cache on a background thread, then outlined. {@code hint} = live outline (may be null). */
+    /** Camera still: written to the cache on a background thread, then outlined. {@code hint} = live outline in the still's coordinates (may be null). */
     void addJpeg(byte[] jpeg, float[] hint) {
         Page p = new Page(newFile(), defaultFilter);
         pages.add(p);
@@ -141,19 +142,20 @@ public final class ScanSession {
     }
 
     /**
-     * Background: find the page outline on a ~1 MP copy, then render the preview. Imported pictures use the stricter
-     * {@link QuadDetector#detectImport} (they are often cropped already); camera stills fall back to the live outline.
+     * Background: find the page outline on a ~3 MP copy, then render the preview. Imported pictures use the stricter
+     * {@link QuadDetector#detectImport} (they are often cropped already); camera stills are searched with the live outline
+     * as a hint and fall back to it ({@link QuadDetector#detectStill}); with neither, the whole picture stays the page.
      */
     private void detect(Page p, float[] hint, boolean imported) {
         float[] q = null;
         try {
             Bitmap b = Imaging.decode(p.file, DETECT_PX);
-            try { QuadDetector d = new QuadDetector(); q = imported ? d.detectImport(b) : d.detect(b); } finally { b.recycle(); }
+            try { QuadDetector d = new QuadDetector(); q = imported ? d.detectImport(b) : d.detectStill(b, hint); } finally { b.recycle(); }
         } catch (Exception | OutOfMemoryError e) {
             c.ui.post(() -> markBroken(p));
             return;
         }
-        final float[] found = q != null ? q : hint;
+        final float[] found = q;
         c.ui.post(() -> {
             if (destroyed) return;
             if (found != null) p.quad = found;
@@ -243,6 +245,26 @@ public final class ScanSession {
         Job(Page p) { file = p.file; quad = p.quad.clone(); rotation = p.rotation; filter = p.filter; }
         /** Background: straightened, rotated and filtered, ≤ {@code maxPixels}; a new bitmap owned by the caller. */
         public Bitmap render(long maxPixels) throws IOException { return Imaging.render(file, quad, rotation, filter, maxPixels); }
+
+        /**
+         * Background: the whole original picture for text recognition (no crop, no filter), long side ≤ {@code maxSide},
+         * turned like the page; a new bitmap owned by the caller.
+         */
+        public Bitmap whole(int maxSide) throws IOException {
+            Bitmap b = Imaging.decode(file, Imaging.FULL);
+            int m = Math.max(b.getWidth(), b.getHeight());
+            if (m > maxSide) {
+                float k = maxSide / (float) m;
+                Bitmap s;
+                try { s = Bitmap.createScaledBitmap(b, Math.max(1, Math.round(b.getWidth() * k)), Math.max(1, Math.round(b.getHeight() * k)), true); }
+                catch (OutOfMemoryError e) { b.recycle(); throw e; }
+                if (s != b) { b.recycle(); b = s; }
+            }
+            Bitmap r;
+            try { r = Imaging.rotate(b, rotation); } catch (OutOfMemoryError e) { b.recycle(); throw e; }
+            if (r != b) b.recycle();
+            return r;
+        }
     }
 
     /** Main thread: the readable pages in order. */

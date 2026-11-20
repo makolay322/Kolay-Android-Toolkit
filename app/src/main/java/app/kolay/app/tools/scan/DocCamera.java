@@ -33,8 +33,12 @@ import java.util.List;
  */
 final class DocCamera {
     interface Listener {
-        /** Main thread. Detected page outline in upright, normalised preview coordinates (TL, TR, BR, BL), or null. */
-        void onQuad(float[] quad);
+        /**
+         * Main thread. Detected page outline in upright, normalised preview coordinates (TL, TR, BR, BL), or null; {@code motion}:
+         * how much the picture changed since the previous analysed frame (mean absolute luma difference of a coarse grid,
+         * global brightness change removed; 0 = still).
+         */
+        void onQuad(float[] quad, float motion);
         /** Main thread. A still requested with {@link #capture}; upright via EXIF/pixels. */
         void onJpeg(byte[] jpeg);
         /** Main thread. A capture did not produce an image. */
@@ -44,6 +48,7 @@ final class DocCamera {
     }
 
     private static final long MAX_JPEG_PX = 13_000_000L;
+    private static final int GW = 32, GH = 24;   // frame-difference grid
 
     private final TextureView tv;
     private final Listener l;
@@ -53,6 +58,7 @@ final class DocCamera {
     private final CameraCharacteristics ch;
     private final Size jpegSize, previewSize, analysisSize;
     private final int sensor;
+    private final float arrayAspect;   // active pixel array, sensor orientation; every stream is a centred crop of it
     private final boolean torchAble;
 
     private Run cur;            // main thread only
@@ -61,7 +67,7 @@ final class DocCamera {
     DocCamera(Activity a, TextureView tv, Listener l) {
         this.tv = tv; this.l = l;
         CameraManager m = null; String back = null; CameraCharacteristics c = null;
-        Size js = null, ps = null, as = null; boolean flash = false; int so = 90;
+        Size js = null, ps = null, as = null; boolean flash = false; int so = 90; float aa = 0;
         try {
             m = (CameraManager) a.getSystemService(Context.CAMERA_SERVICE);
             for (String cid : m.getCameraIdList()) {
@@ -84,9 +90,12 @@ final class DocCamera {
                 flash = f != null && f;
                 Integer o = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
                 if (o != null) so = o;
+                android.graphics.Rect arr = c.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                if (arr != null && arr.height() > 0) aa = arr.width() / (float) arr.height();
             }
         } catch (Exception ignored) { back = null; }
         cm = m; id = back; ch = c; jpegSize = js; previewSize = ps; analysisSize = as; torchAble = flash; sensor = so;
+        arrayAspect = aa > 0 ? aa : js != null ? js.getWidth() / (float) js.getHeight() : 4f / 3f;
 
         tv.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @Override public void onSurfaceTextureAvailable(SurfaceTexture st, int w, int hgt) { fit(w, hgt); if (cur != null) cur.open(); }
@@ -135,6 +144,29 @@ final class DocCamera {
         if (previewSize == null) return new float[]{3, 4};
         boolean swap = sensor % 180 == 90;
         return new float[]{swap ? previewSize.getHeight() : previewSize.getWidth(), swap ? previewSize.getWidth() : previewSize.getHeight()};
+    }
+
+    /**
+     * The live outline (upright, normalised preview coordinates) in the coordinates of a still taken with
+     * {@code deviceRotation}: preview and still are centred crops of the sensor with possibly different aspects, so the
+     * preview's crop is mapped into the still's first; then turned like the still. Null in, null out.
+     */
+    float[] toStill(float[] q, int deviceRotation) {
+        if (q == null) return null;
+        float[] r = q.clone();
+        if (previewSize != null && jpegSize != null) {
+            float ap = previewSize.getWidth() / (float) previewSize.getHeight(), aj = jpegSize.getWidth() / (float) jpegSize.getHeight();
+            // share of the sensor width / height each stream covers (sensor orientation)
+            float pw = Math.min(1, ap / arrayAspect), ph = Math.min(1, arrayAspect / ap);
+            float jw = Math.min(1, aj / arrayAspect), jh = Math.min(1, arrayAspect / aj);
+            float kx = pw / jw, ky = ph / jh;
+            if (sensor % 180 == 90) { float t = kx; kx = ky; ky = t; }   // upright x runs along the sensor's y
+            for (int i = 0; i < 8; i += 2) {
+                r[i] = Math.max(0, Math.min(1, 0.5f + (r[i] - 0.5f) * kx));
+                r[i + 1] = Math.max(0, Math.min(1, 0.5f + (r[i + 1] - 0.5f) * ky));
+            }
+        }
+        return QuadDetector.rotate(r, deviceRotation);
     }
 
     /** Whole frame visible (letterbox): the SurfaceTexture is stretched to the view; undo that and scale to fit inside. */
@@ -200,6 +232,8 @@ final class DocCamera {
         private boolean wantTorch, withAnalysis = analysisSize != null;
         private long lastDetect;
         private byte[] frame, fu, fv;   // Y / U / V copies of the analysed frame, reused (detection thread only)
+        private final int[] grid = new int[GW * GH], prevGrid = new int[GW * GH];
+        private boolean hasPrev;
         private volatile int shots;
 
         Run() { th.start(); dth.start(); h = new Handler(th.getLooper()); dh = new Handler(dth.getLooper()); }
@@ -262,7 +296,7 @@ final class DocCamera {
                             if (withAnalysis && alive) {   // retry without the live-detection stream
                                 withAnalysis = false;
                                 if (yuv != null) { yuv.close(); yuv = null; }
-                                main.post(() -> { if (cur == Run.this) l.onQuad(null); });
+                                main.post(() -> { if (cur == Run.this) l.onQuad(null, 0); });
                                 createSession();
                             } else fail(Run.this, "Kamera başlatılamadı.");
                         }
@@ -365,14 +399,40 @@ final class DocCamera {
                 }
                 img.close(); img = null;   // free the buffer before the (longer) analysis
                 if (len < stride * (hgt - 1) + w) return;
+                float motion = motion(frame, stride, w, hgt);
                 float[] q = QuadDetector.rotate(chroma ? detector.detect(frame, stride, fu, fv, urs, ups, w, hgt)
                     : detector.detect(frame, stride, w, hgt), sensor);
-                main.post(() -> { if (cur == this) l.onQuad(q); });
+                main.post(() -> { if (cur == this) l.onQuad(q, motion); });
             } catch (Exception ignored) {
                 // a bad frame must not end scanning
             } finally {
                 if (img != null) img.close();
             }
+        }
+
+        /**
+         * Frame difference against the previous analysed frame on a {@link #GW} × {@link #GH} grid of cell means (sampled
+         * every other pixel): mean |difference − mean difference|, so an exposure change alone does not count as motion.
+         */
+        private float motion(byte[] y, int stride, int w, int hgt) {
+            int cw = w / GW, chh = hgt / GH;
+            if (cw < 2 || chh < 2) return 0;
+            for (int gy = 0; gy < GH; gy++) for (int gx = 0; gx < GW; gx++) {
+                int sum = 0, n = 0;
+                for (int yy = gy * chh; yy < (gy + 1) * chh; yy += 2) for (int xx = gx * cw, o = yy * stride; xx < (gx + 1) * cw; xx += 2) { sum += y[o + xx] & 0xFF; n++; }
+                grid[gy * GW + gx] = sum / n;
+            }
+            float out = 0;
+            if (hasPrev) {
+                int total = 0;
+                for (int i = 0; i < grid.length; i++) total += grid[i] - prevGrid[i];
+                float mean = total / (float) grid.length, dev = 0;
+                for (int i = 0; i < grid.length; i++) dev += Math.abs(grid[i] - prevGrid[i] - mean);
+                out = dev / grid.length;
+            }
+            System.arraycopy(grid, 0, prevGrid, 0, grid.length);
+            hasPrev = true;
+            return out;
         }
 
         void close() {

@@ -9,6 +9,13 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Belge tarayıcı: otomatik çekim, daha tutarlı kenar tespiti, OCR tüm sayfa
+- **Otomatik çekim artık varsayılan olarak açık** (kamera ekranındaki düğmeyle kapatılabilir, seçim hatırlanır; deklanşör yine çalışır). Sayfa bulunup köşeler, görüntü ve (varsa) jiroskop yaklaşık 0,8 sn sabit kalınca kendiliğinden çeker; bu sırada çerçeve yeşile döner ve ortasında dolan bir halka görünür. Aynı sayfa iki kez çekilmez: sonraki çekim için sayfanın görüntüden çıkması ya da belirgin biçimde yer değiştirmesi gerekir.
+- **Kenar tespiti çekilen fotoğrafın kendisinde** yapılır ve köşeler iki aşamada fotoğraf üzerinde inceltilir; canlı önizlemede bulunan çerçeve ipucu olarak kullanılır, ikisi uyuşmazsa fotoğrafın kenarlarına daha iyi oturan seçilir. Sonuç ayrıca denetlenir (dışbükey, yeterli alan, makul açı ve en-boy). Bulunamazsa önizleme çerçevesi, o da yoksa tüm fotoğraf kullanılır.
+- Önizleme ile fotoğrafın en-boy oranı farklı olduğunda önizleme çerçevesi artık fotoğrafa doğru taşınıyor; sayfa 45° civarında durduğunda canlı çerçevenin köşeleri karışmıyor; tespit için küçültme artık blok ortalamasıyla yapılıyor (yazı gürültüsü daha az).
+- **Kırp:** köşe tutulduğu yerden sürüklenir (parmağın altına sıçramaz); bir köşe komşusunun ötesine çekilirse bırakınca köşeler yeniden sıralanır (çapraz ya da aynalanmış çerçeve kalmaz).
+- **Metne çevir** ve **Tıbbi rapor** artık kırpılmış sayfayı değil, her sayfanın kırpılmamış özgün fotoğrafının tamamını (gri tonlamalı) Tesseract'a gönderir; yanlış bir çerçeve metni kesemez. Aranabilir PDF'teki metin katmanı kaydedilen sayfayla hizalı kalsın diye kırpılmış sayfadan okunmaya devam eder.
+
 ### Düzeltildi — Gemini/YouTube geçici 503 hatası
 - Gemini veya YouTube geçici olarak 500/502/503/504 dönerse istek bekleyip otomatik yeniden denenir (Gemini'de son denemede `gemini-flash-latest` modeli); hâlâ yoğunsa mesaj "Gemini şu an yoğun" olarak daha anlaşılır gösterilir.
 

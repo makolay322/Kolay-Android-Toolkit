@@ -9,6 +9,11 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.SystemClock;
 import android.provider.Settings;
@@ -20,13 +25,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * First page of the scanner: live camera with the detected page outline, manual shutter, optional auto capture (outline
- * steady for ~1 s), torch, gallery import and a strip of the pages so far. A source of the documents flow: leaving it keeps the pages ({@link DocsScreen} owns them).
+ * First page of the scanner: live camera with the detected page outline, manual shutter, auto capture (on by default: the
+ * outline and the picture hold still for {@link #STEADY_MS}, a ring fills meanwhile; the next page only after the outline was
+ * lost or moved), torch, gallery import and a strip of the pages so far. A source of the documents flow: leaving it keeps the pages ({@link DocsScreen} owns them).
  * The camera runs only while this screen is on top and the app is in the foreground.
  */
 final class CameraScreen extends Screen implements DocCamera.Listener {
     private static final int REQ_CAMERA = 73, REQ_GALLERY = 74;
-    private static final long STEADY_MS = 1000, COOLDOWN_MS = 1500;
+    private static final long STEADY_MS = 800, COOLDOWN_MS = 1500;
+    /**
+     * Steadiness: raw corners within {@link #STEADY_TOL} (normalised) of where the steady stretch began, frame difference
+     * below {@link #FRAME_MOTION} (grey levels) and, where there is a gyroscope, rotation below {@link #GYRO_MOTION} rad/s.
+     * After a shot the outline must be lost or move by {@link #REARM} before the next one.
+     */
+    private static final float STEADY_TOL = 0.02f, FRAME_MOTION = 6f, GYRO_MOTION = 0.25f, REARM = 0.12f, OUTLIER = 0.08f;
 
     private final ScanSession s;
     private DocCamera cam;
@@ -41,17 +53,28 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
     private OrientationEventListener orient;
     private int deviceRotation;
     private boolean shown, asked, away, autoOn, armed = true;
-    private long steadySince, lastShot;
+    private long steadySince, movedAt, lastShot;     // steadySince: start of the current still stretch of the corners, 0 = none
     private float[] smooth, shotQuad, pendingHint;   // smooth: the stabiliser's shown outline (its array) or null
     private final QuadStabilizer stab = new QuadStabilizer();
-    private final float[] lastShown = new float[8];
+    private final float[] anchor = new float[8], aligned = new float[8];
     private boolean shooting;
+    private SensorManager sensors;
+    private Sensor gyro;
+    private final SensorEventListener gyroListener = new SensorEventListener() {
+        @Override public void onSensorChanged(SensorEvent e) {
+            float x = e.values[0], y = e.values[1], z = e.values[2];
+            if (x * x + y * y + z * z > GYRO_MOTION * GYRO_MOTION) movedAt = SystemClock.uptimeMillis();
+        }
+        @Override public void onAccuracyChanged(Sensor sn, int a) { }
+    };
 
     CameraScreen(ScanSession s) { this.s = s; }
 
     @Override public View create() {
         Palette p = c.p;
-        autoOn = c.a.getSharedPreferences("scan", 0).getBoolean("auto", false);
+        autoOn = c.a.getSharedPreferences("scan", 0).getBoolean("auto", true);
+        sensors = (SensorManager) c.a.getSystemService(android.content.Context.SENSOR_SERVICE);
+        gyro = sensors == null ? null : sensors.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         LinearLayout page = new LinearLayout(c.a);
         page.setOrientation(LinearLayout.VERTICAL);
         header = new Header(c, "Belge Tarayıcı", subtitle(), this::back);
@@ -254,7 +277,8 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         cam.stop();
         paintTorch(false);
         if (orient != null) orient.disable();
-        stab.reset(); smooth = null; shooting = false;
+        if (gyro != null) sensors.unregisterListener(gyroListener);
+        stab.reset(); smooth = null; shooting = false; steadySince = 0;
         overlay.invalidate();
     }
 
@@ -272,6 +296,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
                 }
             };
             if (orient.canDetectOrientation()) orient.enable();
+            if (gyro != null) sensors.registerListener(gyroListener, gyro, SensorManager.SENSOR_DELAY_UI);
             hint.setText("Sayfa aranıyor…");
             cam.start();
         } else if (!asked) {
@@ -301,26 +326,37 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
 
     // ---- camera callbacks -----------------------------------------------------------------------------------
 
-    @Override public void onQuad(float[] q) {
+    @Override public void onQuad(float[] q, float motion) {
         long now = SystemClock.uptimeMillis();
+        if (motion > FRAME_MOTION) movedAt = now;
         float[] m = stab.update(q, now);   // median of recent frames; held briefly through failed frames
         if (m == null) {
             if (smooth != null) {
-                smooth = null; steadySince = 0; armed = true;
+                smooth = null; steadySince = 0; armed = true;   // the page left the picture: the next one may be shot
                 if (!shooting) hint.setText("Sayfa aranıyor…");
             }
             overlay.invalidate();
             return;
         }
-        if (smooth == null || QuadStabilizer.dist(m, lastShown) > 0.025f) steadySince = now;
-        System.arraycopy(m, 0, lastShown, 0, 8);
         smooth = m;
-        if (!armed && shotQuad != null && QuadStabilizer.dist(m, shotQuad) > 0.12f) armed = true;   // a new page was put down
+        if (!armed && shotQuad != null && QuadStabilizer.dist(m, shotQuad) > REARM) armed = true;   // a new page was put down
+        if (q != null) {   // the raw corners show the hand's tremor that the median hides; a one-off odd frame is ignored
+            QuadStabilizer.align(q, m, aligned);
+            if (QuadStabilizer.dist(aligned, m) <= OUTLIER && (steadySince == 0 || QuadStabilizer.dist(aligned, anchor) > STEADY_TOL)) {
+                steadySince = now;
+                System.arraycopy(aligned, 0, anchor, 0, 8);
+            }
+        }
         overlay.invalidate();
         if (shooting || q == null) return;   // a held outline neither shoots nor changes the hint
-        long steady = now - steadySince;
-        if (autoOn && armed && steady >= STEADY_MS && now - lastShot > COOLDOWN_MS) { shoot(true); return; }
+        if (autoOn && armed && steadyFor(now) >= STEADY_MS && now - lastShot > COOLDOWN_MS) { shoot(true); return; }
         hint.setText(autoOn ? (armed ? "Sabit tut…" : "Sonraki sayfayı yerleştir") : "Sayfa bulundu");
+    }
+
+    /** How long the outline and the picture have been still (0 when not). */
+    private long steadyFor(long now) {
+        if (steadySince == 0) return 0;
+        return Math.max(0, now - Math.max(steadySince, movedAt));
     }
 
     private void shoot(boolean auto) {
@@ -330,7 +366,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         armed = false;
         lastShot = SystemClock.uptimeMillis();
         // the still is turned by the phone's rotation relative to the (portrait) preview; turn the live outline along
-        pendingHint = smooth == null ? null : app.kolay.app.doc.QuadDetector.rotate(smooth, deviceRotation);
+        pendingHint = cam.toStill(smooth, deviceRotation);
         shotQuad = smooth == null ? null : smooth.clone();
         hint.setText("Çekiliyor…");
         Ui.haptic(overlay, HapticFeedbackConstants.VIRTUAL_KEY);
@@ -403,14 +439,18 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
 
     /** The detected outline over the preview (letterboxed like the preview itself). */
     private final class Overlay extends View {
-        private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG), fill = new Paint(Paint.ANTI_ALIAS_FLAG), bars = new Paint();
+        private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG), fill = new Paint(Paint.ANTI_ALIAS_FLAG), bars = new Paint(),
+            track = new Paint(Paint.ANTI_ALIAS_FLAG), arc = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path path = new Path();
+        private final RectF ring = new RectF();
         Overlay() {
             super(c.a);
             stroke.setStyle(Paint.Style.STROKE); stroke.setStrokeWidth(c.dp(3)); stroke.setStrokeJoin(Paint.Join.ROUND);
             stroke.setColor(c.p.primary);
             fill.setColor((c.p.primary & 0x00FFFFFF) | 0x33000000);
             bars.setColor(Color.BLACK);
+            track.setStyle(Paint.Style.STROKE); track.setStrokeWidth(c.dp(5)); track.setColor(0x66FFFFFF);
+            arc.setStyle(Paint.Style.STROKE); arc.setStrokeWidth(c.dp(5)); arc.setStrokeCap(Paint.Cap.ROUND); arc.setColor(c.p.ok);
         }
         @Override protected void onDraw(Canvas cv) {
             float vw = getWidth(), vh = getHeight();
@@ -429,10 +469,17 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
                 if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
             }
             path.close();
-            boolean steady = autoOn && armed && steadySince != 0 && SystemClock.uptimeMillis() - steadySince > STEADY_MS / 2;
-            stroke.setColor(steady ? c.p.ok : c.p.primary);
+            // auto capture: the outline turns green while it holds still and a ring in its middle fills up to the shot
+            float f = autoOn && armed && !shooting ? Math.min(1f, steadyFor(SystemClock.uptimeMillis()) / (float) STEADY_MS) : 0f;
+            stroke.setColor(f >= 0.25f ? c.p.ok : c.p.primary);
             cv.drawPath(path, fill);
             cv.drawPath(path, stroke);
+            if (f < 0.1f) { if (f > 0) postInvalidateOnAnimation(); return; }
+            float cx = ox + (q[0] + q[2] + q[4] + q[6]) / 4 * w, cy = oy + (q[1] + q[3] + q[5] + q[7]) / 4 * h, r = c.dp(22);
+            ring.set(cx - r, cy - r, cx + r, cy + r);
+            cv.drawOval(ring, track);
+            cv.drawArc(ring, -90, 360 * f, false, arc);
+            if (f < 1) postInvalidateOnAnimation();
         }
     }
 

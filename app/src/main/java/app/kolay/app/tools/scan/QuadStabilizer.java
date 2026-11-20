@@ -4,6 +4,8 @@ package app.kolay.app.tools.scan;
  * Steadies the live page outline (normalised 8-float quads, UI thread only, no allocation per frame): per-coordinate median
  * of the last {@link #N} agreeing frames, shown once {@link #MIN} of them arrived; held for {@link #HOLD_MS} when frames
  * fail or disagree once; restarted when the outline moves by more than {@link #JUMP} in two frames running (a new page).
+ * Each frame's corners are first turned (cyclically) to match the shown outline: a page lying near 45° can come out of the
+ * detector starting at a different corner from frame to frame, and a median across mixed corners would be garbage.
  */
 final class QuadStabilizer {
     private static final int N = 5, MIN = 3;
@@ -11,12 +13,13 @@ final class QuadStabilizer {
     private static final float JUMP = 0.08f;
 
     private final float[][] ring = new float[N][8];
-    private final float[] out = new float[8], col = new float[N];
+    private final float[] out = new float[8], col = new float[N], al = new float[8];
     private int count, next, misses;
     private long lastSeen;
 
     /** One detection result (null = nothing found); returns the outline to show (reused array) or null. */
     float[] update(float[] q, long now) {
+        if (q != null && count > 0) { align(q, out, al); q = al; }
         if (q != null && count > 0 && dist(q, out) > JUMP && ++misses < 2) q = null;   // one odd frame: hold
         if (q == null) {
             if (count > 0 && now - lastSeen > HOLD_MS) reset();
@@ -44,9 +47,25 @@ final class QuadStabilizer {
 
     private float[] shown() { return count >= MIN ? out : null; }
 
+    /** {@code q} with its corners shifted cyclically to lie closest to {@code ref}, into {@code dst}. */
+    static void align(float[] q, float[] ref, float[] dst) {
+        int best = 0; float bestD = Float.MAX_VALUE;
+        for (int s = 0; s < 4; s++) {
+            float m = 0;
+            for (int i = 0; i < 8; i++) m = Math.max(m, Math.abs(q[(i + 2 * s) % 8] - ref[i]));
+            if (m < bestD) { bestD = m; best = s; }
+        }
+        for (int i = 0; i < 8; i++) dst[i] = q[(i + 2 * best) % 8];
+    }
+
+    /** Largest corner coordinate difference, over the cyclic corner shifts (the same outline started at another corner is 0). */
     static float dist(float[] a, float[] b) {
-        float m = 0;
-        for (int i = 0; i < 8; i++) m = Math.max(m, Math.abs(a[i] - b[i]));
-        return m;
+        float best = Float.MAX_VALUE;
+        for (int s = 0; s < 4; s++) {
+            float m = 0;
+            for (int i = 0; i < 8; i++) m = Math.max(m, Math.abs(a[(i + 2 * s) % 8] - b[i]));
+            best = Math.min(best, m);
+        }
+        return best;
     }
 }
