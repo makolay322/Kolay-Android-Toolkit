@@ -32,7 +32,7 @@ import java.util.List;
  */
 final class CameraScreen extends Screen implements DocCamera.Listener {
     private static final int REQ_CAMERA = 73, REQ_GALLERY = 74;
-    private static final long STEADY_MS = 800, COOLDOWN_MS = 1500;
+    private static final long STEADY_MS = 300, COOLDOWN_MS = 1500;
     /**
      * Steadiness: raw corners within {@link #STEADY_TOL} (normalised) of where the steady stretch began, frame difference
      * below {@link #FRAME_MOTION} (grey levels) and, where there is a gyroscope, rotation below {@link #GYRO_MOTION} rad/s.
@@ -86,6 +86,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
         Ui.surface(c, cameraCard, p.surface2, 22, false);
         cameraCard.setClipToOutline(true);
         TextureView tv = new TextureView(c.a);
+        tv.setKeepScreenOn(true);   // no auto screen-off while the scanner is on screen
         cameraCard.addView(tv, new FrameLayout.LayoutParams(-1, -1));
         cam = new DocCamera(c.a, tv, this);
         overlay = new Overlay();
