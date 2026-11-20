@@ -21,32 +21,23 @@ import java.util.Set;
 final class SmbUi {
     private SmbUi() {}
 
-    /** Adds the section (label, one row per server, "Sunucu ekle", "Ağda ara") to {@code col}; {@code refresh} rebuilds the page. */
+    /** Adds the section (label, one row per server with a ⋮ menu, one "Sunucu ekle" row) to {@code col}; {@code refresh} rebuilds the page. */
     static void section(Ctx c, LinearLayout col, Runnable refresh) {
         col.addView(Ui.label(c, "AĞ"), Ui.lp(-1, -2, c.dp(4), c.dp(14), 0, c.dp(8)));
         for (SmbSource.Server s : SmbServers.all(c)) {
             String sub = "smb://" + s.host + (s.port != 445 ? ":" + s.port : "") + " · " + (s.guest ? "misafir" : s.user.isEmpty() ? "kullanıcısız" : s.user);
             LinearLayout r = Ui.navRow(c, Icon.Kind.NETSCAN, s.name, sub, 2, () -> c.nav.push(new BrowserScreen(SmbServers.source(s), "/", s.name)));
-            r.setOnLongClickListener(v -> {
+            FilesScreen.trailing(c, r, Icon.Kind.MORE, "Sunucu seçenekleri", () ->
                 Sheet.menu(c, s.name, new String[]{"Düzenle", "Sil"}, new Icon.Kind[]{Icon.Kind.SETTINGS, Icon.Kind.TRASH}, k -> {
                     if (k == 0) form(c, s, null, null, refresh);
                     else Sheet.confirm(c, "Sunucu silinsin mi?", "“" + s.name + "” ve kayıtlı parolası telefondan silinir. Sunucudaki dosyalara dokunulmaz.", "Sil", true,
                         () -> { SmbServers.delete(c, s.id); refresh.run(); });
-                });
-                return true;
-            });
+                }));
             col.addView(r, Ui.lp(-1, c.dp(68), 0, 0, 0, c.dp(Ui.GAP)));
         }
-        LinearLayout row = new LinearLayout(c.a);
-        TextView add = Ui.button(c, "Sunucu ekle", Ui.Style.TONAL, Icon.Kind.PLUS);
-        add.setOnClickListener(v -> form(c, null, null, null, refresh));
-        TextView find = Ui.button(c, "Ağda ara", Ui.Style.TONAL, Icon.Kind.SEARCH);
-        find.setOnClickListener(v -> discover(c, refresh));
-        row.addView(add, new LinearLayout.LayoutParams(0, c.dp(Ui.H_GHOST), 1));
-        LinearLayout.LayoutParams fl = new LinearLayout.LayoutParams(0, c.dp(Ui.H_GHOST), 1);
-        fl.setMarginStart(c.dp(Ui.GAP));
-        row.addView(find, fl);
-        col.addView(row, Ui.lp(-1, -2));
+        col.addView(Ui.navRow(c, Icon.Kind.PLUS, "Sunucu ekle", "Elle ekle ya da ağda ara", 2, () ->
+            Sheet.menu(c, "Sunucu ekle", new String[]{"Elle ekle", "Ağda ara"}, new Icon.Kind[]{Icon.Kind.PLUS, Icon.Kind.SEARCH},
+                k -> { if (k == 0) form(c, null, null, null, refresh); else discover(c, refresh); })), Ui.lp(-1, c.dp(68)));
     }
 
     // ------------------------------------------------------------ add / edit

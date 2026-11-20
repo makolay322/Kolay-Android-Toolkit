@@ -1,5 +1,7 @@
 package app.kolay.app.tools.files;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.Editable;
@@ -63,17 +65,16 @@ final class BrowserScreen extends Screen {
     private int sort; private boolean asc, grid, hidden;
 
     // search
-    private boolean searching, recursive;
+    private boolean searching, recursive;   // recursive: the sub-folder search results are showing
     private String query = "";
     private AtomicBoolean searchStop;
     private final List<FileItem> hits = new ArrayList<>();
 
-    private LinearLayout page, crumbs, searchBar, bottom;
+    private LinearLayout page, crumbs, searchBar, subSearch, bottom;
     private FrameLayout headSlot, content;
     private HorizontalScrollView crumbScroll;
     private GridView list;
     private Adapter adapter;
-    private TextView stopBtn;
 
     /** Browse a folder. */
     BrowserScreen(String path) { this(LocalSource.INSTANCE, path, null); }
@@ -93,9 +94,6 @@ final class BrowserScreen extends Screen {
 
     /** A server's share list: shares cannot be selected, deleted or written into. */
     private boolean atServerRoot() { return !local() && "/".equals(path); }
-
-    /** Local paths among {@code paths} (for the media index; network paths are not indexed). */
-    private static List<String> localOnly(FileSource s, List<String> paths) { return s == LocalSource.INSTANCE ? paths : new ArrayList<>(); }
 
     @Override public View create() {
         SharedPreferences pr = Files.prefs(c.a);
@@ -150,9 +148,14 @@ final class BrowserScreen extends Screen {
         LinearLayout t = new LinearLayout(c.a);
         if (!sel.isEmpty()) {
             t.addView(Ui.iconButton(c, Icon.Kind.CHECK, "Tümünü seç", this::selectAll));
-            t.addView(gap(Ui.iconButton(c, Icon.Kind.MORE, "Diğer işlemler", this::selectionMenu)));
         } else {
-            t.addView(Ui.iconButton(c, Icon.Kind.SEARCH, "Ara", this::openSearch));
+            if (searchStop != null && !searchStop.get()) {
+                TextView stop = Ui.button(c, "Durdur", Ui.Style.GHOST, null);
+                stop.setTextSize(14);
+                stop.setOnClickListener(v -> stopSearch());
+                t.addView(stop, new LinearLayout.LayoutParams(-2, c.dp(40)));
+            }
+            t.addView(gap(Ui.iconButton(c, Icon.Kind.SEARCH, "Ara", this::openSearch)));
             t.addView(gap(Ui.iconButton(c, Icon.Kind.MORE, "Seçenekler", this::folderMenu)));
         }
         trailing = t;
@@ -215,19 +218,23 @@ final class BrowserScreen extends Screen {
             row.addView(action(Icon.Kind.CUT, "Taşı", () -> toClip(true)), new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(action(Icon.Kind.SHARE, "Paylaş", () -> { if (local()) Files.share(c, selected()); else Files.toast(c, "Ağdaki dosyalar doğrudan paylaşılamaz; önce telefona kopyala"); }), new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(action(Icon.Kind.TRASH, "Sil", this::askDelete), new LinearLayout.LayoutParams(0, -2, 1));
+            row.addView(action(Icon.Kind.MORE, "Diğer", this::selectionMenu), new LinearLayout.LayoutParams(0, -2, 1));
             row.setPadding(c.dp(6), c.dp(4), c.dp(6), c.dp(4));
             Ui.surface(c, row, c.p.surface, 22, true);   // floating action bar over the list
             row.setClickable(false);
             bottom.addView(row);
             bottom.setVisibility(View.VISIBLE);
-        } else if (!Files.clip.isEmpty() && dirMode() && !atServerRoot()) {
-            TextView info = Ui.text(c, Files.clip.size() + " öğe " + (Files.clipCut ? "taşınacak" : "kopyalanacak") + " — hedef klasörü aç", 13, c.p.muted, 500);
+        } else if (!Files.clip.isEmpty() && !atServerRoot()) {
+            String what = Files.clip.size() + " öğe " + (Files.clipCut ? "taşınacak" : "kopyalanacak");
+            TextView info = Ui.text(c, dirMode() ? what : "Yapıştırmak için bir klasör aç", 13, c.p.muted, 500);
             bottom.addView(info, Ui.lp(-1, -2, c.dp(4), 0, 0, c.dp(8)));
             TextView cancel = Ui.button(c, "Vazgeç", Ui.Style.GHOST, null);
             cancel.setOnClickListener(v -> { Files.clip.clear(); bottomBar(); });
-            TextView paste = Ui.button(c, "Buraya yapıştır", Ui.Style.PRIMARY, Icon.Kind.PASTE);
-            paste.setOnClickListener(v -> paste());
-            bottom.addView(Ui.pair(c, cancel, paste, Ui.H_GHOST));
+            if (dirMode()) {
+                TextView paste = Ui.button(c, "Buraya yapıştır", Ui.Style.PRIMARY, Icon.Kind.PASTE);
+                paste.setOnClickListener(v -> paste());
+                bottom.addView(Ui.pair(c, cancel, paste, Ui.H_GHOST));
+            } else bottom.addView(cancel, Ui.lp(-1, c.dp(Ui.H_GHOST)));
             bottom.setVisibility(View.VISIBLE);
         } else bottom.setVisibility(View.GONE);
     }
@@ -314,8 +321,9 @@ final class BrowserScreen extends Screen {
             : Ui.state(c, Icon.Kind.NETSCAN, "Sunucuya erişilemedi", error.isEmpty() ? "Bağlantı kurulamadı." : error, "Tekrar dene", this::load));
         else if (shown.isEmpty() && !(searching && recursive && searchStop != null && !searchStop.get()))
             showState(Ui.state(c, searching ? Icon.Kind.SEARCH : Icon.Kind.FOLDER, searching ? "Sonuç yok" : "Boş klasör",
-                searching ? "Bu ada uyan dosya bulunamadı." : hidden || items.isEmpty() ? null : "Gizli dosyalar var; Seçenekler → Gizli dosyaları göster.", null, null));
+                searching ? "Bu ada uyan dosya bulunamadı." : hidden || items.isEmpty() ? null : "Gizli dosyalar var; Seçenekler → Sırala ve görünüm → Gizli dosyaları göster.", null, null));
         else showState(null);
+        updateSubSearch();
         header();
     }
 
@@ -333,11 +341,6 @@ final class BrowserScreen extends Screen {
         if (!sel.isEmpty()) { toggle(it); return; }
         if (it.dir) {
             if (dirMode()) navigate(it.path); else c.nav.push(new BrowserScreen(it.path));
-            return;
-        }
-        if (Files.isZip(it.name)) {
-            Sheet.menu(c, it.name, new String[]{"Buraya çıkart", "Birlikte aç"}, new Icon.Kind[]{Icon.Kind.DOWNLOAD, Icon.Kind.LINK},
-                k -> { if (k == 0) extract(it); else Files.openWith(c, src, it); });
             return;
         }
         Files.open(c, src, it);
@@ -380,28 +383,35 @@ final class BrowserScreen extends Screen {
 
     private void folderMenu() {
         List<String> labels = new ArrayList<>(); List<Icon.Kind> icons = new ArrayList<>(); List<Runnable> acts = new ArrayList<>();
-        if (dirMode() && !atServerRoot()) { labels.add("Yeni klasör"); icons.add(Icon.Kind.PLUS); acts.add(this::newFolder); }
-        labels.add("Sırala: " + SORTS[sort] + (asc ? " ↑" : " ↓")); icons.add(Icon.Kind.SETTINGS); acts.add(this::sortMenu);
-        labels.add(grid ? "Liste görünümü" : "Izgara görünümü"); icons.add(grid ? Icon.Kind.LIST : Icon.Kind.GRID);
-        acts.add(() -> { grid = !grid; Files.prefs(c.a).edit().putBoolean("grid", grid).apply(); applyLayoutMode(); });
-        labels.add(hidden ? "Gizli dosyaları gizle" : "Gizli dosyaları göster"); icons.add(Icon.Kind.LAYERS);
-        acts.add(() -> { hidden = !hidden; Files.prefs(c.a).edit().putBoolean("hidden", hidden).apply(); apply(); });
+        if (dirMode() && !atServerRoot()) { labels.add("Yeni…"); icons.add(Icon.Kind.PLUS); acts.add(this::newMenu); }
+        labels.add("Sırala ve görünüm"); icons.add(Icon.Kind.SETTINGS); acts.add(this::viewMenu);
         if (dirMode() && local()) {
             boolean marked = Files.bookmarks(c.a).contains(path);
             labels.add(marked ? "Yer imlerinden çıkar" : "Yer imlerine ekle"); icons.add(Icon.Kind.STAR);
             acts.add(() -> { Files.setBookmark(c.a, path, !marked); Files.toast(c, marked ? "Yer imi kaldırıldı" : "Yer imlerine eklendi"); });
         }
-        if (!shown.isEmpty() && !atServerRoot()) { labels.add("Seç"); icons.add(Icon.Kind.CHECK); acts.add(this::selectAll); }
         Sheet.menu(c, null, labels.toArray(new String[0]), icons.toArray(new Icon.Kind[0]), k -> acts.get(k).run());
     }
 
-    private void sortMenu() {
-        Sheet s = new Sheet(c, "Sırala");
+    private void newMenu() {
+        Sheet.menu(c, "Yeni", new String[]{"Klasör", "Boş metin dosyası"}, new Icon.Kind[]{Icon.Kind.FOLDER, Icon.Kind.DOC}, k -> { if (k == 0) newFolder(); else newTextFile(); });
+    }
+
+    /** Sort key, direction, list/grid and hidden files in one sheet. */
+    private void viewMenu() {
+        Sheet s = new Sheet(c, "Sırala ve görünüm");
         for (int i = 0; i < SORTS.length; i++) {
             final int k = i;
             s.row(SORTS[i], i == sort ? Icon.Kind.CHECK : null, false, () -> { sort = k; saveSort(); apply(); });
         }
         s.toggle("Azalan sıra", !asc, v -> { asc = !v; saveSort(); apply(); });
+        s.body.addView(Ui.segmented(c, new String[]{"Liste", "Izgara"}, new Icon.Kind[]{Icon.Kind.LIST, Icon.Kind.GRID}, grid ? 1 : 0, k -> {
+            grid = k == 1;
+            Files.prefs(c.a).edit().putBoolean("grid", grid).apply();
+            applyLayoutMode();
+            s.dismiss();
+        }), Ui.lp(-1, c.dp(44), 0, c.dp(8), 0, c.dp(4)));
+        s.toggle("Gizli dosyaları göster", hidden, v -> { hidden = v; Files.prefs(c.a).edit().putBoolean("hidden", hidden).apply(); apply(); });
         s.show();
     }
 
@@ -420,7 +430,13 @@ final class BrowserScreen extends Screen {
             acts.add(() -> { sel.clear(); header(); c.nav.push(new app.kolay.app.tools.pdfedit.PdfEditScreen(android.net.Uri.fromFile(new java.io.File(f.path)))); });
         }
         labels.add("Sıkıştır (ZIP)"); icons.add(Icon.Kind.LAYERS); acts.add(() -> zip(s));
-        if (one && !f.dir && Files.isZip(f.name)) { labels.add("Buraya çıkart"); icons.add(Icon.Kind.DOWNLOAD); acts.add(() -> extract(f)); }
+        if (one && !f.dir && Files.isZip(f.name)) {
+            labels.add("Buraya çıkart"); icons.add(Icon.Kind.DOWNLOAD); acts.add(() -> extract(f, FileSource.parent(f.path)));
+            if (local()) {
+                labels.add("Başka klasöre çıkart…"); icons.add(Icon.Kind.FOLDER);
+                acts.add(() -> c.nav.push(new FolderPicker("Çıkartılacak klasör", "Buraya çıkart", FileSource.parent(f.path), d -> extract(f, d))));
+            }
+        }
         if (one && f.dir && local()) {
             boolean marked = Files.bookmarks(c.a).contains(f.path);
             labels.add(marked ? "Yer imlerinden çıkar" : "Yer imlerine ekle"); icons.add(Icon.Kind.STAR);
@@ -451,31 +467,19 @@ final class BrowserScreen extends Screen {
         sel.clear();
         adapter.notifyDataSetChanged();
         header();
-        Files.toast(c, Files.clip.size() + " öğe seçildi — hedef klasörde “Buraya yapıştır”a dokun");
+        Files.toast(c, "Hedef klasörde Yapıştır'a dokun");
     }
 
     private void paste() {
-        List<String> what = new ArrayList<>(Files.clip);
-        boolean cut = Files.clipCut;
-        FileSource from = Files.clipSrc;
-        String to = path;
-        Files.clip.clear();
+        Paste.run(c, src, path, this::done);
         bottomBar();
-        Jobs.run(c, cut ? "Taşınıyor" : "Kopyalanıyor", cut ? "taşındı" : "kopyalandı",
-            (p, r) -> Ops.transfer(from, what, src, to, cut, r, p),
-            () -> {
-                List<String> changed = new ArrayList<>(localOnly(from, what));
-                changed.addAll(localOnly(src, Collections.singletonList(to)));
-                Files.rescan(c.a, changed);
-                done();
-            });
     }
 
     private void askDelete() {
         List<String> what = pathsOf(selected());
         String msg = what.size() == 1 ? "“" + FileSource.name(what.get(0)) + "” kalıcı olarak silinecek." : what.size() + " öğe kalıcı olarak silinecek.";
         Sheet.confirm(c, "Silinsin mi?", msg + " Bu işlem geri alınamaz (çöp kutusu yok).", "Sil", true,
-            () -> Jobs.run(c, "Siliniyor", "silindi", (p, r) -> Ops.delete(src, what, p), () -> { Files.rescan(c.a, localOnly(src, what)); done(); }));
+            () -> Jobs.run(c, "Siliniyor", "silindi", (p, r) -> Ops.delete(src, what, p), () -> { Files.rescan(c.a, Paste.localOnly(src, what)); done(); }));
     }
 
     private interface NetCall { String run() throws IOException; }
@@ -513,7 +517,7 @@ final class BrowserScreen extends Screen {
                 return null;
             }, "Yeniden adlandırılamadı", () -> {
                 List<String> changed = new ArrayList<>(); changed.add(f.path); changed.add(to);
-                Files.rescan(c.a, localOnly(src, changed));
+                Files.rescan(c.a, Paste.localOnly(src, changed));
                 done();
             });
         });
@@ -532,6 +536,13 @@ final class BrowserScreen extends Screen {
         });
     }
 
+    private void newTextFile() {
+        unique(path, "Yeni metin.txt", name -> {
+            String to = FileSource.child(path, name);
+            step(() -> { src.openWrite(to).close(); return null; }, "Dosya oluşturulamadı", () -> { Files.rescan(c.a, Paste.localOnly(src, Collections.singletonList(to))); load(); });
+        });
+    }
+
     private void zip(List<FileItem> s) {
         String dir = workDir();
         String base = s.size() == 1 ? s.get(0).name.replaceFirst("\\.[^.]+$", "") : (dirMode() ? folderTitle() : "Arşiv");
@@ -544,7 +555,7 @@ final class BrowserScreen extends Screen {
             if (local()) { try { if (src.stat(to) != null) return "Bu adda bir dosya zaten var"; } catch (IOException e) { return "Klasör okunamadı"; } }
             // network: the final rename refuses an existing name, so nothing is overwritten
             Jobs.run(c, "Sıkıştırılıyor", "sıkıştırıldı", (p, r) -> Ops.zip(src, what, to, p),
-                () -> { Files.rescan(c.a, localOnly(src, Collections.singletonList(to))); done(); });
+                () -> { Files.rescan(c.a, Paste.localOnly(src, Collections.singletonList(to))); done(); });
             return null;
         }));
     }
@@ -565,8 +576,8 @@ final class BrowserScreen extends Screen {
         });
     }
 
-    private void extract(FileItem f) {
-        String dir = FileSource.parent(f.path);
+    /** Unzips {@code f} into a new folder inside {@code dir}. */
+    private void extract(FileItem f, String dir) {
         unique(dir, f.name.replaceFirst("(?i)\\.zip$", ""), name -> {
             String target = FileSource.child(dir, name);
             Jobs.run(c, "Çıkartılıyor", "çıkartıldı", (p, r) -> Ops.unzip(src, f.path, target, p), () -> {
@@ -603,6 +614,11 @@ final class BrowserScreen extends Screen {
                 c.ui.post(() -> { if (!stop.get()) t.setText(txt); });
             });
         }
+        String full = where(s.size() == 1 ? f.path : FileSource.parent(f.path));
+        sh.row("Yolu kopyala", Icon.Kind.COPY, false, () -> {
+            ((ClipboardManager) c.a.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("yol", full));
+            Files.toast(c, "Yol kopyalandı");
+        });
         sh.show();
     }
 
@@ -624,25 +640,34 @@ final class BrowserScreen extends Screen {
             @Override public void onTextChanged(CharSequence s, int a, int b, int d) {}
             @Override public void afterTextChanged(Editable s) {
                 query = s.toString().trim();
-                if (!recursive) apply();
+                if (recursive) { recursive = false; stopSearch(); hits.clear(); }   // typing goes back to the live filter
+                apply();
             }
         });
-        e.setOnEditorActionListener((v, id, ev) -> { if (recursive) runSearch(); hideKeyboard(v); return true; });
-        LinearLayout row = new LinearLayout(c.a);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        TextView lab = Ui.text(c, "Alt klasörlerde de ara", 14, c.p.ink, 500);
-        row.addView(lab, new LinearLayout.LayoutParams(0, -2, 1));
-        stopBtn = Ui.button(c, "Durdur", Ui.Style.GHOST, null);
-        stopBtn.setTextSize(14);
-        stopBtn.setVisibility(View.GONE);
-        stopBtn.setOnClickListener(v -> stopSearch());
-        row.addView(stopBtn, new LinearLayout.LayoutParams(-2, c.dp(40)));
-        app.kolay.app.ui.Toggle tg = new app.kolay.app.ui.Toggle(c.a, c.p.track, c.p.primary, c.p.thumb, false);
-        tg.onChange(v -> { recursive = v; stopSearch(); hits.clear(); if (v && !query.isEmpty()) runSearch(); else apply(); });
-        row.addView(tg, new LinearLayout.LayoutParams(c.dp(52), c.dp(32)));
-        bar.addView(row, Ui.lp(-1, c.dp(44), c.dp(4), c.dp(4), 0, 0));
+        e.setOnEditorActionListener((v, id, ev) -> { hideKeyboard(v); return true; });
+        subSearch = new LinearLayout(c.a);
+        subSearch.setGravity(Gravity.CENTER_VERTICAL);
+        subSearch.setPadding(c.dp(12), 0, c.dp(12), 0);
+        subSearch.setBackground(Ui.ripple(c, 14));
+        subSearch.setClickable(true);
+        subSearch.addView(Ui.icon(c, Icon.Kind.SEARCH, c.p.primary, 20), new LinearLayout.LayoutParams(c.dp(20), c.dp(20)));
+        TextView lab = Ui.text(c, "", 15, c.p.ink, 600);
+        lab.setSingleLine(true); lab.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        subSearch.addView(lab, Ui.lp(0, -2, c.dp(12), 0, 0, 0));
+        ((LinearLayout.LayoutParams) lab.getLayoutParams()).weight = 1;
+        subSearch.setOnClickListener(v -> { hideKeyboard(v); recursive = true; runSearch(); });
+        subSearch.setVisibility(View.GONE);
+        bar.addView(subSearch, Ui.lp(-1, c.dp(48), 0, c.dp(4), 0, 0));
         bar.setTag(e);
         return bar;
+    }
+
+    /** The row under the search field that starts the sub-folder search for the typed text. */
+    private void updateSubSearch() {
+        if (subSearch == null) return;
+        boolean on = searching && dirMode() && !recursive && !query.isEmpty();
+        subSearch.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (on) ((TextView) subSearch.getChildAt(1)).setText("Alt klasörlerde ara: “" + query + "”");
     }
 
     private void openSearch() {
@@ -651,7 +676,6 @@ final class BrowserScreen extends Screen {
         searchBar.setVisibility(View.VISIBLE);
         EditText e = (EditText) searchBar.getTag();
         e.setHint(dirMode() ? "Bu klasörde ara" : "Listede ara");
-        searchBar.getChildAt(1).setVisibility(dirMode() ? View.VISIBLE : View.GONE);
         e.requestFocus();
         android.view.inputmethod.InputMethodManager im = c.a.getSystemService(android.view.inputmethod.InputMethodManager.class);
         if (im != null) im.showSoftInput(e, 0);
@@ -661,7 +685,7 @@ final class BrowserScreen extends Screen {
     private void closeSearch(boolean refresh) {
         if (!searching) return;
         stopSearch();
-        searching = false; query = ""; hits.clear();
+        searching = false; recursive = false; query = ""; hits.clear();
         EditText e = (EditText) searchBar.getTag();
         e.setText("");
         hideKeyboard(e);
@@ -680,7 +704,6 @@ final class BrowserScreen extends Screen {
         if (query.isEmpty()) { apply(); return; }
         AtomicBoolean stop = new AtomicBoolean();
         searchStop = stop;
-        stopBtn.setVisibility(View.VISIBLE);
         String q = query, dir = path;
         boolean hid = hidden;
         List<FileItem> buf = new ArrayList<>();
@@ -700,7 +723,6 @@ final class BrowserScreen extends Screen {
             c.ui.post(() -> {
                 if (searchStop != stop) return;
                 stop.set(true);
-                stopBtn.setVisibility(View.GONE);
                 flush.run();
             });
         });
@@ -709,7 +731,6 @@ final class BrowserScreen extends Screen {
     private void stopSearch() {
         if (searchStop != null) searchStop.set(true);
         searchStop = null;
-        if (stopBtn != null) stopBtn.setVisibility(View.GONE);
         header();
     }
 

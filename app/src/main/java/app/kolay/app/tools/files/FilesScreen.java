@@ -10,6 +10,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import app.kolay.app.ui.Ctx;
 import app.kolay.app.ui.Header;
 import app.kolay.app.ui.Icon;
 import app.kolay.app.ui.Screen;
@@ -18,11 +19,11 @@ import app.kolay.app.ui.Ui;
 import java.io.File;
 import java.util.List;
 
-/** "Dosyalar" start page: the all-files permission state, storage volumes, network (Samba) servers, categories, bookmarks and recent files. */
+/** "Dosyalar" start page: the all-files permission state, storage volumes, categories, bookmarks, network (Samba) servers and recent files; a paste bar while the clipboard holds items. */
 final class FilesScreen extends Screen {
     private static final long DAY = 24L * 3600 * 1000;
     private LinearLayout col;
-    private LinearLayout recent;
+    private LinearLayout recent, bottom;
     private int gen;
 
     @Override public View create() {
@@ -36,6 +37,8 @@ final class FilesScreen extends Screen {
         sv.setVerticalScrollBarEnabled(false);
         sv.addView(col);
         page.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
+        bottom = Ui.bottomBar(c);
+        page.addView(bottom, Ui.lp(-1, -2));
         build();
         return page;
     }
@@ -48,6 +51,7 @@ final class FilesScreen extends Screen {
     private void build() {
         col.removeAllViews();
         gen++;
+        pasteBar();
         if (!Files.hasAccess(c.a)) {
             boolean modern = Build.VERSION.SDK_INT >= 30;
             col.addView(Ui.state(c, Icon.Kind.FOLDER, "Tüm dosyalara erişim gerekli",
@@ -60,8 +64,6 @@ final class FilesScreen extends Screen {
 
         col.addView(Ui.label(c, "DEPOLAMA"), Ui.lp(-1, -2, c.dp(4), c.dp(4), 0, c.dp(8)));
         for (Files.Volume v : Files.volumes(c.a)) col.addView(volumeCard(v), Ui.lp(-1, -2, 0, 0, 0, c.dp(Ui.GAP)));
-
-        SmbUi.section(c, col, this::build);
 
         col.addView(Ui.label(c, "KATEGORİLER"), Ui.lp(-1, -2, c.dp(4), c.dp(14), 0, c.dp(8)));
         String img = MediaStore.Files.FileColumns.MEDIA_TYPE + "=" + MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
@@ -88,28 +90,21 @@ final class FilesScreen extends Screen {
             col.addView(row, Ui.lp(-1, -2, 0, 0, 0, c.dp(Ui.GAP)));
         }
 
-        col.addView(Ui.navRow(c, Icon.Kind.LAYERS, "Büyük dosyalar", "Yer kaplayan en büyük dosyalar (10 MB üstü)", 4, () -> {
-            java.util.concurrent.atomic.AtomicBoolean stop = new java.util.concurrent.atomic.AtomicBoolean();
-            String root = Environment.getExternalStorageDirectory().getPath();
-            c.nav.push(new BrowserScreen("Büyük dosyalar", ctx -> Files.largest(root, 10L << 20, 100, stop), stop));
-        }), Ui.lp(-1, c.dp(68), 0, 0, 0, c.dp(Ui.GAP)));
-
         List<String> marks = Files.bookmarks(c.a);
         if (!marks.isEmpty()) {
             col.addView(Ui.label(c, "YER İMLERİ"), Ui.lp(-1, -2, c.dp(4), c.dp(14), 0, c.dp(8)));
             for (String m : marks) {
-                LinearLayout r = Ui.navRow(c, Icon.Kind.STAR, FileSource.name(m), m, 1, () -> {
-                    if (new File(m).isDirectory()) c.nav.push(new BrowserScreen(m)); else Files.toast(c, "Klasör artık yok");
-                });
-                r.setOnLongClickListener(v -> {
-                    Sheet.confirm(c, "Yer imi kaldırılsın mı?", m, "Kaldır", false, () -> { Files.setBookmark(c.a, m, false); build(); });
-                    return true;
-                });
+                Runnable open = () -> { if (new File(m).isDirectory()) c.nav.push(new BrowserScreen(m)); else Files.toast(c, "Klasör artık yok"); };
+                LinearLayout r = Ui.navRow(c, Icon.Kind.STAR, FileSource.name(m), m, 1, open);
+                trailing(c, r, Icon.Kind.MORE, "Yer imi seçenekleri", () -> Sheet.menu(c, FileSource.name(m), new String[]{"Aç", "Kaldır"}, new Icon.Kind[]{Icon.Kind.FOLDER, Icon.Kind.STAR},
+                    k -> { if (k == 0) open.run(); else { Files.setBookmark(c.a, m, false); build(); } }));
                 col.addView(r, Ui.lp(-1, c.dp(68), 0, 0, 0, c.dp(Ui.GAP)));
             }
         }
 
-        col.addView(Ui.label(c, "SON DOSYALAR"), Ui.lp(-1, -2, c.dp(4), c.dp(14), 0, c.dp(8)));
+        SmbUi.section(c, col, this::build);
+
+        col.addView(Ui.label(c, "SON EKLENENLER"), Ui.lp(-1, -2, c.dp(4), c.dp(14), 0, c.dp(8)));
         recent = Ui.card(c, c.p.surface, 6);
         col.addView(recent, Ui.lp(-1, -2));
         loadRecent();
@@ -139,6 +134,15 @@ final class FilesScreen extends Screen {
         fill.setPivotX(0); fill.setScaleX(frac);
         track.addView(fill, new FrameLayout.LayoutParams(-1, -1));
         card.addView(track, Ui.lp(-1, c.dp(8), 0, c.dp(14), 0, 0));
+        if (v.path.equals(Environment.getExternalStorageDirectory().getPath())) {
+            TextView big = Ui.button(c, "Yer aç · büyük dosyalar", Ui.Style.TONAL, Icon.Kind.LAYERS);
+            big.setOnClickListener(x -> {
+                java.util.concurrent.atomic.AtomicBoolean stop = new java.util.concurrent.atomic.AtomicBoolean();
+                String root = v.path;
+                c.nav.push(new BrowserScreen("Büyük dosyalar", ctx -> Files.largest(root, 10L << 20, 100, stop), stop));
+            });
+            card.addView(big, Ui.lp(-1, c.dp(Ui.H_GHOST), 0, c.dp(12), 0, 0));
+        }
         card.setContentDescription(v.label + ", " + Files.size(v.free) + " boş");
         card.setOnClickListener(x -> { Ui.haptic(x, HapticFeedbackConstants.VIRTUAL_KEY); c.nav.push(new BrowserScreen(v.path)); });
         Ui.press(card);
@@ -214,11 +218,40 @@ final class FilesScreen extends Screen {
         r.addView(txt, tl);
         r.setClickable(true);
         r.setOnClickListener(v -> Files.open(c, LocalSource.INSTANCE, it));
-        r.setOnLongClickListener(v -> {   // long-press: the folder it is in
-            Ui.haptic(v, HapticFeedbackConstants.LONG_PRESS);
-            c.nav.push(new BrowserScreen(FileSource.parent(it.path)));
-            return true;
-        });
+        FrameLayout where = new FrameLayout(c.a);
+        where.setBackground(Ui.ripple(c, 20));
+        where.setClickable(true);
+        where.setContentDescription("Konumu aç");
+        where.addView(Ui.icon(c, Icon.Kind.FOLDER, c.p.muted, 20), new FrameLayout.LayoutParams(c.dp(20), c.dp(20), Gravity.CENTER));
+        where.setOnClickListener(v -> c.nav.push(new BrowserScreen(FileSource.parent(it.path))));
+        r.addView(where, new LinearLayout.LayoutParams(c.dp(44), c.dp(44)));
         return r;
+    }
+
+    /** Replaces the chevron of a {@link Ui#navRow} with a tappable icon (e.g. the ⋮ menu). */
+    static void trailing(Ctx c, LinearLayout row, Icon.Kind kind, String desc, Runnable r) {
+        row.removeViewAt(row.getChildCount() - 1);
+        FrameLayout f = new FrameLayout(c.a);
+        f.setBackground(Ui.ripple(c, 20));
+        f.setClickable(true);
+        f.setContentDescription(desc);
+        f.addView(Ui.icon(c, kind, c.p.muted, 22), new FrameLayout.LayoutParams(c.dp(22), c.dp(22), Gravity.CENTER));
+        f.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); r.run(); });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(c.dp(44), c.dp(44));
+        lp.setMarginEnd(c.dp(-8));
+        row.addView(f, lp);
+    }
+
+    /** While the clipboard holds items: "Klasör seç" picks the target folder and pastes there. */
+    private void pasteBar() {
+        bottom.removeAllViews();
+        if (Files.clip.isEmpty() || !Files.hasAccess(c.a)) { bottom.setVisibility(View.GONE); return; }
+        bottom.addView(Ui.text(c, Files.clip.size() + " öğe " + (Files.clipCut ? "taşınacak" : "kopyalanacak"), 13, c.p.muted, 500), Ui.lp(-1, -2, c.dp(4), 0, 0, c.dp(8)));
+        TextView cancel = Ui.button(c, "Vazgeç", Ui.Style.GHOST, null);
+        cancel.setOnClickListener(v -> { Files.clip.clear(); build(); });
+        TextView pick = Ui.button(c, "Klasör seç", Ui.Style.PRIMARY, Icon.Kind.PASTE);
+        pick.setOnClickListener(v -> c.nav.push(new FolderPicker("Yapıştırılacak klasör", "Buraya yapıştır", null, d -> Paste.run(c, LocalSource.INSTANCE, d, this::build))));
+        bottom.addView(Ui.pair(c, cancel, pick, Ui.H_GHOST));
+        bottom.setVisibility(View.VISIBLE);
     }
 }

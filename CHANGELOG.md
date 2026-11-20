@@ -9,6 +9,12 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Dosyalar daha sade
+- Seçim kipinde alt çubukta Kopyala, Taşı, Paylaş, Sil ve **Diğer** (yeniden adlandır, ZIP, özellikler…) durur; üstte yalnızca "Tümünü seç". Klasör menüsü: **Yeni…** (klasör ya da boş metin dosyası), **Sırala ve görünüm** (sıra, azalan, liste/ızgara, gizli dosyalar tek sayfada), yer imi. Aramada yazdıkça bu klasör süzülür; "Alt klasörlerde ara" satırı altklasörleri tarar, **Durdur** üstte. ZIP'e dokunmak dosyayı açar; "Başka klasöre çıkart…" seçim menüsünde. Özellikler'de "Yolu kopyala".
+- Yapıştırma çubuğu kategori listelerinde ve Dosyalar ana sayfasında da görünür (ana sayfada "Klasör seç"). Ana sayfa: depolama, kategoriler, yer imleri, ağ, son eklenenler; yer imi ve sunucu satırlarında ⋮ menüsü, son eklenenlerde "Konumu aç" simgesi, "Yer aç · büyük dosyalar" iç depolama kartında, tek "Sunucu ekle" satırı. APK'lar iki sekme: APK dosyaları | Yüklü uygulamalar.
+- Küçük resimler diskte de önbelleğe alınır (en çok 40 MB). "Kolay'a kaydet": kaydetme 2 sn'den uzun sürse de yeni dosyalar medya dizinine eklenir.
+- Cihazda denenmedi.
+
 ### Eklendi — "Kolay'a kaydet" paylaşım hedefi
 - Başka bir uygulamadan paylaşılan dosyalar (ya da metin, `.txt` olarak) paylaş menüsündeki **Kolay'a kaydet** ile telefondaki bir klasöre kaydedilir. Konum seçici yalnızca klasörleri gösterir (depolama birimleri, yer imleri, "Yeni klasör"); seçilen konum hatırlanır. Aynı adlı dosya varsa Dosyalar'daki gibi sorulur; boyut yazılırken ve sonunda doğrulanır, iptalde yarım dosya silinir.
 - "Tüm dosyalara erişim" yoksa "İzin ver" ya da izinsiz "İndirilenler/Kolay'a kaydet" seçilebilir. Yalnızca `content://` kabul edilir; Kolay'ın kendi sağlayıcısı ve gelen adlardaki `/`, `..`, denetim karakterleri reddedilir.

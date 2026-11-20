@@ -145,13 +145,13 @@ public final class SaveShareScreen extends Screen {
             catch (IllegalArgumentException ignored) { }   // unreadable target: the copy reports it
         }
         String target = dir;
-        long t0 = System.currentTimeMillis() - 2000;
+        long t0 = System.currentTimeMillis();   // job start: files written from now on are the new ones
         List<Ops.Incoming> list = new ArrayList<>(items);
         Ops.Result[] out = {null};
         Jobs.run(c, "Kaydediliyor", "kaydedildi", (p, r) -> out[0] = Ops.importStreams(list, LocalSource.INSTANCE, target, r, p), () -> {
             if (out[0] == null || out[0].done == 0) return;
             Files.prefs(c.a).edit().putString(PREF_DIR, target).apply();
-            Files.rescan(c.a, listPaths(target, t0));
+            Files.rescan(c.a, listPaths(target, t0 - 2000));
             finished(out[0].done);
         }, true);
     }

@@ -29,28 +29,27 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * "APK'lar": the installed apps (user apps; system apps behind a switch) with icon, version and size; a tap shares the
- * app's APK (base plus split APKs, if any). The APK files lying in storage are one row away (media index).
+ * "APK'lar": two tabs. "APK dosyaları" (default) lists the APK files lying in storage (media index). "Yüklü uygulamalar"
+ * lists the installed apps (user apps; system apps behind a switch) with icon, version and size; a tap shares the app's
+ * APK (base plus split APKs, if any).
  */
 final class ApksScreen extends Screen {
     private static final class App { String label, pkg, version; long size; Drawable icon; List<String> apks = new ArrayList<>(); }
 
     private FrameLayout content;
-    private boolean system;
+    private LinearLayout sw;
+    private boolean system, apps;   // apps: the "Yüklü uygulamalar" tab (default: the APK files in storage)
     private int gen;
 
     @Override public View create() {
         LinearLayout page = new LinearLayout(c.a);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.addView(new Header(c, "APK'lar", "Yüklü uygulamaları APK olarak paylaş", () -> c.nav.pop()).view);
+        page.addView(new Header(c, "APK'lar", "APK dosyaları ve yüklü uygulamalar", () -> c.nav.pop()).view);
         LinearLayout top = new LinearLayout(c.a);
         top.setOrientation(LinearLayout.VERTICAL);
         top.setPadding(c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), 0);
-        String sel = MediaStore.MediaColumns.MIME_TYPE + "='application/vnd.android.package-archive' OR " + MediaStore.MediaColumns.DISPLAY_NAME + " LIKE '%.apk'";
-        top.addView(Ui.navRow(c, Icon.Kind.FOLDER, "Telefondaki APK dosyaları", "İndirilen ve kaydedilen .apk dosyaları", 6,
-            () -> c.nav.push(new BrowserScreen("APK dosyaları", ctx -> Files.query(ctx, sel, null, MediaStore.MediaColumns.DATE_MODIFIED + " DESC", 20000)))),
-            Ui.lp(-1, c.dp(68), 0, 0, 0, c.dp(Ui.GAP)));
-        LinearLayout sw = new LinearLayout(c.a);
+        top.addView(Ui.segmented(c, new String[]{"APK dosyaları", "Yüklü uygulamalar"}, null, 0, k -> { apps = k == 1; load(); }), Ui.lp(-1, c.dp(44), 0, 0, 0, c.dp(8)));
+        sw = new LinearLayout(c.a);
         sw.setGravity(Gravity.CENTER_VERTICAL);
         sw.setPadding(c.dp(4), 0, 0, 0);
         sw.addView(Ui.text(c, "Sistem uygulamalarını da göster", 15, c.p.ink, 500), new LinearLayout.LayoutParams(0, -2, 1));
@@ -58,6 +57,7 @@ final class ApksScreen extends Screen {
         tg.setContentDescription("Sistem uygulamalarını da göster");
         tg.onChange(v -> { system = v; load(); });
         sw.addView(tg, new LinearLayout.LayoutParams(c.dp(52), c.dp(32)));
+        sw.setVisibility(View.GONE);
         top.addView(sw, Ui.lp(-1, c.dp(48)));
         page.addView(top);
         content = new FrameLayout(c.a);
@@ -73,11 +73,66 @@ final class ApksScreen extends Screen {
     private void load() {
         int g = ++gen;
         boolean sys = system;
+        sw.setVisibility(apps ? View.VISIBLE : View.GONE);
+        if (!apps) {
+            show(Ui.busy(c, "APK dosyaları aranıyor…", null));
+            String sel = MediaStore.MediaColumns.MIME_TYPE + "='application/vnd.android.package-archive' OR " + MediaStore.MediaColumns.DISPLAY_NAME + " LIKE '%.apk'";
+            c.io.execute(() -> {
+                List<FileItem> got = Files.query(c.a, sel, null, MediaStore.MediaColumns.DATE_MODIFIED + " DESC", 2000);
+                c.ui.post(() -> { if (g == gen) renderFiles(got); });
+            });
+            return;
+        }
         show(Ui.busy(c, "Uygulamalar okunuyor…", null));
         c.io.execute(() -> {
             List<App> list = read(sys);
             c.ui.post(() -> { if (g == gen) render(list); });
         });
+    }
+
+    /** The APK files lying in storage (media index); a tap hands the file to the system installer, the folder icon shows where it lies. */
+    private void renderFiles(List<FileItem> files) {
+        if (files.isEmpty()) { show(Ui.state(c, Icon.Kind.APPS, "APK dosyası yok", "Telefonda indirilen ya da kaydedilen .apk dosyası bulunamadı.", null, null)); return; }
+        LinearLayout col = new LinearLayout(c.a);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(c.dp(Ui.GUTTER), c.dp(4), c.dp(Ui.GUTTER), c.dp(24));
+        col.addView(Ui.label(c, files.size() + " APK DOSYASI · DOKUN: AÇ"), Ui.lp(-1, -2, c.dp(4), c.dp(8), 0, c.dp(8)));
+        LinearLayout card = Ui.card(c, c.p.surface, 6);
+        for (FileItem it : files) card.addView(fileRow(it), Ui.lp(-1, -2));
+        col.addView(card, Ui.lp(-1, -2));
+        ScrollView sv = new ScrollView(c.a);
+        sv.setVerticalScrollBarEnabled(false);
+        sv.addView(col);
+        show(sv);
+    }
+
+    private View fileRow(FileItem it) {
+        LinearLayout r = new LinearLayout(c.a);
+        r.setGravity(Gravity.CENTER_VERTICAL);
+        r.setMinimumHeight(c.dp(58));
+        r.setPadding(c.dp(10), c.dp(6), c.dp(10), c.dp(6));
+        r.setBackground(Ui.ripple(c, 16));
+        r.addView(Ui.icon(c, Icon.Kind.APPS, c.p.primary, 24), new LinearLayout.LayoutParams(c.dp(36), c.dp(24)));
+        LinearLayout txt = new LinearLayout(c.a);
+        txt.setOrientation(LinearLayout.VERTICAL);
+        TextView n = Ui.text(c, it.name, 15, c.p.ink, 600);
+        n.setSingleLine(true); n.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+        txt.addView(n);
+        TextView s = Ui.text(c, Files.size(it.size) + " · " + Files.date(it.modified), 12, c.p.muted, 400);
+        s.setSingleLine(true);
+        txt.addView(s, Ui.lp(-1, -2, 0, c.dp(2), 0, 0));
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
+        tl.setMarginStart(c.dp(12)); tl.setMarginEnd(c.dp(8));
+        r.addView(txt, tl);
+        FrameLayout where = new FrameLayout(c.a);
+        where.setBackground(Ui.ripple(c, 20));
+        where.setClickable(true);
+        where.setContentDescription("Konumu aç");
+        where.addView(Ui.icon(c, Icon.Kind.FOLDER, c.p.muted, 20), new FrameLayout.LayoutParams(c.dp(20), c.dp(20), Gravity.CENTER));
+        where.setOnClickListener(v -> c.nav.push(new BrowserScreen(FileSource.parent(it.path))));
+        r.addView(where, new LinearLayout.LayoutParams(c.dp(44), c.dp(44)));
+        r.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.VIRTUAL_KEY); Files.open(c, LocalSource.INSTANCE, it); });
+        return r;
     }
 
     private List<App> read(boolean sys) {

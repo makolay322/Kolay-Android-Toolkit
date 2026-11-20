@@ -19,6 +19,7 @@ Hazır kalıplar (`Ui`): `label` bölüm etiketi · `card` kart · `input` metin
 `state` boş/izin/hata ekranı (ikon rozeti + başlık + açıklama + isteğe bağlı düğme) · `busy` yükleniyor ekranı · `segmented` segmentli seçici ·
 `flashCopied` düğme üstünde “Kopyalandı” onayı · `toneTile` degrade ikon kutusu (beyaz ikon, tonun renginde gölge) · `softTile` açık zeminli ikon kutusu ·
 `ripple` dolgusuz dokunma dalgası (liste satırı) · `gradient` · `divider` · `stagger` kademeli giriş · `toast`. Yeni ekran bunları kullanır; aynı şeyi elle yeniden kurma.
+Liste satırında gizli uzun basma yerine görünür bir son simge kullan (⋮ menüsü ya da "Konumu aç"; `FilesScreen.trailing`). Birden çok ayarı (sıra, görünüm, gizli) tek `Sheet`'te topla; seçenekler için `Ui.segmented`, açık/kapalı için `Sheet.toggle`.
 
 ## Renk belirteçleri
 `bg` sayfa · `surface` kart · `surface2` girdi/ikincil düğme · `ink` ana metin · `muted` ikincil metin · `line` ayraç ·
