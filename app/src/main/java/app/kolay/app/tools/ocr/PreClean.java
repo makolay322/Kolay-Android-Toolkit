@@ -5,8 +5,9 @@ import java.util.regex.*;
 
 /**
  * Deterministic, conservative cleanup of masked OCR pages before the polish request: drops page numbers (top or bottom of
- * a page), contact/bank/legal lines, greeting and closing formulas, identity-only header lines and headers/footers repeated
- * on later pages. When in doubt a line is kept; medical text is never rewritten. Pure Java: can be tried on a desktop JVM.
+ * a page), contact/bank/legal lines and "Für Rückfragen …" sentences, greeting and closing formulas, signature role lines,
+ * identity-only header lines, case numbers and headers/footers repeated on later pages. When in doubt a line is kept; medical
+ * text is never rewritten. Pure Java: can be tried on a desktop JVM.
  */
 final class PreClean {
     private PreClean() {}
@@ -33,6 +34,15 @@ final class PreClean {
     /** A matched line is dropped only when this many letters (or fewer) remain beside the contact parts. */
     private static final int CONTACT_REST = 24;
 
+    /** Case/admission number with its value ("Aufnahme-Nr. P 12345678", "Fallnummer: 1234567"); the number is group 1. */
+    private static final Pattern CASE_NO = Pattern.compile(
+        "(?i)\\b(?:Fall|Aufnahme|Pat(?:ienten)?\\.?)[ \\t]*-?[ \\t]*(?:nummer|Nr\\.?)[ \\t]*:?[ \\t]*(?:[A-Z][ \\t]?)?(\\d{5,})\\b");
+    /** A whole line that only offers contact: "Für Rückfragen stehen wir Ihnen gerne telefonisch zur Verfügung." */
+    private static final Pattern QUERIES = Pattern.compile(
+        "(?i)^(?=.*\\b(?:wir|uns)\\b)[ \\t]*(?:Für|Bei)[ \\t]+(?:\\p{L}+[ \\t]+)?(?:Rück)?fragen\\b[\\p{L} \\t,.]{0,80}?\\b(?:zur[ \\t]+Verfügung|erreichbar|an[ \\t]+uns)[ \\t.!]*$");
+    /** Role-only lines of a signature block ("Chefarzt", "Leitende Ärztin   Physician Assistant"). */
+    private static final Pattern ROLE_ONLY = Pattern.compile("^[ \\t]*" + Mask.ROLE + "(?:[ \\t]+" + Mask.ROLE + ")*[ \\t]*$");
+
     private static final Pattern GREETING = Pattern.compile(
         "^[ \\t]*(?i:Sehr[ \\t]+geehrte[rs]?|Liebe[rs]?)\\b(?:[ \\t,]+(?:(?i:Frau|Herrn?|Dr[.,]?|med[.,]?|Prof[.,]?|Kolleg\\w*|Damen|und|Herren|sehr|"
         + "geehrte[rs]?|liebe[rs]?)|\\[NAME\\]|[A-ZÄÖÜ][\\p{L}.-]*))*[ \\t,.!]*$");   // only salutation words and capitalised names
@@ -40,11 +50,11 @@ final class PreClean {
         "(?i)^[ \\t]*(?:Mit[ \\t]+)?(?:(?:freundlich\\w*|kollegial\\w*|besten|herzlich\\w*|vielen)[ \\t]+(?:und[ \\t]+)?)+Grü(?:ß|ss|s)en[ \\t,.!]*$"
         + "|(?i)^[ \\t]*(?:Hochachtungsvoll|MfG|Mit[ \\t]+kollegialem[ \\t]+Gruß)[ \\t,.!]*$");
 
-    /** What an identity-only line ("Pat.: [NAME], Geb.Dat. [GEBURTSDATUM], M") consists of. */
+    /** What an identity-only line ("Pat.: [NAME], Geb.Dat. [GEBURTSDATUM], M", "wohnhaft: [ADRESSE], [ORT]") consists of. */
     private static final Pattern IDENTITY_WORDS = Pattern.compile(
-        "(?i)\\[(?:NAME|GEBURTSDATUM)\\]|\\b(?:Pat(?:ient(?:in)?)?|Betreff|Betr|Name|Vorname|geb|ge[bh][ \\t.,]*dat(?:um)?|Geburtsdatum|am|Herrn?|Frau|"
-        + "Dr|med|Prof|[mwd])\\b|[^\\p{L}\\p{N}]");
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\[(?:NAME|GEBURTSDATUM)\\]");
+        "(?i)\\[(?:NAME|GEBURTSDATUM|ADRESSE|ORT)\\]|\\b(?:Pat(?:ient(?:in)?)?|Betreff|Betr|Name|Vorname|für|wohnhaft|in|geb|ge[bh][ \\t.,]*dat(?:um)?|Geburtsdatum|am|Herrn?|Frau|"
+        + "Dr|med|Prof|[mwd])\\b|\\b(?-i:[A-ZÄÖÜ])\\.|[^\\p{L}\\p{N}]");   // also initials: "Dr. med. C. [NAME]"
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\[(?:NAME|GEBURTSDATUM|ADRESSE|ORT)\\]");
 
     /** Lines at the top and bottom of a page that count as header/footer for the repeat rule. */
     private static final int ZONE = 5;
@@ -55,6 +65,8 @@ final class PreClean {
      * stays, later ones are dropped.
      */
     static List<String> pages(List<String> pages) {
+        Set<String> caseNos = new HashSet<>();   // also removed where they stand alone, e.g. in a running header
+        for (String p : pages) { Matcher m = CASE_NO.matcher(p); while (m.find()) caseNos.add(m.group(1)); }
         List<List<String>> all = new ArrayList<>();
         List<Set<Integer>> zones = new ArrayList<>();
         Map<String, Integer> pagesWith = new HashMap<>();
@@ -63,7 +75,13 @@ final class PreClean {
             List<String> lines = new ArrayList<>();
             for (String l : p.split("\n", -1)) {
                 l = l.replaceAll("[ \\t]+$", "");
-                if (!drop(l)) lines.add(l);
+                String s = CASE_NO.matcher(l).replaceAll("");
+                for (String n : caseNos) s = s.replaceAll("(?<!\\d)" + n + "(?!\\d)", "");
+                if (!s.equals(l)) {   // the line carried a case number: the rest stays ("stationär vom …") unless a rule drops it
+                    s = s.replaceAll("^[ \\t,;:]+|[ \\t,;:]+$", "");
+                    if (s.isEmpty()) continue;
+                }
+                if (!drop(s)) lines.add(s);
             }
             List<Integer> filled = new ArrayList<>();
             for (int i = 0; i < lines.size(); i++) if (!lines.get(i).trim().isEmpty()) filled.add(i);
@@ -110,7 +128,7 @@ final class PreClean {
         String t = l.trim();
         if (t.isEmpty()) return false;
         if (!t.matches(".*[\\p{L}\\p{N}].*")) return true;   // only symbols: OCR dust
-        if (GREETING.matcher(t).matches() || CLOSING.matcher(t).matches()) return true;
+        if (GREETING.matcher(t).matches() || CLOSING.matcher(t).matches() || QUERIES.matcher(t).matches() || ROLE_ONLY.matcher(t).matches()) return true;
         if (PLACEHOLDER.matcher(t).find() && IDENTITY_WORDS.matcher(t).replaceAll("").isEmpty()) return true;
         String rest = t;
         boolean hit = false;
