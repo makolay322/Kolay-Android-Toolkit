@@ -5,7 +5,7 @@ import app.kolay.app.ui.Ctx;
 import app.kolay.app.ui.Icon;
 import app.kolay.app.ui.Screen;
 
-/** Random Islamic-style 4:3 Friday card with a well-known hadith; half of the backgrounds are black themes. */
+/** Random Islamic-style 5:3 Friday card with a well-known hadith; half of the backgrounds are black themes. */
 public final class FridayTool implements Tool {
     @Override public String id() { return "cuma"; }
     @Override public String title() { return "Cuma Mesajı"; }

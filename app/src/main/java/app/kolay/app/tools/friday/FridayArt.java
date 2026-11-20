@@ -9,7 +9,7 @@ import java.util.Random;
 /**
  * Draws the Friday card entirely with Canvas (no image assets): a gradient, a geometric Islamic pattern, crescents,
  * stars and a plain mosque silhouette (no window lights), with the hadith in a translucent panel. The same seed always
- * gives the same background. The card is 4:3 landscape. Only dark themes exist: half near-black, half deep mature colors.
+ * gives the same background. The card is 5:3 landscape: the 4:3 layout (1280×960) with the bottom 192 px cropped off. Only dark themes exist: half near-black, half deep mature colors.
  * The composition is mirror-symmetric about the vertical centre line: pattern grid, crescents, sparkles, mosque and panel
  * are all centred or drawn in mirrored pairs, and every text line is centred.
  */
@@ -44,10 +44,12 @@ final class FridayArt {
         new Theme(0xFF3B3A1F, 0xFF1A190B, 0xFFD6B25E, 0xFFF6F1DD, 0x66000000, 0xFF0F0F05),
     };
 
-    /** Output size: 4:3 landscape. */
-    static final int W = 1280, H = 960;
+    /** Output size: 5:3 landscape. */
+    static final int W = 1280, H = 768;
+    /** Height the title, panel and sparkles are laid out for; the bitmap is cropped from the bottom to {@link #H}. */
+    private static final int LAYOUT_H = 960;
 
-    /** @return a new 4:3 bitmap; the caller owns it */
+    /** @return a new 5:3 bitmap; the caller owns it */
     static Bitmap render(long seed, String hadith, String source) {
         final int w = W, h = H;
         final float u = 1f;
@@ -63,10 +65,13 @@ final class FridayArt {
         p.setShader(null);
 
         pattern(cv, w, h, t, r);
-        moon(cv, w, h, t, r);
-        sparkles(cv, w, h, t, r);
-        mosque(cv, w, h, t, r);
-        panelAndText(cv, w, h, u, t, hadith, source);
+        moon(cv, w, LAYOUT_H, t, r);
+        sparkles(cv, w, LAYOUT_H, t, r);
+        cv.save();
+        cv.translate(0, h - LAYOUT_H);                              // lift the mosque so its base sits on the cropped bottom edge, uncropped
+        mosque(cv, w, LAYOUT_H, t, r);
+        cv.restore();
+        panelAndText(cv, w, LAYOUT_H, u, t, hadith, source);
         return bmp;
     }
 
@@ -144,7 +149,7 @@ final class FridayArt {
         }
     }
 
-    /** Domes and minarets along the bottom edge, faint: it fills the strip below the hadith panel and its minarets rise beside it. */
+    /** Domes and minarets along the bottom edge, faint: its base sits on the bottom edge and it rises behind the lower part of the hadith panel. */
     private static void mosque(Canvas cv, int w, int h, Theme t, Random r) {
         cv.saveLayerAlpha(0, 0, w, h, 120);                       // one layer, so overlapping shapes stay uniformly faint
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
