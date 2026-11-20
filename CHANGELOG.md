@@ -9,6 +9,11 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Cuma mesajı: 4:3 görsel, Diyanet kaynağından yenilenen hadisler
+- Görsel kareden **4:3 yatay**a (1280×960) geçti. Hadis paneli ortalı ve geniş (0,80 × 0,60), çift çerçeveli, "HADÎS-İ ŞERÎF" etiketinin iki yanında ince süs çizgileri var. Cami silueti küçültülmeden panelin altındaki şeridi dolduruyor, minareler panelin yanlarında yükseliyor; başlık, hilâller ve yıldızlar şeritte kalıyor.
+- Hadis listesi Diyanet'in "Hadislerle İslâm" sitesinden yeniden çekildi (274 → 252 hadis). Metinler kaynağa birebir döndü: yeniden yazılmış ya da iki çeviri karışmış kayıtlar düzeltildi, anlatıcı sözleri ve "x/y" seçenekli kayıtlar çıkarıldı, kaynak satırlarındaki kesme işaretleri düzeltildi. Çevirisi ağır ya da 300 karakterden uzun olanlar atıldı, aynı sitenin sade çevirili yeni hadisleri eklendi.
+- Cihazda denenmedi.
+
 ### Değişti — Tıbbi rapor: ilaç listesi birleştirme, daha sıkı maskeleme ve ön temizlik
 - **İlaç listesi:** Aynı ilaçlar hem taburcu ilaçlarında (Entlassungsmedikation) hem Medikationsplan'da varsa cilalama tek bir liste yazar; kaynaklar arasında doz/şema farkı varsa birini seçmez, ikisini de yazıp `[Abweichung: …]` ile işaretler (ör. biri 0-0-1, öteki 1-0-1 diyorsa).
 - **Maskeleme:** "wohnhaft: Sokak No" (iki noktalı biçim) adresi; imza bloğunda yan yana birden fazla "A. Soyad" ve "Leitende Ärztin", "Funktionsoberarzt", "Physician Assistant", "Sektionsleiter" gibi görev satırlarının üstündeki isimler; "Name, Vorname: Soyad, Ad tarih" ve "für: …" (Medikationsplan) satırlarındaki isim ve "geb." yazmasa da doğum tarihi; bu doğum tarihinin önündeki isimler (sayfa başlığındaki kısa ön adlar dahil) artık sansürlenir.
