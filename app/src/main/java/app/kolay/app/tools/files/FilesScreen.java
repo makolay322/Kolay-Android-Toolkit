@@ -25,6 +25,7 @@ final class FilesScreen extends Screen {
     private LinearLayout col;
     private LinearLayout recent, bottom;
     private int gen;
+    private Runnable jobsIdle;
 
     @Override public View create() {
         LinearLayout page = new LinearLayout(c.a);
@@ -37,6 +38,9 @@ final class FilesScreen extends Screen {
         sv.setVerticalScrollBarEnabled(false);
         sv.addView(col);
         page.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
+        page.addView(Jobs.chip(c));
+        jobsIdle = Jobs.onIdle(this::build);   // a background job ended: refresh recents
+        Jobs.listen(jobsIdle);
         bottom = Ui.bottomBar(c);
         page.addView(bottom, Ui.lp(-1, -2));
         build();
@@ -44,6 +48,7 @@ final class FilesScreen extends Screen {
     }
 
     @Override public void onResume() { build(); }      // back from the system permission page
+    @Override public void onDestroy() { Jobs.unlisten(jobsIdle); }
     @Override public void onReturn() { build(); }      // bookmarks may have changed
 
     @Override public void onPermission(int req, String[] perms, int[] results) { if (req == Files.REQ_STORAGE) build(); }

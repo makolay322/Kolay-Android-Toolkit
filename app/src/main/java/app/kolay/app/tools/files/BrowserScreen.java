@@ -72,6 +72,7 @@ final class BrowserScreen extends Screen {
 
     private LinearLayout page, crumbs, searchBar, subSearch, bottom;
     private FrameLayout headSlot, content;
+    private Runnable jobsIdle;
     private HorizontalScrollView crumbScroll;
     private GridView list;
     private Adapter adapter;
@@ -132,6 +133,9 @@ final class BrowserScreen extends Screen {
         content.addView(list, new FrameLayout.LayoutParams(-1, -1));
         page.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
 
+        page.addView(Jobs.chip(c));
+        jobsIdle = Jobs.onIdle(() -> { if (loaderStop == null && (!searching || !recursive)) load(); });   // a background job ended: show its result
+        Jobs.listen(jobsIdle);
         bottom = Ui.bottomBar(c);
         page.addView(bottom, Ui.lp(-1, -2));
 
@@ -377,7 +381,7 @@ final class BrowserScreen extends Screen {
 
     @Override public void onResume() { if (loaderStop == null && (!searching || !recursive)) load(); }
 
-    @Override public void onDestroy() { gen++; if (searchStop != null) searchStop.set(true); if (loaderStop != null) loaderStop.set(true); }
+    @Override public void onDestroy() { Jobs.unlisten(jobsIdle); gen++; if (searchStop != null) searchStop.set(true); if (loaderStop != null) loaderStop.set(true); }
 
     // ------------------------------------------------------------ menus
 

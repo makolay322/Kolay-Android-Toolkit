@@ -97,11 +97,13 @@ public final class Entry {
     }
 
     public void onResume() {
+        app.kolay.app.tools.files.Jobs.resumed(true);
         Screen s = c == null ? null : c.nav.top();
         if (s != null) s.onResume();
     }
 
     public void onPause() {
+        app.kolay.app.tools.files.Jobs.resumed(false);
         Screen s = c == null ? null : c.nav.top();
         if (s != null) s.onPause();
     }

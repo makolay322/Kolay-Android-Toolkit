@@ -9,6 +9,10 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Yeni — Uzun işler arka planda, Samba'ya kaydetme
+- Kopyalama, taşıma, silme, sıkıştırma gibi uzun işlerin ilerleme sayfasında **Arka planda sürdür** düğmesi var: sayfa kapanır, iş sürer ve Dosyalar ile klasör sayfalarında alt çubuğun üstünde durum çipi ("Kopyalanıyor · %42") görünür; çipe dokunursan sayfa yeniden açılır. İş bitince sayfa kendini yeniler. Çalışan bir iş varken başlatılan yeni iş sıraya girer ("Sırada: N"). Uygulama arka plandayken çıkan dosya çakışmalarında soru sorulmaz, iki dosya da saklanır.
+- "Kolay'a kaydet" artık **Ağ** sekmesiyle kayıtlı Samba sunucularına da kaydedebilir (paylaşım ve klasör seçilir; tüm dosyalar izni gerekmez). Seçilen sunucu klasörü hatırlanır; sunucu silinmişse ya da ulaşılamıyorsa İndirilenler'e dönülür. Bağlantı ve kimlik hataları Türkçe mesajla gösterilir. Samba kuralları aynı: yalnızca SMB 2/3, yalnızca yerel ağ ve Tailscale.
+- Cihazda denenmedi.
 ### Değişti — Dosyalar daha sade
 - Seçim kipinde alt çubukta Kopyala, Taşı, Paylaş, Sil ve **Diğer** (yeniden adlandır, ZIP, özellikler…) durur; üstte yalnızca "Tümünü seç". Klasör menüsü: **Yeni…** (klasör ya da boş metin dosyası), **Sırala ve görünüm** (sıra, azalan, liste/ızgara, gizli dosyalar tek sayfada), yer imi. Aramada yazdıkça bu klasör süzülür; "Alt klasörlerde ara" satırı altklasörleri tarar, **Durdur** üstte. ZIP'e dokunmak dosyayı açar; "Başka klasöre çıkart…" seçim menüsünde. Özellikler'de "Yolu kopyala".
 - Yapıştırma çubuğu kategori listelerinde ve Dosyalar ana sayfasında da görünür (ana sayfada "Klasör seç"). Ana sayfa: depolama, kategoriler, yer imleri, ağ, son eklenenler; yer imi ve sunucu satırlarında ⋮ menüsü, son eklenenlerde "Konumu aç" simgesi, "Yer aç · büyük dosyalar" iç depolama kartında, tek "Sunucu ekle" satırı. APK'lar iki sekme: APK dosyaları | Yüklü uygulamalar.

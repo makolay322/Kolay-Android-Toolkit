@@ -12,6 +12,7 @@ import app.kolay.app.ui.Icon;
 import app.kolay.app.ui.Screen;
 import app.kolay.app.ui.Ui;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,11 +21,12 @@ import java.util.List;
  * copying: the sender's read grant lives only as long as it does.
  */
 public final class SaveShareScreen extends Screen {
-    private static final String PREF_DIR = "save_dir";
+    private static final String PREF_DIR = "save_dir", PREF_SRV = "save_srv", PREF_SRV_DIR = "save_srv_dir";
 
     private final Intent in;
     private List<Ops.Incoming> items;
     private String dir;
+    private FileSource src = LocalSource.INSTANCE;   // the destination: the phone or a saved Samba server
     private LinearLayout col, bottom;
     private boolean saved;   // the "Kaydedildi" state is showing
     private int savedCount;
@@ -39,6 +41,7 @@ public final class SaveShareScreen extends Screen {
             if (t != null && t.length() > 0) items.add(ShareIn.text(t.toString(), subj == null ? null : subj.toString()));
         }
         dir = startDir();
+        probeNet();
 
         LinearLayout page = new LinearLayout(c.a);
         page.setOrientation(LinearLayout.VERTICAL);
@@ -61,6 +64,7 @@ public final class SaveShareScreen extends Screen {
     @Override public void onResume() { if (col != null && !saved) build(); }   // back from the system permission page
     @Override public void onPermission(int req, String[] perms, int[] results) { if (req == Files.REQ_STORAGE && !saved) build(); }
 
+    /** A remembered network folder is used only if the server still exists and answers; otherwise Download. */
     private String startDir() {
         String d = Files.prefs(c.a).getString(PREF_DIR, null);
         if (d != null && new File(d).isDirectory()) return d;
@@ -69,6 +73,32 @@ public final class SaveShareScreen extends Screen {
         return dl.getPath();
     }
 
+    private void probeNet() {
+        String id = Files.prefs(c.a).getString(PREF_SRV, null), nd = Files.prefs(c.a).getString(PREF_SRV_DIR, null);
+        if (id == null || nd == null) return;
+        SmbSource.Server found = null;
+        for (SmbSource.Server sv : SmbServers.all(c)) if (sv.id.equals(id)) found = sv;
+        if (found == null) { forgetNet(); return; }
+        SmbSource sm = SmbServers.source(found);
+        src = sm; dir = nd;
+        c.io.execute(() -> {   // network: never on the UI thread
+            boolean ok;
+            try { FileItem it = sm.stat(nd); ok = it != null && it.dir; } catch (IOException | RuntimeException e) { ok = false; }
+            boolean fok = ok;
+            c.ui.post(() -> {
+                if (fok || src != sm) return;   // reachable, or the user already picked something else
+                forgetNet();
+                src = LocalSource.INSTANCE; dir = startDir();
+                Ui.toast(c, "Sunucuya ulaşılamadı; İndirilenler'e dönüldü");
+                if (col != null && !saved) build();
+            });
+        });
+    }
+
+    private void forgetNet() { Files.prefs(c.a).edit().remove(PREF_SRV).remove(PREF_SRV_DIR).apply(); }
+
+    private boolean net() { return src instanceof SmbSource; }
+
     private long totalSize() {
         long t = 0;
         for (Ops.Incoming i : items) { if (i.size() < 0) return -1; t += i.size(); }
@@ -76,6 +106,7 @@ public final class SaveShareScreen extends Screen {
     }
 
     private String where() {
+        if (net()) return "Ağ · " + ((SmbSource) src).server.name + (dir.equals("/") ? "" : dir);
         Files.Volume v = Files.volumeOf(Files.volumes(c.a), dir);
         return v == null ? dir : dir.length() > v.path.length() ? v.label + dir.substring(v.path.length()) : v.label;
     }
@@ -102,7 +133,7 @@ public final class SaveShareScreen extends Screen {
         if (items.size() > 5) card.addView(Ui.text(c, "… ve " + (items.size() - 5) + " dosya daha", 14, c.p.muted, 400), Ui.lp(-1, -2, 0, c.dp(6), 0, 0));
         col.addView(card, Ui.lp(-1, -2, 0, 0, 0, c.dp(Ui.GAP)));
 
-        if (Files.hasAccess(c.a)) {
+        if (Files.hasAccess(c.a) || net()) {   // a network target needs no all-files access
             col.addView(Ui.navRow(c, Icon.Kind.FOLDER, "Konum", where(), 1, this::pickDir), Ui.lp(-1, c.dp(70)));
             TextView go = Ui.button(c, "Kaydet", Ui.Style.PRIMARY, Icon.Kind.DOWNLOAD);
             go.setOnClickListener(v -> save());
@@ -115,43 +146,52 @@ public final class SaveShareScreen extends Screen {
             allow.setOnClickListener(v -> Files.requestAccess(c));
             TextView dl = Ui.button(c, "İndirilenler/Kolay'a kaydet", Ui.Style.TONAL, Icon.Kind.DOWNLOAD);
             dl.setOnClickListener(v -> saveDownloads());
+            TextView lan = Ui.button(c, "Ağdaki bir sunucuya kaydet", Ui.Style.TONAL, Icon.Kind.NETSCAN);
+            lan.setOnClickListener(v -> pickDir());
             bottom.addView(allow, Ui.lp(-1, c.dp(Ui.H_BTN)));
             bottom.addView(dl, Ui.lp(-1, c.dp(Ui.H_BTN), 0, c.dp(Ui.GAP), 0, 0));
+            bottom.addView(lan, Ui.lp(-1, c.dp(Ui.H_BTN), 0, c.dp(Ui.GAP), 0, 0));
         }
     }
 
     private void showSaved() {
-        boolean access = Files.hasAccess(c.a);
+        boolean access = Files.hasAccess(c.a) || net();
         String place = access ? where() : "İndirilenler/Kolay";
         col.addView(Ui.state(c, Icon.Kind.CHECK, "Kaydedildi", savedCount + " dosya " + place + " konumuna kaydedildi.",
-            access ? "Klasörü aç" : null, () -> c.nav.push(new BrowserScreen(dir))), Ui.lp(-1, -2, 0, c.dp(32), 0, 0));
+            access ? "Klasörü aç" : null, () -> c.nav.push(net() ? new BrowserScreen(src, dir, ((SmbSource) src).server.name) : new BrowserScreen(dir))), Ui.lp(-1, -2, 0, c.dp(32), 0, 0));
         TextView done = Ui.button(c, "Bitti", Ui.Style.TONAL, null);
         done.setOnClickListener(v -> c.a.finish());
         bottom.addView(done, Ui.lp(-1, c.dp(Ui.H_BTN)));
     }
 
     private void pickDir() {
-        c.nav.push(new FolderPicker("Konum seç", "Bu klasörü seç", dir, d -> {
-            dir = d;
-            Files.prefs(c.a).edit().putString(PREF_DIR, d).apply();
+        c.nav.push(new FolderPicker("Konum seç", "Bu klasörü seç", src, dir, (s, d) -> {
+            src = s; dir = d;
+            android.content.SharedPreferences.Editor e = Files.prefs(c.a).edit();
+            if (s instanceof SmbSource) e.putString(PREF_SRV, ((SmbSource) s).server.id).putString(PREF_SRV_DIR, d);
+            else e.putString(PREF_DIR, d).remove(PREF_SRV).remove(PREF_SRV_DIR);
+            e.apply();
             build();
         }));
     }
 
     private void save() {
         long total = totalSize();
-        if (total > 0) {
+        if (total > 0 && !net()) {   // free space is known for the phone only
             try { if (new StatFs(dir).getAvailableBytes() < total) { Ui.toast(c, "Yeterli boş alan yok"); return; } }
             catch (IllegalArgumentException ignored) { }   // unreadable target: the copy reports it
         }
         String target = dir;
+        FileSource dst = src;
         long t0 = System.currentTimeMillis();   // job start: files written from now on are the new ones
         List<Ops.Incoming> list = new ArrayList<>(items);
         Ops.Result[] out = {null};
-        Jobs.run(c, "Kaydediliyor", "kaydedildi", (p, r) -> out[0] = Ops.importStreams(list, LocalSource.INSTANCE, target, r, p), () -> {
+        Jobs.run(c, "Kaydediliyor", "kaydedildi", (p, r) -> out[0] = Ops.importStreams(list, dst, target, r, p), () -> {
             if (out[0] == null || out[0].done == 0) return;
-            Files.prefs(c.a).edit().putString(PREF_DIR, target).apply();
-            Files.rescan(c.a, listPaths(target, t0 - 2000));
+            if (dst == LocalSource.INSTANCE) {
+                Files.prefs(c.a).edit().putString(PREF_DIR, target).apply();
+                Files.rescan(c.a, listPaths(target, t0 - 2000));   // media index: the phone only
+            }
             finished(out[0].done);
         }, true);
     }
