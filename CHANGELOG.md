@@ -9,6 +9,12 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Değişti — Tıbbi rapor: daha temiz cilalama, sayfa sırası korunuyor, daha sıkı maskeleme
+- Cilalamadan önce metin cihazda ön temizlikten geçer: sayfa başı/sonundaki sayfa numaraları ("4/6", "Seite 2 von 3"), telefon/faks/e-posta/web satırları, banka, Geschäftsführung, USt-IdNr., Amtsgericht/HRB ve Fallnummer satırları, "Sehr geehrte…" selamlaması ve "Mit freundlichen Grüßen" kapanışı, her sayfada yinelenen hasta başlığı ("Pat.: [NAME], Geb.Dat. …") ve sayfaların çoğunda tekrarlanan üst/alt bilgiler atılır. Şüpheli satır silinmez; buluta giden metin kısalır.
+- Cilalama istemi yeniden yazıldı: antet, adres blokları, iletişim kutuları, imza bloğu ve anlamsız OCR parçaları atılır; tanılar, anamnez, bulgular, laboratuvar (referans ve birimle), girişimler, epikriz, öneriler ve ilaçlar (dozuyla) aynen kalır. Kurtarılamayan tıbbi yer tahmin edilmez, `[unleserlich]` yazılır. Laboratuvar değerleri satır satır gelir: `Parameter | Tarih: Wert | Einheit | Referenzbereich`; ilaçlar tek satırda.
+- **Sayfa sırası:** Çok sayfalı belgede sonuç sayfaları karışık sırada gelebiliyordu; neden, istemin modelden sayfaları yeniden dizmesini istemesiydi. Artık sıra taramadaki (Sayfalar ekranındaki) sıradır; yalnızca her sayfada tek ve farklı bir sayfa numarası okunursa ona göre dizilir. Model sırayı değiştirmez; yanıtta kalan `=== SAYFA n ===` satırları silinir.
+- **Maskeleme:** "Soyad, Ad, geb.: tarih", "geb. am", "Geb.Dat." / "Geburtsdatum:" (OCR'ın "Geh Dat" okuması dahil) biçimlerindeki isim ve doğum tarihi artık sansürlenir (önceden "Betreff:" satırında ve sayfa altlığında kaçabiliyordu). Bulunan doğum tarihi belgenin her yerinde maskelenir; "Patientin Ad Soyad," ve imza bloğundaki "A. Soyad" + görev satırı ile "wohnhaft in …" adresi de maskelenir.
+
 ### Değişti — Belge tarayıcı: daha hızlı otomatik çekim, ekran kararmıyor
 - Otomatik çekim için gereken sabit kalma süresi 0,8 sn'den **0,3 sn**'ye indi.
 - Kamera ekranı açıkken telefon ekranı kendiliğinden kararmaz/kilitlenmez.

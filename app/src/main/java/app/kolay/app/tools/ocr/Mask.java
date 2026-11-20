@@ -7,27 +7,44 @@ import java.util.regex.*;
 final class Mask {
     private static final String TOK = "[A-ZÄÖÜ][A-Za-zÄÖÜäöüß'’&-]{1,}";
     private static final String CAP = "[A-ZÄÖÜ][a-zäöüß]+(?:-[A-ZÄÖÜ][a-zäöüß]+)*";
+    /**
+     * Birth-date marker up to the date: "*", "geb.", "geb.:", "geb. am", "geboren am", "Geb.Dat.", "Geb.-Datum:", "Geburtsdatum:"
+     * (OCR also reads "Geb" as "Geh" before "Dat").
+     */
+    private static final String BIRTH = "(?:\\*|\\b(?i:ge[bh][.,]?[ \\t]*-?[ \\t]*dat(?:um)?|geb(?:oren|urtsdatum)?)\\.?)[ \\t]*:?[ \\t]*(?:am[ \\t]*:?[ \\t]*)?";
+    private static final String DATE = "\\d{1,2}[.,\\s]*\\d{1,2}[.,\\s]*(?:\\d{4}|\\d{2}\\b)";
     private static final String NOT_ROLE = "(?!(?:Patient|Ehe|Sohn|Tochter|Kolleg|Kõll|Oberarzt|Chefarzt|Hausarzt|Facharzt|Dr\\b)\\w*)";
 
     /** Unvan + isim: "Herr Dr. med. Mustermann", "Frau Kollegin Beispiel", "Prof. Dr. med. R.M. Muster". */
     private static final Pattern TITLE_NAME = Pattern.compile(
         "\\b((?:Herrn?|Frau|Hr\\.|Fr\\.|Dr[.,](?:\\s*(?:med|rer|nat|pol|phil)[.,]?)*|Prof[.,](?:\\s*Dr[.,])?(?:\\s*med[.,]?)?|Dipl\\.-\\w+\\.?|PD|gez\\.)[ \\t]*"
-        + "(?:(?:Dr[.,]|med[.,]?|dent\\.|Prof[.,]|PD|[A-Z]\\.(?:[A-Z]\\.)?)[ \\t]*)*(?:K[oö]ll?eg\\w*[ \\t]+)?)"
+        + "(?:(?:Dr[.,]|med[.,]?|dent\\.|Prof[.,]|PD|[A-Z][.,](?:[A-Z]\\.)?)[ \\t]*)*(?:K[oö]ll?eg\\w*[ \\t]+)?)"
         + NOT_ROLE + "(" + TOK + "(?:[ \\t]+(?:von|van|ven|wan|de|zu|der|den)[ \\t]+" + TOK + "|[ \\t]+" + TOK + "){0,2})");
 
     /** "Name: ..." gibi etiketli alanlar. */
     private static final Pattern FIELD = Pattern.compile(
-        "(?im)^([ \\t]*(?:Name|Vorname|Nachname|Patient(?:in)?|Pat\\.?|Versicherte[rn]?|Kind|Mutter|Vater|Absender|Empfänger|Befr\\.|Behandelnde[rn]? Arzt|Arzt|Ärztin|Unterschrift)[ \\t]*[.:：][ \\t]*)(?:Herrn?|Frau)?[ \\t]*(.+?)(?=,?[ \\t]*(?:geb\\.|\\*|geboren)|$)");
+        "(?im)^([ \\t]*(?:Name|Vorname|Nachname|Patient(?:in)?|Pat\\.?|Versicherte[rn]?|Kind|Mutter|Vater|Absender|Empfänger|Befr\\.|Behandelnde[rn]? Arzt|Arzt|Ärztin|Unterschrift)[ \\t]*[.:;：][ \\t]*)(?:Herrn?|Frau)?[ \\t]*(.+?)(?=,?[ \\t]*" + BIRTH + "\\d|$)");
 
     /** Doğum işaretinden hemen önceki isim: "Muster, Erika, *01.02.1950", "Max Beispiel (* 03.04.1960", "Muster Erika Maria * 05.06.1970". */
     private static final Pattern BIRTH_NAME = Pattern.compile(
-        "(" + TOK + "(?:,?[ \\t]+" + TOK + "){0,3})(?=[ \\t]*[,(]?[ \\t]*(?:\\*|geb\\.?|geboren)[ \\t]*(?:am[ \\t]*:?[ \\t]*)?\\d)");
+        "(" + TOK + "(?:[ \\t]*,?[ \\t]+" + TOK + "){0,3})(?=[ \\t]*[,(]?[ \\t]*" + BIRTH + "\\d)");
+
+    /** "Patientin Erika Muster," / "Patient Max Beispiel wurde": exactly two capitalised words, then a comma, a bracket or a common verb. */
+    private static final Pattern PATIENT_NAME = Pattern.compile(
+        "(?m)\\b(Patient(?:in|en)?[ \\t]+)(?!(?:Herrn?|Frau)\\b)" + NOT_ROLE + "(" + CAP + "[ \\t]+" + CAP + ")(?=[ \\t]*[,(]|[ \\t]+(?:wurde|war|ist|hat|kam|befand|stellte|zeigte|berichtete|klagte|erhielt|wird)\\b)");
+
+    /** Signature line "C. Muster" directly above a role line ("Stationsärztin", "Oberarzt", ...). */
+    private static final Pattern SIGN_NAME = Pattern.compile(
+        "(?m)^([ \\t]*)[A-ZÄÖÜ][.,][ \\t]*(" + TOK + ")[ \\t]*(?=\\n[ \\t]*(?:Ober|Chef|Assistenz|Stations|Fach|Haus)?(?:ärztin|arzt|Ärztin|Arzt)\\b)");
 
     private static final Pattern STREET = Pattern.compile(
         "\\b[A-ZÄÖÜ][\\wäöüß.-]*(?:str\\.?|straße|strasse|weg|platz|allee|gasse|ring|ufer|damm)[.,]?[ \\t]*\\d+[a-z]?\\b");
+    /** "wohnhaft in Musterstadt, Beispielweg 3": the place and a following "Street 12" part (also on the next line). */
+    private static final Pattern RESIDENCE = Pattern.compile(
+        "(wohnhaft[ \\t]+(?:in[ \\t]+)?)[^,\\n.]+(?:,[ \\t]*\\n?[ \\t]*[A-ZÄÖÜ][^,\\n]{0,40}?[ \\t]\\d+[a-z]?\\b)?");
     private static final Pattern PLZ = Pattern.compile("\\b\\d{5}[ \\t]+" + CAP);
     private static final Pattern IBAN = Pattern.compile("\\bDE\\d{2}(?:[ \\t]?\\d{4}){4}[ \\t]?\\d{2}\\b");
-    private static final Pattern BDAY = Pattern.compile("(?:\\*|geb\\.?|geboren)[ \\t]*(?:am[ \\t]*:?[ \\t]*)?\\d{1,2}[.,\\s]*\\d{1,2}[.,\\s]*\\d{4}");
+    private static final Pattern BDAY = Pattern.compile(BIRTH + "(" + DATE + ")");
 
     private static final Set<String> STOP = new HashSet<>(Arrays.asList(
         "Dr", "Prof", "Herr", "Herrn", "Frau", "Sehr", "Mit", "Datum", "Seite", "Patient", "Patientin", "Befund", "Alter", "Name"));
@@ -36,7 +53,9 @@ final class Mask {
     static Set<String> collect(Collection<String> pages) {
         Set<String> names = new HashSet<>();
         for (String p : pages) {
-            for (Pattern pt : new Pattern[]{BIRTH_NAME, TITLE_NAME, FIELD}) {
+            Matcher d = BDAY.matcher(p);
+            while (d.find()) { String[] f = d.group(1).split("[^0-9]+"); if (f.length == 3) names.add(f[0] + "." + f[1] + "." + f[2]); }
+            for (Pattern pt : new Pattern[]{BIRTH_NAME, TITLE_NAME, FIELD, PATIENT_NAME, SIGN_NAME}) {
                 Matcher m = pt.matcher(p);
                 while (m.find()) for (String w : m.group(pt == BIRTH_NAME ? 1 : 2).split("[\\s,]+"))
                     if (w.length() >= 4 && Character.isUpperCase(w.charAt(0)) && !STOP.contains(w)) names.add(w);
@@ -61,16 +80,24 @@ final class Mask {
         t = BDAY.matcher(t).replaceAll("[GEBURTSDATUM]");
         t = FIELD.matcher(t).replaceAll("$1[NAME]");
         t = TITLE_NAME.matcher(t).replaceAll("$1[NAME]");
+        t = PATIENT_NAME.matcher(t).replaceAll("$1[NAME]");
+        t = SIGN_NAME.matcher(t).replaceAll("$1[NAME]");
+        t = RESIDENCE.matcher(t).replaceAll("$1[ADRESSE]");
         t = STREET.matcher(t).replaceAll("[ADRESSE]");
         t = PLZ.matcher(t).replaceAll("[ORT]");
         t = IBAN.matcher(t).replaceAll("[IBAN]");
+        for (String n : known) {   // a birth date found anywhere is masked wherever else it appears
+            if (!Character.isDigit(n.charAt(0))) continue;
+            String[] f = n.split("\\.");
+            t = t.replaceAll("(?<!\\d)0?" + Integer.parseInt(f[0]) + "[.,][ \\t]?0?" + Integer.parseInt(f[1]) + "[.,][ \\t]?" + f[2] + "(?!\\d)", "[GEBURTSDATUM]");
+        }
         if (known.isEmpty()) return t;
         Matcher m = Pattern.compile("[A-ZÄÖÜ][A-Za-zÄÖÜäöüß'’-]{3,}").matcher(t);
         StringBuffer sb = new StringBuffer();   // the StringBuilder overloads of appendReplacement/appendTail need API 34
         while (m.find()) {
             String w = m.group();
             boolean hit = false;
-            for (String n : known) if (w.equals(n) || ((n.length() >= 6 && w.length() >= 6 && (w.startsWith(n) || n.startsWith(w))) || lev1(w, n))) { hit = true; break; }
+            for (String n : known) if (!Character.isDigit(n.charAt(0)) && (w.equals(n) || (n.length() >= 6 && w.length() >= 6 && (w.startsWith(n) || n.startsWith(w))) || lev1(w, n))) { hit = true; break; }
             m.appendReplacement(sb, hit ? "[NAME]" : Matcher.quoteReplacement(w));
         }
         m.appendTail(sb);

@@ -61,9 +61,11 @@ UI tamamen programatiktir (XML düzen yok; tutarlılık için böyle kalır). XM
 ## OCR akışı (Metne çevir / Tıbbi rapor)
 1. Girdi belge akışının sayfalarıdır (`PagesScreen` → “Metne çevir” ya da “Tıbbi rapor”; paylaşılan görüntülerde doğrudan “Metne çevir”). `ScanSession.jobs()` okunabilir sayfaların anlık kopyasını verir; her sayfa akıştaki hâliyle (kırpılmış, döndürülmüş, filtreli) ≤ 6 MP işlenir, sonra gri tonlama + hafif kontrast, uzun kenar ≤ 2400 px (A4'te ~200 dpi; `OcrEngine.prepare`). Sayfalar hâlâ hazırlanıyorsa (kenar algılama) `ProgressScreen` bekler.
 2. **Metne çevir** (genel): hatırlanan diller (`LangBar`, tercih `ocr_langs` → `ocr`, ör. `deu+tur`), otomatik sayfa düzeni, yalnızca cihazda. Sonuç ekranında dil değiştirilip “Seçili dillerle yeniden oku” ile aynı sayfalar yeniden okunur; “Cilala” isteğe bağlı (önce maskelenir). **Tıbbi rapor**: her zaman `deu`, PSM single column. Gerekli dil yüklü değilse önce `TessScreen` açılır, “Devam” okumayı başlatır.
-3. Tıbbi: `Mask.collect` tüm sayfalardan isim adaylarını toplar; `Mask.apply` her sayfada maskeler (`[NAME]`, `[GEBURTSDATUM]`, `[ADRESSE]`, `[ORT]`, `[IBAN]`).
-4. Maskeli metin **tek istekte** buluta gider: sayfaları doğru sıraya dizer + OCR hatalarını düzeltir + çöpü temizler, içerik eklemez/çıkarmaz.
-5. `ResultScreen`: kopyala / paylaş. Hiçbir şey diske yazılmaz. Geri sayfalara döner (akış sürer; sayfalar düzeltilip yeniden okunabilir).
+3. Tıbbi: `Mask.collect` tüm sayfalardan isim (ve doğum tarihi) adaylarını toplar; `Mask.apply` her sayfada maskeler (`[NAME]`, `[GEBURTSDATUM]`, `[ADRESSE]`, `[ORT]`, `[IBAN]`).
+4. `PreClean` maskeli sayfalardan tıbbi olmayan satırları yerelde atar (sayfa başı/sonundaki sayfa numaraları, telefon/faks/e-posta/web, banka/yasal/Fallnummer satırları, selamlama/kapanış, yalnızca `[NAME]`/`[GEBURTSDATUM]` taşıyan hasta başlıkları, sayfaların çoğunda yinelenen üst/alt bilgi). Şüphede satır kalır.
+5. Sayfa sırası taramadaki sıradır (Sayfalar ekranında sürükleyerek değişir); yalnızca her sayfada tek ve farklı bir basılı sayfa numarası okunursa ona göre dizilir. Bulut sırayı değiştirmez.
+6. Temiz metin **tek istekte** buluta gider: OCR hatalarını düzeltir, kalan antet/imza/çöpü atar, laboratuvarı satır satır yazar; okunamayan tıbbi yer `[unleserlich]` olur, içerik eklemez.
+7. `ResultScreen`: kopyala / paylaş. Hiçbir şey diske yazılmaz. Geri sayfalara döner (akış sürer; sayfalar düzeltilip yeniden okunabilir).
 
 Bulut isteği başarısız olursa maskeli ham OCR gösterilir (uyarı notuyla).
 

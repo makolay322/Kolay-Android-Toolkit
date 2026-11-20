@@ -10,7 +10,7 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 import java.io.*;
 import java.util.regex.*;
 
-/** Whole original pictures of a document flow (not the cropped pages) -> Tesseract (medical: deu; general: the chosen languages) -> local PII masking -> one LLM request (page order + cleanup) -> plain text. Nothing is written to disk. */
+/** Whole original pictures of a document flow (not the cropped pages) -> Tesseract (medical: deu; general: the chosen languages) -> local PII masking -> local pre-clean -> one LLM request (cleanup, pages kept in order) -> plain text. Nothing is written to disk. */
 final class Ocr {
     /**
      * Long side of the whole picture handed to Tesseract: the page is only part of the photo, so a little more than the
@@ -18,30 +18,36 @@ final class Ocr {
      */
     private static final int WHOLE_SIDE = 3000;
     private static final String PROMPT =
-        "Aşağıda, Almanca bir tıbbi belgenin (rapor, epikriz, bulgu, reçete, faks vb.) sayfalarının Tesseract OCR çıktıları var. "
-        + "Sayfalar KARIŞIK sırada gönderilmiş olabilir; her biri '=== SAYFA n ===' satırıyla başlar. "
-        + "Görevin: (1) Sayfaları doğru sıraya diz (sayfa numaraları, 'Seite x von y', içerik akışı, cümlelerin sayfa sonunda/başında devam etmesi, "
-        + "başlık/bitiş imzası gibi ipuçlarıyla). Bunu yaparken yalnızca sayfaların SIRASINI değiştir; sayfaları bölme, birleştirme, "
-        + "yeniden yazma veya tekrar etme, her sayfa çıktıda tam bir kez yer alsın. "
-        + "(2) Her sayfada OCR hatalarını tıbbi bağlamı kullanarak düzelt (bozuk kelimeler, yanlış harf/rakamlar, tıbbi terimler, ilaç adları, "
-        + "birimler). "
-        + "(3) Hasta brifinine katkısı olmayan yerleri ÇIKAR: "
-        + "(a) Gönderen kurumun (hastane, klinik, muayenehane, laboratuvar) iletişim ve kurumsal bilgileri: telefon, faks, e-posta, web adresi, "
-        + "sokak/posta kodu adresi, banka/IBAN, vergi ve kurum numarası, çalışma saatleri, ulaşım tarifi, logo/antet metni. "
-        + "Kurumun ve bölümün ADI ile sorumlu hekimin adı ve unvanı kalsın (belgenin kimden geldiğini gösterir) ama yalnızca ilk geçtiği yerde. "
-        + "(b) Her sayfada yinelenen üst/alt bilgiler: antet, 'Seite x von y', sayfa numarası, tekrar eden hasta/dosya başlığı satırları, "
-        + "faks başlık/altlık satırları (gönderim tarihi, faks numarası), basım/oluşturma damgaları, barkod ve belge numarası döküntüleri. "
-        + "(c) Yasal/idari kalıp metinler: gizlilik uyarısı, 'Dieses Schreiben ist vertraulich…' türü ibareler, veri koruma notları, "
-        + "'Mit freundlichen kollegialen Grüßen' gibi kapanış nezaket kalıpları ve boş imza çizgileri (imzalayan hekimin adı unvanı kalsın). "
-        + "(d) Aynen tekrar eden satır/paragraflar (aynı cümlenin iki kez yazılması, sayfa sonunda tekrarlanan satırlar): yalnızca ilkini bırak. "
-        + "(e) Anlamsız çöp: rastgele semboller, boş yer tutucular, tablo çizgisi artıkları, gürültü. "
-        + "KESİN KURALLAR: Tıbbi içeriğin hiçbir parçasını çıkarma veya özetleme; tüm cümleler, bulgular, tanılar, ICD kodları, ilaçlar, dozlar, "
-        + "laboratuvar değerleri, referans aralıkları, tarihler (muayene, yatış, taburcu, kontrol), ölçümler, öneriler ve kontrol randevuları kalmalı. "
-        + "Yinelenen tekrar ile özdeş görünen ama farklı tarih/değer taşıyan satırları (örn. farklı günlerin laboratuvar sonuçları) ASLA birleştirme. "
-        + "Emin değilsen metni olduğu gibi bırak. Hiçbir bilgi ekleme veya uydurma. "
-        + "[NAME] ile gösterilen sansürlü yerleri aynen koru. Dili Almanca bırak, çevirme. Satır yapısını mümkün olduğunca koru. "
-        + "Çıktı yalnızca düz metin olsun: sayfa başlığı ('=== SAYFA n ===' dahil), açıklama, markdown veya kod bloğu yazma; "
-        + "sayfaları yalnızca bir boş satırla ayır.\n\nSAYFALAR:\n";
+        "Aşağıda, Almanca bir tıbbi belgenin (doktor mektubu, epikriz, bulgu, laboratuvar, reçete, faks vb.) sayfalarının Tesseract OCR çıktıları var. "
+        + "Kişisel veriler [NAME], [GEBURTSDATUM], [ADRESSE], [ORT], [IBAN] ile sansürlendi; telefon, sayfa numarası, selamlama gibi bazı satırlar "
+        + "önceden silindi. Her sayfa '=== SAYFA n ===' satırıyla başlar ve sayfalar DOĞRU SIRADA gelir. "
+        + "Görevin belgeyi, tıbbi içeriği eksiksiz ve aynen koruyarak temiz bir metne çevirmek: "
+        + "(1) SIRA: Sayfaları verilen sırayla işle; sayfaların veya bölümlerin sırasını DEĞİŞTİRME. Sayfa sınırında bölünmüş cümleyi birleştir. "
+        + "(2) OCR HATALARI: Bozuk kelimeleri, yanlış harf/rakamları, tıbbi terimleri, ilaç adlarını ve birimleri yalnızca bağlamdan kesin "
+        + "anlaşılıyorsa düzelt. Tıbbi içerik taşıdığı belli olan ama okunamayacak kadar bozuk yere tahmin yazma, '[unleserlich]' yaz; "
+        + "eksik kalan sayı, tarih, doz veya değeri ASLA tamamlama ya da uydurma. Tıbbi anlam taşımayan bozuk parçaları (rastgele harf ve "
+        + "sembol dizileri, kenar boşluğu artıkları) tamamen sil. İki sütunlu düzenden karışmış cümle parçalarını yalnızca sıraları açıkça "
+        + "belliyse yeniden birleştir. "
+        + "(3) ÇIKAR: antet ve logo metni, kurum/bölüm adres blokları, telefon/faks/e-posta/web satırları, bölüm iletişim kutuları "
+        + "(çalışma saatleri, randevu hatları), banka bilgileri, Geschäftsführung/Vorstand, USt-IdNr., Amtsgericht/HRB, her sayfada yinelenen "
+        + "hasta başlık/alt bilgi satırları ('Pat.: [NAME], Geb.Dat. …', '[NAME], [GEBURTSDATUM]'), sayfa numaraları ('4/6', 'Seite x von y'), "
+        + "Fallnummer ve benzeri dosya/belge numaraları, dikte kısaltmaları, faks başlık/altlıkları, gizlilik/veri koruma ibareleri, alıcı adres "
+        + "bloğu, 'Sehr geehrte…' selamlaması, teşekkür ve nezaket cümleleri ('Vielen Dank für …'), 'Mit freundlichen Grüßen' kapanışı ve "
+        + "imza bloğu (imzalayan isimler, unvanlar, görevler). Belgenin kaynağı olarak gönderen kurum ve bölüm adı (ör. 'Klinik für "
+        + "Innere Medizin') en başta tek satır kalabilir, adres ve iletişim olmadan; belgenin tarihi de kalsın. Aynen tekrar eden satır/paragrafların "
+        + "yalnızca ilkini bırak. "
+        + "(4) AYNEN KORU: tanılar ve ICD kodları, anamnez, muayene ve bulgular, görüntüleme/EKG/ekokardiyografi sonuçları, laboratuvar değerleri "
+        + "(referans aralığı, birim ve yüksek/düşük işaretleriyle), girişimler ve operasyonlar, epikriz, öneriler, kontrol randevuları, ilaçlar "
+        + "(etken madde, ticari ad, doz, form, kullanım şeması ve notlarla). Bunları özetleme, yeniden yazma veya kısaltma; cümleler aynen kalsın. "
+        + "Aynı görünen ama farklı tarih veya değer taşıyan satırları ASLA birleştirme. Hiçbir bilgi ekleme. Emin değilsen metni bırak. "
+        + "(5) LABORATUVAR TABLOLARI: her parametre tek satırda, şu biçimde: 'Parameter | TT.MM.JJ: Wert; TT.MM.JJ: Wert | Einheit | Referenzbereich'. "
+        + "Tarih (ve varsa saat) sütun başlığından okunur; bir değerin hangi tarihe ait olduğu belli değilse tarihi yazma, değerleri okunduğu "
+        + "sırayla yaz. Okunamayan değer yerine '[unleserlich]' yaz. Markdown tablosu kullanma. "
+        + "(6) İLAÇ LİSTESİ: her ilaç tek satırda (etken madde, ticari ad, doz, form, şema); OCR'ın ayrı satıra böldüğü aynı ilacı birleştir. "
+        + "Başlıklar (Diagnosen, Anamnese, Befunde, Labor, Epikrise, Empfehlung, Medikation vb.) kendi satırında kalsın. "
+        + "Dili Almanca bırak, çevirme. [NAME] gibi sansür işaretlerini aynen koru. "
+        + "Çıktı yalnızca düz metin olsun: '=== SAYFA n ===' satırlarını yazma; açıklama, markdown veya kod bloğu yazma; bölümleri bir boş "
+        + "satırla ayır.\n\nSAYFALAR:\n";
 
     private final Host host;
     private final String lang;
@@ -89,7 +95,7 @@ final class Ocr {
     }
 
     /**
-     * All pages: Tesseract + masking for each, then one cleanup request (page order + fixes). Offline, without a key or on any
+     * All pages: Tesseract + masking + pre-clean for each, then one cleanup request (fixes; the page order is kept). Offline, without a key or on any
      * error the local text is returned as it is, without a note; {@link Out#pending} then lets the user polish it later.
      */
     synchronized Out run(java.util.List<ScanSession.Job> pages, Progress pr) throws Exception {
@@ -102,11 +108,15 @@ final class Ocr {
             raws.add(read(a, pages.get(i)));
         }
         java.util.Set<String> known = Mask.collect(raws);  // bir sayfada bulunan isim tüm sayfalarda sansürlenir
-        for (int i = 0; i < raws.size(); i++) {
-            String masked = Mask.apply(raws.get(i), known).trim();
-            if (masked.isEmpty()) continue;
-            all.append("=== SAYFA ").append(i + 1).append(" ===\n").append(masked).append("\n\n");
-            plain.append(masked).append("\n\n");
+        java.util.List<String> masked = new java.util.ArrayList<>();
+        for (String r : raws) masked.add(Mask.apply(r, known).trim());
+        java.util.List<String> clean = PreClean.pages(masked);   // drops contact/legal/page-number/header lines before the request
+        int n = 0;
+        for (int i : PreClean.order(masked)) {   // printed page numbers when every page has one, else the order as scanned
+            String page = clean.get(i);
+            if (page.isEmpty()) continue;
+            all.append("=== SAYFA ").append(++n).append(" ===\n").append(page).append("\n\n");
+            plain.append(page).append("\n\n");
         }
         if (all.length() == 0) return new Out("", null);
         if (cancelled) throw new InterruptedIOException("iptal");
@@ -122,8 +132,12 @@ final class Ocr {
 
     /** Medical mode cleanup of already masked, page-marked text. Throws on a missing key or network error. */
     static String polish(Host host, String marked) throws Exception {
-        return Llm.generate(host, PROMPT + marked, 0.0, 32768);
+        String out = Llm.generate(host, PROMPT + marked, 0.0, 32768);
+        return PAGE_MARK.matcher(out).replaceAll("").replaceAll("\n{3,}", "\n\n").trim();
     }
+
+    /** Page markers of the request, should the model copy them into its answer. */
+    private static final Pattern PAGE_MARK = Pattern.compile("(?m)^[ \\t]*=== SAYFA \\d+ ===[ \\t]*\\n?");
 
     /** General mode: Tesseract only, automatic page layout, no masking and no network. Pages are joined with a blank line. */
     synchronized String runPlain(java.util.List<ScanSession.Job> pages, Progress pr) throws Exception {

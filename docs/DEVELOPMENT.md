@@ -31,11 +31,11 @@ son manifest'ten türetip derlemeden önce yazar (sonra geri alır, depoya commi
 ## Test
 Emülatör/otomatik arayüz testi yoktur; cihazda elle denenir. Masaüstü JVM'de denenebilen saf Java parçalar:
 - `app/.../shell/Verify.java` (SHA-256, ECDSA) — `openssl dgst -sign` ile üretilmiş imzayla doğrulama
-- `app/.../app/tools/ocr/Mask.java` (isim maskeleme) — **uydurma** örneklerle; gerçek belge/isim kullanma
+- `app/.../app/tools/ocr/Mask.java` (isim maskeleme) ve `PreClean.java` (tıbbi olmayan satırları atma) — **uydurma** örneklerle; gerçek belge/isim kullanma
 
 Cihazda kontrol listesi (sürüm öncesi):
 1. Temiz kurulum → ana sayfa animasyonla açılıyor, Ayarlar'da sürüm bilgisi doğru.
-2. Anahtarı kaydet → Belgeler → Galeri → 2–3 fotoğraf seç (karışık sıra) → Tıbbi rapor → sonuç, sıra doğru, `[NAME]` görünüyor.
+2. Anahtarı kaydet → Belgeler → Galeri → 2–3 fotoğraf seç → Tıbbi rapor → sonuç sayfa sırasında (sayfa numarası her sayfada okunursa ona göre), `[NAME]` görünüyor.
 3. Kopyala / Paylaş çalışıyor; uygulamayı kapat-aç → sonuç diske yazılmamış.
 4. Ayarlar → *Şimdi denetle* → durum metni mantıklı; yeni sürüm varsa *Şimdi kur* kurar, uygulama kapanır, yeniden açınca sürüm numarası artmış.
 5. Koyu/açık tema geçişi arayüzü bozmuyor; geri tuşu her ekranda beklenen yere dönüyor.
