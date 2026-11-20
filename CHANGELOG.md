@@ -9,6 +9,11 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Eklendi — "Kolay'a kaydet" paylaşım hedefi
+- Başka bir uygulamadan paylaşılan dosyalar (ya da metin, `.txt` olarak) paylaş menüsündeki **Kolay'a kaydet** ile telefondaki bir klasöre kaydedilir. Konum seçici yalnızca klasörleri gösterir (depolama birimleri, yer imleri, "Yeni klasör"); seçilen konum hatırlanır. Aynı adlı dosya varsa Dosyalar'daki gibi sorulur; boyut yazılırken ve sonunda doğrulanır, iptalde yarım dosya silinir.
+- "Tüm dosyalara erişim" yoksa "İzin ver" ya da izinsiz "İndirilenler/Kolay'a kaydet" seçilebilir. Yalnızca `content://` kabul edilir; Kolay'ın kendi sağlayıcısı ve gelen adlardaki `/`, `..`, denetim karakterleri reddedilir.
+- Cihazda denenmedi.
+
 ### Değişti — Cuma mesajı: görsel 5:3, cami yukarı kaydı
 - Görsel 4:3'ten **5:3 yatay**a (1280×768) geçti: 4:3 yerleşim aynı kalır, alttan 192 px kırpılır. Hadis paneli, başlık, hilâller ve yıldızlar yerinde durur.
 - Cami silueti kırpılmaz: 192 px yukarı kaydırıldı, tabanı yeni alt kenara oturur; üst kısmı panelin alt bölümünün arkasından soluk görünür.

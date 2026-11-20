@@ -64,6 +64,17 @@
                 <data android:mimeType="text/plain"/>
             </intent-filter>
         </activity>
+        <!-- Share-sheet entry "Kolay'a kaydet": any shared file or text is saved into a phone folder (SaveShareScreen). The class name is frozen once shipped. -->
+        <activity android:name=".SaveShare" android:exported="true" android:label="@string/save_share" android:icon="@mipmap/ic_launcher"
+            android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
+        </activity>
         <!-- Share-sheet entry "Metne çevir": pictures from other apps go to text recognition (general mode, on the device). No PDF. -->
         <activity-alias android:name=".OcrShare" android:targetActivity=".MainActivity" android:exported="true"
             android:label="Metne çevir" android:icon="@mipmap/ic_launcher">

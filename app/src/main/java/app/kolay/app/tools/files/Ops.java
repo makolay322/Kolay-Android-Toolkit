@@ -124,11 +124,17 @@ public final class Ops {
             quietDelete(dst, tmp);
             throw new IOException("kopya doğrulanamadı (boyut farklı)");
         }
+        commit(dst, tmp, target, replace);
+    }
+
+    /** Moves the verified temporary file into place; a replaced file is kept aside until the new one is there. */
+    private static void commit(FileSource dst, String tmp, String target, boolean replace) throws IOException {
+        String dir = FileSource.parent(target);
         if (!replace) {
             try { dst.rename(tmp, target); } catch (IOException e) { quietDelete(dst, tmp); throw e; }
             return;
         }
-        String old = FileSource.child(dir, uniqueName(dst, dir, "." + it.name + OLD));
+        String old = FileSource.child(dir, uniqueName(dst, dir, "." + FileSource.name(target) + OLD));
         dst.rename(target, old);
         try { dst.rename(tmp, target); }
         catch (IOException e) { dst.rename(old, target); quietDelete(dst, tmp); throw e; }   // put the original back
@@ -151,6 +157,94 @@ public final class Ops {
     private void skip(FileSource s, FileItem it) throws Cancelled {
         done += it.dir ? measure(s, it.path, pr::cancelled)[0] : it.size;
         pr.update(it.name, done, total);
+    }
+
+    // ---------------------------------------------------------------- import (share target)
+
+    /** A file arriving from outside the file sources (e.g. a shared content:// stream). */
+    public interface Incoming {
+        /** The sender's suggested name (sanitized again here). */
+        String name();
+        /** Declared size, or -1 if unknown. */
+        long size();
+        InputStream open() throws IOException;
+    }
+
+    /** Writes {@code in} into {@code dstDir} of {@code dst} (same temp-name, verify, rename rules as a copy). Unknown sizes show an indeterminate bar. */
+    public static Result importStreams(List<Incoming> in, FileSource dst, String dstDir, Resolver r, Progress p) {
+        Ops o = new Ops(p);
+        long sum = 0;
+        boolean known = true;
+        for (Incoming i : in) { if (i.size() < 0) known = false; else sum += i.size(); }
+        o.total = known ? sum : 0;
+        try {
+            for (Incoming i : in) {
+                o.check();
+                if (o.importOne(i, dst, dstDir, r)) o.res.done++;
+            }
+        } catch (Cancelled e) { o.res.cancelled = true; }
+        return o.res;
+    }
+
+    private boolean importOne(Incoming in, FileSource dst, String dstDir, Resolver r) throws Cancelled {
+        String name = cleanName(in.name());
+        if (name == null) name = "Paylaşılan dosya";
+        long declared = in.size();
+        try {
+            String target = FileSource.child(dstDir, name);
+            FileItem ex = dst.stat(target);
+            boolean replace = false;
+            if (ex != null) {
+                Conflict c = r.resolve(ex, new FileItem(target, false, Math.max(0, declared), System.currentTimeMillis()));
+                if (c == Conflict.SKIP) { res.skipped++; done += Math.max(0, declared); pr.update(name, done, total); return false; }
+                if (c == Conflict.KEEP_BOTH) { name = uniqueName(dst, dstDir, name); target = FileSource.child(dstDir, name); }
+                else if (ex.dir) throw new IOException("aynı adda bir klasör var");
+                else replace = true;
+            }
+            String tmp = FileSource.child(dstDir, uniqueName(dst, dstDir, "." + name + PART));
+            long n;
+            try (InputStream is = in.open(); OutputStream out = dst.openWrite(tmp)) {
+                n = pump(is, out, name);
+            } catch (IOException e) {
+                quietDelete(dst, tmp);
+                throw e;
+            }
+            FileItem w = dst.stat(tmp);
+            if (w == null || w.size != n || (declared >= 0 && declared != n)) {
+                quietDelete(dst, tmp);
+                throw new IOException("kopya doğrulanamadı (boyut farklı)");
+            }
+            commit(dst, tmp, target, replace);
+            return true;
+        } catch (Cancelled e) {
+            throw e;
+        } catch (IOException e) {
+            res.errors.add(name + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** A sender-supplied name reduced to a safe single file name (no folders, no control characters, at most 255 bytes), or null if nothing usable is left. */
+    public static String cleanName(String raw) {
+        if (raw == null) return null;
+        String s = raw.substring(Math.max(raw.lastIndexOf('/'), raw.lastIndexOf('\\')) + 1);
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            int t = Character.getType(ch);
+            if (t == Character.CONTROL || t == Character.FORMAT) continue;
+            b.append(ch);
+        }
+        s = b.toString().trim();
+        while (s.endsWith(".") || s.endsWith(" ")) s = s.substring(0, s.length() - 1);
+        if (s.isEmpty() || s.equals(".") || s.equals("..")) return null;
+        int dot = s.lastIndexOf('.');
+        String ext = dot > 0 && s.length() - dot <= 16 ? s.substring(dot) : "";
+        String base = s.substring(0, s.length() - ext.length());
+        while (base.getBytes(java.nio.charset.StandardCharsets.UTF_8).length + ext.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 200 && !base.isEmpty())
+            base = base.substring(0, base.length() - 1);
+        s = (base + ext).trim();
+        return s.isEmpty() || badName(s) != null ? null : s;
     }
 
     // ---------------------------------------------------------------- delete

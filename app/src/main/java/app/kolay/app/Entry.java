@@ -52,6 +52,11 @@ public final class Entry {
         a.setContentView(root);
 
         Intent in = a.getIntent();
+        // Share-sheet "Kolay'a kaydet": only the save page; leaving it closes the activity (Back / Bitti call finish).
+        if (a instanceof app.kolay.shell.SaveShare) {
+            new Nav(c, root).push(new app.kolay.app.tools.files.SaveShareScreen(in));
+            return;
+        }
         // Started by the launcher to set up the widget's look (PrayerWidgetConfig): only that page; leaving it closes the activity.
         if (in != null && android.appwidget.AppWidgetManager.ACTION_APPWIDGET_CONFIGURE.equals(in.getAction())) {
             new Nav(c, root).push(new app.kolay.app.tools.namaz.WidgetStyleScreen(true));
