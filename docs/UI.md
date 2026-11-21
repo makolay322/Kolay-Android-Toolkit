@@ -25,7 +25,7 @@ Liste satırında gizli uzun basma yerine görünür bir son simge kullan (⋮ m
 `bg` sayfa · `surface` kart · `surface2` girdi/ikincil düğme · `ink` ana metin · `muted` ikincil metin · `line` ayraç ·
 `primary`/`onPrimary` vurgu · `primarySoft`/`onPrimarySoft` yumuşak vurgu (ikon kutuları, tonlu düğme) · `danger`/`dangerSoft`, `ok`/`okSoft`, `warn`/`warnSoft` ·
 `track`/`thumb` anahtar (kapalı ray, düğme) · `scrim` kamera üstü koyu katman · `ripple` dokunma dalgası.
-`heroA`/`heroMid`/`heroB` + `onHero`: ana sayfa başlık degradesi (vurgu → üçüncül ton; Namaz'ın "Sıradaki vakit" kartı ve sohbetteki kendi balonun da bunu kullanır) · `inverse`/`onInverse`: snackbar · `shadow`: açık temada gölge rengi.
+`video`/`onVideo`: video oynatıcının siyah zemini ve üstündeki denetimler/altyazı (iki temada aynı) · `heroA`/`heroMid`/`heroB` + `onHero`: ana sayfa başlık degradesi (vurgu → üçüncül ton; Namaz'ın "Sıradaki vakit" kartı ve sohbetteki kendi balonun da bunu kullanır) · `inverse`/`onInverse`: snackbar · `shadow`: açık temada gölge rengi.
 `tone(i)` (ve onun açık hâli `softBg(i)`/`softFg(i)`): ikon kutuları için kategori tonları; sıra numarasıyla çağır ki komşu kutular farklı renkte olsun. Aynı şey hep aynı renk: ana sayfa grupları (Belgeler mavi, Sohbet mor, Dini yeşil, Araçlar kehribar, Dosyalar gök; bir grubun araç satırları grubun tonundan devam eder) ve dosya türleri (`Files.tone`: görsel gül, video/PDF kırmızı, ses kehribar, tablo yeşil, sunum kehribar, metin gök, arşiv mor, APK turkuaz).
 Anlamsal renkler (`danger`, `ok`, `warn`) duvar kâğıdından etkilenmez.
 Açık temada kartlar gölgeli, koyu temada ince çerçeveli (gölge koyuda okunmaz).

@@ -185,13 +185,14 @@ final class Files {
 
     // ------------------------------------------------------------ open / share
 
-    /** Tap on a file: documents the built-in viewer can show open there, everything else through the system chooser. */
+    /** Tap on a file: videos play in Kolay's player, documents the built-in viewer can show open there, everything else through the system chooser. */
     static void open(Ctx c, FileSource src, FileItem it) { open(c, src, it, false); }
 
     /** "Birlikte aç": always the system chooser. */
     static void openWith(Ctx c, FileSource src, FileItem it) { open(c, src, it, true); }
 
     private static void open(Ctx c, FileSource src, FileItem it, boolean chooser) {
+        if (!chooser && PlayerScreen.canPlay(it.name)) { c.nav.push(new PlayerScreen(src, it)); return; }
         if (src instanceof SmbSource) openRemote(c, (SmbSource) src, it, chooser);
         else show(c, it.path, it.name, chooser);
     }
@@ -229,7 +230,7 @@ final class Files {
         else go.run();
     }
 
-    private static void stream(Ctx c, SmbSource s, FileItem it) {
+    static void stream(Ctx c, SmbSource s, FileItem it) {
         Uri u = ShareProvider.stream(s, it.path, it.name, it.size);
         Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime(it.name)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try { c.a.startActivity(Intent.createChooser(i, "Birlikte aç")); }

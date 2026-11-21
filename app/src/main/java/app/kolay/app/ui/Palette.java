@@ -22,6 +22,8 @@ public final class Palette {
     public final int inverse, onInverse;
     /** Tint of the soft shadows under raised surfaces (light theme). */
     public final int shadow;
+    /** Video player: the page behind the picture and the controls/text drawn over it (the same in both themes). */
+    public final int video, onVideo;
     /** Named category tones: the home groups and the file types use these so the same thing always has the same color. */
     public final Tone blue, violet, green, amber, rose, sky, teal, red;
     private final Tone[] cycle;
@@ -61,6 +63,7 @@ public final class Palette {
         onInverse = dark ? bg : surface;
         shadow = dark ? 0xFF000000 : mix(primary, 0xFF0B1220, 0.7f);
         onHero = 0xFFFFFFFF;
+        video = 0xFF000000; onVideo = 0xFFFFFFFF;
         if (Build.VERSION.SDK_INT >= 31) {
             Sys s = new Sys(c);
             heroA = dark ? s.a1(800) : s.a1(600);

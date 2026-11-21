@@ -7,7 +7,7 @@ import android.graphics.drawable.Drawable;
 public final class Icon extends Drawable {
     public enum Kind { BACK, CHEVRON, CHECK, COPY, SHARE, SETTINGS, SCAN, KEY, REFRESH, LINK, QR, FLASH, BARCODE, CAMERA, CRESCENT, CLOCK,
         IMAGE, PIN, SPARKLE, PASTE, DOWNLOAD, LAYERS, PLAY, DOC, APPS, COMPASS, CHAT, SEND, DOCSCAN, TRASH, CROP, PLUS, NETSCAN,
-        FOLDER, SEARCH, MORE, GRID, LIST, STAR, MUSIC, CUT, EDIT }
+        FOLDER, SEARCH, MORE, GRID, LIST, STAR, MUSIC, CUT, EDIT, START, PAUSE, REWIND, FORWARD, LOCK, SUBTITLE, ASPECT }
 
     private final Kind kind;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -51,6 +51,7 @@ public final class Icon extends Drawable {
                 path.moveTo(10.6f, 12.9f); path.lineTo(19, 4.5f); path.moveTo(16, 7.5f); path.lineTo(18.5f, 10);
                 break;
             case REFRESH:
+            case FORWARD:   // the refresh arrow doubles as "skip forward" in the video player
                 path.addArc(new RectF(5, 5, 19, 19), -50, 280);
                 path.moveTo(16.5f, 3.5f); path.lineTo(17.2f, 6.9f); path.lineTo(13.8f, 7.6f);
                 break;
@@ -207,6 +208,32 @@ public final class Icon extends Drawable {
             case CUT:
                 path.addCircle(7, 17, 2.8f, Path.Direction.CW); path.addCircle(17, 17, 2.8f, Path.Direction.CW);
                 path.moveTo(9, 15); path.lineTo(17.5f, 4); path.moveTo(15, 15); path.lineTo(6.5f, 4);
+                break;
+            case START:     // play triangle (PLAY is the video file type)
+                path.moveTo(8, 5); path.lineTo(19, 12); path.lineTo(8, 19); path.close();
+                break;
+            case PAUSE:
+                path.moveTo(8.5f, 5.5f); path.lineTo(8.5f, 18.5f); path.moveTo(15.5f, 5.5f); path.lineTo(15.5f, 18.5f);
+                break;
+            case REWIND:    // mirrored FORWARD: counter-clockwise arrow
+                path.addArc(new RectF(5, 5, 19, 19), 230, -280);
+                path.moveTo(7.5f, 3.5f); path.lineTo(6.8f, 6.9f); path.lineTo(10.2f, 7.6f);
+                break;
+            case LOCK:
+                path.addRoundRect(5, 11, 19, 20.5f, 2.5f, 2.5f, Path.Direction.CW);
+                path.addArc(new RectF(8, 4, 16, 12), 180, 180);
+                path.moveTo(8, 8); path.lineTo(8, 11); path.moveTo(16, 8); path.lineTo(16, 11);
+                path.moveTo(12, 14.5f); path.lineTo(12, 17);
+                break;
+            case SUBTITLE:  // screen with two caption lines
+                path.addRoundRect(3.5f, 5.5f, 20.5f, 18.5f, 2.5f, 2.5f, Path.Direction.CW);
+                path.moveTo(7, 12.5f); path.lineTo(10.5f, 12.5f); path.moveTo(13, 12.5f); path.lineTo(17, 12.5f);
+                path.moveTo(7, 15.5f); path.lineTo(14, 15.5f);
+                break;
+            case ASPECT:    // frame with arrows into two corners
+                path.addRoundRect(3.5f, 5.5f, 20.5f, 18.5f, 2.5f, 2.5f, Path.Direction.CW);
+                path.moveTo(7, 11.5f); path.lineTo(7, 9); path.lineTo(9.5f, 9);
+                path.moveTo(17, 12.5f); path.lineTo(17, 15); path.lineTo(14.5f, 15);
                 break;
             case LINK:
                 path.moveTo(10, 14); path.lineTo(14, 10);

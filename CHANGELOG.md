@@ -9,6 +9,13 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Yeni — Video oynatıcı
+- Dosyalar'da bir videoya dokununca artık **Kolay'ın kendi oynatıcısında** açılır (telefondaki dosyalar ve Samba'dakiler; Samba videosu indirilmeden akışla oynar). Oynatıcı telefonun kendi çözücülerini kullanır; telefonun desteklemediği bir biçimse açık bir mesaj ve **Birlikte aç** düğmesi çıkar. "Birlikte aç" menüsü eskisi gibi başka uygulamayla (Samba'da akışla) açar.
+- Tam ekran (yön videoya göre döner, çıkınca eski hâline döner), oynarken ekran kapanmaz. Dokununca denetimler: oynat/duraklat, ilerleme çubuğu ve süre, ±10 sn, kilit, görüntü oranı (Sığdır / Doldur / Uzat), hız (0,5–2×), birden fazla ses parçası ya da altyazı varsa seçim. Hareketler: yatay kaydır = ileri/geri sar (hedef süre gösterilir), solda yukarı/aşağı = parlaklık (yalnızca oynatıcıda), sağda = ses, çift dokunma solda/sağda = 10 sn geri/ileri.
+- Kaldığın yer hatırlanır ("Kaldığın yerden: …"); bitince ya da sona çok yakınsa unutulur. Dosya adı saklanmaz, yalnızca özeti (en çok 100 video).
+- Videonun yanında aynı adlı `.srt` altyazı varsa (Samba'da da, 1 MB'a kadar) otomatik yüklenir; Türkçe karakterli eski (Windows-1254) dosyalar da doğru görünür.
+- Uygulama arka plana geçince, kulaklık çıkarılınca ya da başka bir uygulama sesi alınca durur. Samba bağlantısı koparsa **Tekrar dene** kaldığın yerden sürdürür.
+- Cihazda denenmedi.
 ### Yeni — Samba'daki büyük dosyalar indirilmeden açılır
 - Ağdaki (Samba) video, ses ve diğer dosyalar artık **önce indirilmeden, akış olarak** açılır: dosyayı açan uygulama (ör. video oynatıcı) sunucudan gereken kısmı anlık okur; ileri sarma çalışır. "Önce indirilmeli" uyarısı kalktı. "Birlikte aç" her dosya için akışla açar. PDF/Office/metin gibi Kolay'ın kendi görüntüleyicisinin bütün olarak istediği belgeler eskisi gibi geçici indirilir (büyükse uyarı çıkar, uyarı artık bunu doğru anlatır). Bağlantı salt okunur, yalnızca o açılışa verilir; adreste parola ya da sunucu bilgisi yoktur. İndirme/kopyalama seçeneği aynen duruyor.
 - Cihazda denenmedi.
