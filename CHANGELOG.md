@@ -9,6 +9,9 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Yeni — Samba'daki büyük dosyalar indirilmeden açılır
+- Ağdaki (Samba) video, ses ve diğer dosyalar artık **önce indirilmeden, akış olarak** açılır: dosyayı açan uygulama (ör. video oynatıcı) sunucudan gereken kısmı anlık okur; ileri sarma çalışır. "Önce indirilmeli" uyarısı kalktı. "Birlikte aç" her dosya için akışla açar. PDF/Office/metin gibi Kolay'ın kendi görüntüleyicisinin bütün olarak istediği belgeler eskisi gibi geçici indirilir (büyükse uyarı çıkar, uyarı artık bunu doğru anlatır). Bağlantı salt okunur, yalnızca o açılışa verilir; adreste parola ya da sunucu bilgisi yoktur. İndirme/kopyalama seçeneği aynen duruyor.
+- Cihazda denenmedi.
 ### Yeni — Uzun işler arka planda, Samba'ya kaydetme
 - Kopyalama, taşıma, silme, sıkıştırma gibi uzun işlerin ilerleme sayfasında **Arka planda sürdür** düğmesi var: sayfa kapanır, iş sürer ve Dosyalar ile klasör sayfalarında alt çubuğun üstünde durum çipi ("Kopyalanıyor · %42") görünür; çipe dokunursan sayfa yeniden açılır. İş bitince sayfa kendini yeniler. Çalışan bir iş varken başlatılan yeni iş sıraya girer ("Sırada: N"). Uygulama arka plandayken çıkan dosya çakışmalarında soru sorulmaz, iki dosya da saklanır.
 - "Kolay'a kaydet" artık **Ağ** sekmesiyle kayıtlı Samba sunucularına da kaydedebilir (paylaşım ve klasör seçilir; tüm dosyalar izni gerekmez). Seçilen sunucu klasörü hatırlanır; sunucu silinmişse ya da ulaşılamıyorsa İndirilenler'e dönülür. Bağlantı ve kimlik hataları Türkçe mesajla gösterilir. Samba kuralları aynı: yalnızca SMB 2/3, yalnızca yerel ağ ve Tailscale.

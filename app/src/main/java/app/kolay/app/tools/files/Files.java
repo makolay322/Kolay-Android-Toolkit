@@ -206,10 +206,12 @@ final class Files {
     private static final long OPEN_ASK = 100L << 20;   // bigger network files need a yes before they are fetched
 
     /**
-     * A file on a Samba server: copied (verified, temporary name first) into the app's cache under {@code smb-open/}, then
-     * opened from there. Copies older than an hour are removed on the next open.
+     * A file on a Samba server. Documents Kolay's own viewer needs in full (PDF, Office, ...) are copied (verified, temporary name first) into
+     * the app's cache under {@code smb-open/} and opened from there; copies older than an hour are removed on the next open. Everything else
+     * (and every "Birlikte aç") is streamed: the other app reads the server on demand through {@link ShareProvider}, no download.
      */
     private static void openRemote(Ctx c, SmbSource s, FileItem it, boolean chooser) {
+        if (chooser || !Viewer.canOpen(it.name)) { stream(c, s, it); return; }
         File root = new File(c.a.getCacheDir(), "smb-open");
         Runnable go = () -> {
             long now = System.currentTimeMillis();
@@ -220,10 +222,18 @@ final class Files {
             if (!dir.mkdirs()) { toast(c, "Geçici klasör oluşturulamadı"); return; }
             Jobs.run(c, "İndiriliyor", "indirildi",
                 (p, r) -> Ops.transfer(s, java.util.Collections.singletonList(it.path), LocalSource.INSTANCE, dir.getPath(), false, r, p),
-                () -> { File f = new File(dir, it.name); if (f.isFile()) show(c, f.getPath(), it.name, chooser); else app.kolay.shell.Host.deleteTree(dir); }, true);
+                () -> { File f = new File(dir, it.name); if (f.isFile()) show(c, f.getPath(), it.name, false); else app.kolay.shell.Host.deleteTree(dir); }, true);
         };
-        if (it.size > OPEN_ASK) Sheet.confirm(c, "Büyük dosya", "“" + it.name + "” " + size(it.size) + ". Açmak için önce telefona geçici olarak indirilir.", "İndir ve aç", false, go);
+        if (it.size > OPEN_ASK) Sheet.confirm(c, "Büyük belge", "“" + it.name + "” " + size(it.size) + ". Kolay'ın görüntüleyicisi belgeyi bütün olarak ister; önce telefona geçici olarak indirilir. "
+            + "İndirmeden açmak için “Birlikte aç”ı kullan.", "İndir ve aç", false, go);
         else go.run();
+    }
+
+    private static void stream(Ctx c, SmbSource s, FileItem it) {
+        Uri u = ShareProvider.stream(s, it.path, it.name, it.size);
+        Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(u, mime(it.name)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try { c.a.startActivity(Intent.createChooser(i, "Birlikte aç")); }
+        catch (ActivityNotFoundException e) { toast(c, "Bu dosyayı açabilecek uygulama yok"); }
     }
 
     static void openLocal(Ctx c, String path, String name) {

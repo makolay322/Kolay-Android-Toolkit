@@ -157,6 +157,42 @@ public final class SmbSource implements FileSource, Closeable {
         };
     }
 
+    /** A read-only handle with positioned reads (for streaming playback); callers must {@link RandomRead#close()} it. */
+    public final class RandomRead implements Closeable {
+        private final File f;
+        private boolean closed;
+        private RandomRead(File f) { this.f = f; streams.incrementAndGet(); }
+
+        /** Reads up to {@code len} bytes at {@code pos}; returns the count (0 at or past the end of the file). */
+        public synchronized int read(long pos, byte[] b, int off, int len) throws IOException {
+            if (closed) throw new IOException("closed");
+            int got = 0;
+            try {
+                while (got < len) {
+                    lastUse = System.currentTimeMillis();
+                    int n = f.read(b, pos + got, off + got, len - got);
+                    if (n <= 0) break;
+                    got += n;
+                }
+            } catch (RuntimeException e) { throw wrap(e); }
+            return got;
+        }
+
+        @Override public synchronized void close() {
+            if (closed) return;
+            closed = true;
+            quietClose(f); streams.decrementAndGet(); lastUse = System.currentTimeMillis();
+        }
+    }
+
+    /** Opens {@code path} for positioned reads. */
+    public RandomRead openRandom(String path) throws IOException {
+        String[] p = file(path);
+        File f = call(() -> share(p[0]).openFile(p[1], EnumSet.of(AccessMask.GENERIC_READ), null,
+            EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ), SMB2CreateDisposition.FILE_OPEN, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE)));
+        return new RandomRead(f);
+    }
+
     @Override public OutputStream openWrite(String path) throws IOException {
         String[] p = file(path);
         File f = call(() -> share(p[0]).openFile(p[1], EnumSet.of(AccessMask.GENERIC_WRITE, AccessMask.GENERIC_READ), null,
