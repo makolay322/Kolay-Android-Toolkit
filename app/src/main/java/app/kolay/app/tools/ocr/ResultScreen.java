@@ -46,6 +46,9 @@ final class ResultScreen extends Screen {
         TextView t = Ui.text(c, text, 15, ok ? p.ink : p.danger, 400);
         out = t;
         t.setLineSpacing(0, 1.3f);
+        // General text: part of it can be selected and copied (a reference number, a date). Not in medical mode, where only
+        // the Kopyala button copies, so the clipboard entry stays marked sensitive.
+        if (ok && general) t.setTextIsSelectable(true);
         LinearLayout card = new LinearLayout(c.a);
         card.setPadding(c.dp(18), c.dp(18), c.dp(18), c.dp(18));
         Ui.surface(c, card, p.surface, 22, true);
