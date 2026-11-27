@@ -548,28 +548,38 @@ public final class PdfEditScreen extends Screen {
                 } else if (overwrite) {
                     part = newFile(".pdf");
                     try (OutputStream o = new BufferedOutputStream(new FileOutputStream(part), 1 << 16)) { PdfEdit.save(main, jobs, o, dir, step); }
-                    boolean truncated = false;
+                    boolean truncated = false, stuck = false;
                     try (InputStream in = new FileInputStream(part); OutputStream o = cr.openOutputStream(uri, "wt")) {
                         if (o == null) throw new FileNotFoundException();
                         truncated = true;   // "wt" has emptied the original: from here a failure must not lose the edit
-                        byte[] b = new byte[1 << 16];
-                        for (int r; (r = in.read(b)) > 0; ) o.write(b, 0, r);
+                        pipe(in, o);
                     } catch (IOException | RuntimeException e) {
                         if (!truncated) throw e;
                         // The original is now cut short and cannot be restored through the provider: keep the edited copy as a new file.
-                        Object[] r = MediaOut.newPdf(cr, outName());
-                        pending = (Uri) r[0];
-                        try (InputStream in = new FileInputStream(part); OutputStream o = MediaOut.open(cr, pending)) {
-                            byte[] b = new byte[1 << 16];
-                            for (int k; (k = in.read(b)) > 0; ) o.write(b, 0, k);
+                        try {
+                            Object[] r = MediaOut.newPdf(cr, outName());
+                            pending = (Uri) r[0];
+                            try (InputStream in = new FileInputStream(part); OutputStream o = MediaOut.open(cr, pending)) { pipe(in, o); }
+                            MediaOut.publish(cr, pending);
+                            result = pending;
+                            pending = null;
+                            where = r[1] + "/" + displayName(result);
+                            error = "Asıl dosyaya yazılamadı ve dosya bozulmuş olabilir. Düzenlenmiş hâli yeni dosya olarak kaydedildi: " + where;
+                        } catch (IOException | RuntimeException e2) {
+                            MediaOut.discard(cr, pending);
+                            pending = null;
+                            // The copy failed too: one more try over the (already emptied) original, it cannot get worse.
+                            try (InputStream in = new FileInputStream(part); OutputStream o = cr.openOutputStream(uri, "wt")) {
+                                if (o == null) throw new FileNotFoundException();
+                                pipe(in, o);
+                            } catch (IOException | RuntimeException e3) {
+                                // Nothing could be written: the edit stays open in the editor (unsaved), so it can be saved again.
+                                stuck = true;
+                                error = "Kaydedilemedi ve asıl dosya bozulmuş olabilir. Düzenleme açık duruyor: yer açıp “Yeni dosya olarak kaydet” ile tekrar dene, çıkma.";
+                            }
                         }
-                        MediaOut.publish(cr, pending);
-                        result = pending;
-                        pending = null;
-                        where = r[1] + "/" + displayName(result);
-                        error = "Asıl dosyaya yazılamadı ve dosya bozulmuş olabilir. Düzenlenmiş hâli yeni dosya olarak kaydedildi: " + where;
                     }
-                    if (result == null) { result = uri; where = name; }
+                    if (result == null && !stuck) { result = uri; where = name; }
                 } else {
                     Object[] r = MediaOut.newPdf(cr, outName());
                     pending = (Uri) r[0];
@@ -601,6 +611,11 @@ public final class PdfEditScreen extends Screen {
                 c.nav.replace(new PdfEditScreen(done));   // continue on the saved file
             });
         });
+    }
+
+    private static void pipe(InputStream in, OutputStream o) throws IOException {
+        byte[] b = new byte[1 << 16];
+        for (int k; (k = in.read(b)) > 0; ) o.write(b, 0, k);
     }
 
     private static File unique(File dir, String name) {
