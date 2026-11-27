@@ -156,6 +156,7 @@ final class CompressScreen extends Screen {
     private void showResult(Uri out, String error, long before, long after) {
         if (out == null) { show(Ui.state(c, Icon.Kind.IMAGE, "Sıkıştırılamadı", error, "Başka fotoğraf", this::showGrid)); return; }
         String sizes = before > 0 ? kb(before) + " → " + kb(after) : kb(after);
+        if (before > 0 && after >= before) sizes += "\nKopya özgünden küçük değil: fotoğraf zaten sıkıştırılmış.";
         LinearLayout l = Ui.state(c, Icon.Kind.CHECK, "Kaydedildi", sizes + "\nPictures/Kolay klasörüne yeni kopya olarak eklendi; özgün fotoğraf korunur.", null, null);
         TextView share = Ui.button(c, "Paylaş", Ui.Style.PRIMARY, Icon.Kind.SHARE);
         share.setOnClickListener(v -> c.a.startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND)
