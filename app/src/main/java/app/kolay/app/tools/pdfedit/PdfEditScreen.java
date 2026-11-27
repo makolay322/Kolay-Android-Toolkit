@@ -548,13 +548,28 @@ public final class PdfEditScreen extends Screen {
                 } else if (overwrite) {
                     part = newFile(".pdf");
                     try (OutputStream o = new BufferedOutputStream(new FileOutputStream(part), 1 << 16)) { PdfEdit.save(main, jobs, o, dir, step); }
+                    boolean truncated = false;
                     try (InputStream in = new FileInputStream(part); OutputStream o = cr.openOutputStream(uri, "wt")) {
                         if (o == null) throw new FileNotFoundException();
+                        truncated = true;   // "wt" has emptied the original: from here a failure must not lose the edit
                         byte[] b = new byte[1 << 16];
                         for (int r; (r = in.read(b)) > 0; ) o.write(b, 0, r);
+                    } catch (IOException | RuntimeException e) {
+                        if (!truncated) throw e;
+                        // The original is now cut short and cannot be restored through the provider: keep the edited copy as a new file.
+                        Object[] r = MediaOut.newPdf(cr, outName());
+                        pending = (Uri) r[0];
+                        try (InputStream in = new FileInputStream(part); OutputStream o = MediaOut.open(cr, pending)) {
+                            byte[] b = new byte[1 << 16];
+                            for (int k; (k = in.read(b)) > 0; ) o.write(b, 0, k);
+                        }
+                        MediaOut.publish(cr, pending);
+                        result = pending;
+                        pending = null;
+                        where = r[1] + "/" + displayName(result);
+                        error = "Asıl dosyaya yazılamadı ve dosya bozulmuş olabilir. Düzenlenmiş hâli yeni dosya olarak kaydedildi: " + where;
                     }
-                    result = uri;
-                    where = name;
+                    if (result == null) { result = uri; where = name; }
                 } else {
                     Object[] r = MediaOut.newPdf(cr, outName());
                     pending = (Uri) r[0];
