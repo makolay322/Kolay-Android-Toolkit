@@ -59,7 +59,8 @@ final class SmbUi {
         for (View x : cred) x.setVisibility(guest[0] ? View.GONE : View.VISIBLE);
         TextView msg = Ui.text(c, "Parola telefonda şifreli saklanır. Yalnızca yerel ağdaki ya da Tailscale'deki sunuculara bağlanılır (Tailscale adresi elle girilir); SMB 2 ve 3 desteklenir (SMB1 güvensiz olduğu için yok).", 13, c.p.muted, 400);
         sh.body.addView(msg, Ui.lp(-1, -2, c.dp(4), c.dp(4), 0, c.dp(4)));
-        boolean[] busy = {false}, force = {false};
+        boolean[] busy = {false};
+        String[] forced = {null};   // host:port whose failed test the user may override; a changed address is tested again
         sh.actions("Vazgeç", "Kaydet", false, () -> {
             if (busy[0]) return;
             String h = eHost.getText().toString().trim(), extraShare = null;
@@ -91,7 +92,9 @@ final class SmbUi {
                 sh.dismiss();
                 refresh.run();
             };
-            if (force[0]) { save.run(); return; }
+            String key = h.toLowerCase(Locale.ROOT) + ":" + port;
+            if (key.equals(forced[0])) { save.run(); return; }
+            forced[0] = null;
             busy[0] = true;
             error(c, msg, null);
             msg.setText("Bağlanılıyor…");
@@ -99,11 +102,11 @@ final class SmbUi {
                 String res; boolean policy = false;
                 try (SmbSource t = new SmbSource(trial, Lan::isLanOrTailscale)) { res = t.check(); }
                 catch (SmbSource.Fatal e) { res = e.getMessage(); policy = true; }
-                catch (IOException e) { res = null; String m = e.getMessage(); force[0] = true; c.ui.post(() -> error(c, msg, m + "\nYine de kaydetmek için Kaydet'e tekrar dokun.")); }
+                catch (IOException e) { res = null; String m = e.getMessage(); c.ui.post(() -> { forced[0] = key; error(c, msg, m + "\nYine de kaydetmek için Kaydet'e tekrar dokun."); }); }
                 String fr = res; boolean fp = policy;
                 c.ui.post(() -> {
                     busy[0] = false;
-                    if (fp) { force[0] = false; error(c, msg, fr); return; }   // public address / unknown name: never saved
+                    if (fp) { forced[0] = null; error(c, msg, fr); return; }   // public address / unknown name: never saved
                     if (fr != null) { Files.toast(c, "Bağlandı: " + fr); save.run(); }
                 });
             });
