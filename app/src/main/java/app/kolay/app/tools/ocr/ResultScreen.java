@@ -1,5 +1,6 @@
 package app.kolay.app.tools.ocr;
 
+import app.kolay.app.tools.Llm;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -107,7 +108,7 @@ final class ResultScreen extends Screen {
         c.io.execute(() -> {
             String res = null, err = null;
             try { res = general ? Ocr.cleanGeneral(c.host, raw) : Ocr.polish(c.host, marked); if (res.isEmpty()) err = "Boş yanıt"; }
-            catch (Exception e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); }
+            catch (Exception e) { err = Llm.describe(e); }
             final String r = res, e = err;
             c.ui.post(() -> {
                 cleaning = false;

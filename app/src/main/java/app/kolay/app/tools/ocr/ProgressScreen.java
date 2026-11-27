@@ -1,5 +1,6 @@
 package app.kolay.app.tools.ocr;
 
+import app.kolay.app.tools.Llm;
 import android.view.*;
 import android.widget.*;
 import app.kolay.app.doc.Langs;
@@ -102,7 +103,7 @@ public final class ProgressScreen extends Screen {
             if (result.isEmpty()) result = "Metin bulunamadı.";
         } catch (Exception | OutOfMemoryError e) {
             result = e instanceof OutOfMemoryError ? "Hata: bellek yetmedi; daha az sayfayla dene"
-                : "Hata: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                : "Hata: " + (Llm.describe(e));
             ok = false;
         } finally { ocr.close(); }
         final String text = result, marked = pending; final boolean good = ok;

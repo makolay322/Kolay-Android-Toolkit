@@ -1,5 +1,6 @@
 package app.kolay.app.tools.halal;
 
+import app.kolay.app.tools.Llm;
 import android.graphics.Bitmap;
 import android.view.*;
 import android.widget.*;
@@ -66,7 +67,7 @@ final class WorkScreen extends Screen {
             final String n = name, ing = ingredients, src = source;
             finishWith(() -> c.nav.replace(new VerdictScreen(n, src, ing, v, null)));
         } catch (Exception e) {
-            String msg = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            String msg = Llm.describe(e);
             final String n = name, ing = ingredients;
             finishWith(() -> c.nav.replace(new VerdictScreen(n, "", ing, null, msg)));
         }

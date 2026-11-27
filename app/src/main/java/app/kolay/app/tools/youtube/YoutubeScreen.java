@@ -1,5 +1,6 @@
 package app.kolay.app.tools.youtube;
 
+import app.kolay.app.tools.Llm;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -102,7 +103,7 @@ final class YoutubeScreen extends Screen {
                 post(() -> Ui.swapText(status, "Özetleniyor… (" + t.lang + " transkript)"));
                 out = Summary.generate(c.host, t);
                 if (out.isEmpty()) err = "Özet üretilemedi";
-            } catch (Exception e) { err = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(); }
+            } catch (Exception e) { err = Llm.describe(e); }
             final String o = out, e = err;
             post(() -> done(o, e));
         });

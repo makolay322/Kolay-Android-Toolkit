@@ -54,6 +54,15 @@ public final class Llm {
         return new String(o.toByteArray(), StandardCharsets.UTF_8);
     }
 
+    /** Short Turkish reason for a failed request; network errors otherwise surface as English platform text. */
+    public static String describe(Throwable e) {
+        if (e instanceof java.net.UnknownHostException) return "İnternet bağlantısı yok";
+        if (e instanceof java.net.SocketTimeoutException) return "Bağlantı zaman aşımına uğradı";
+        if (e instanceof java.net.ConnectException || e instanceof java.net.NoRouteToHostException) return "Sunucuya bağlanılamadı";
+        if (e instanceof javax.net.ssl.SSLException) return "Güvenli bağlantı kurulamadı";
+        return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+    }
+
     public static boolean hasKey(Host host) { return !host.secret(SettingsScreen.LLM_SECRET).isEmpty(); }
 
     private static String call(Host host, JSONArray contents, String system, double temperature, int maxTokens, int readTimeoutMs) throws Exception {

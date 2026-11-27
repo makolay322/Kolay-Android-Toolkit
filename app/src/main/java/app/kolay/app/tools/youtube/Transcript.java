@@ -84,7 +84,7 @@ final class Transcript {
         for (int attempt = 0; ; attempt++) {
             try { return sendOnce(url, json); }
             catch (IOException e) {   // 5xx from YouTube is usually momentary: retry twice
-                if (attempt >= 2 || !e.getMessage().matches("YouTube HTTP 5\\d\\d")) throw e;
+                if (attempt >= 2 || !String.valueOf(e.getMessage()).matches("YouTube HTTP 5\\d\\d")) throw e;
                 Thread.sleep(1000L * (attempt + 1));
             }
         }

@@ -142,7 +142,7 @@ final class ChatScreen extends Screen {
         c.io.execute(() -> {
             String reply = null, err = null;
             try { reply = Llm.chat(c.host, window, 0.7); if (reply != null) reply = reply.trim(); }
-            catch (Exception e) { err = e.getMessage() == null ? "Bağlantı kurulamadı" : e.getMessage(); }
+            catch (Exception e) { err = Llm.describe(e); }
             final String r = reply, e = err;
             c.ui.post(() -> {
                 if (destroyed || my != gen) return;
