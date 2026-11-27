@@ -12,6 +12,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -198,10 +199,18 @@ public final class Jobs {
                         if (!resumed || c.a.isDestroyed()) { pick[0] = Ops.Conflict.KEEP_BOTH; l.countDown(); return; }   // nobody to ask: keep both, lose nothing
                         ask(c, ex, in, (k, rem) -> { pick[0] = k; remember[0] = rem; l.countDown(); });
                     });
-                    try { l.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); cancel.set(true); }
-                    if (pick[0] == null) { cancel.set(true); return Ops.Conflict.SKIP; }
-                    if (remember[0]) all = pick[0];
-                    return pick[0];
+                    try {
+                        // The sheet can vanish without an answer (activity re-created, notification "İptal"): never wait forever,
+                        // or the single worker and the foreground service would stay stuck.
+                        while (!l.await(500, TimeUnit.MILLISECONDS)) {
+                            if (cancel.get()) break;
+                            if (c.a.isDestroyed()) { pick[0] = Ops.Conflict.KEEP_BOTH; break; }   // nobody to ask: keep both, lose nothing
+                        }
+                    } catch (InterruptedException e) { Thread.currentThread().interrupt(); cancel.set(true); }
+                    Ops.Conflict k = pick[0];
+                    if (k == null) { cancel.set(true); return Ops.Conflict.SKIP; }
+                    if (remember[0]) all = k;
+                    return k;
                 }
             };
             RUN.execute(() -> {
