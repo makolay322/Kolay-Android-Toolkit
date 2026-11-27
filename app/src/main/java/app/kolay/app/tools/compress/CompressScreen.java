@@ -13,6 +13,7 @@ import android.graphics.Outline;
 import android.media.ExifInterface;
 import android.os.ParcelFileDescriptor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Size;
@@ -40,11 +41,14 @@ final class CompressScreen extends Screen {
         content = new FrameLayout(c.a);
         page.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
         if (granted()) showGrid();
-        else c.a.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, 1);
+        else c.a.requestPermissions(new String[]{PERM}, 1);
         return page;
     }
 
-    private boolean granted() { return c.a.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED; }
+    /** Photo read permission: READ_MEDIA_IMAGES exists only from Android 13; before it the classic storage permission. */
+    private static final String PERM = Build.VERSION.SDK_INT >= 33 ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+
+    private boolean granted() { return c.a.checkSelfPermission(PERM) == PackageManager.PERMISSION_GRANTED; }
 
     /** Back from the app settings with the permission granted: show the photos. */
     @Override public void onResume() { if (askedOnce && !busy && granted()) { askedOnce = false; showGrid(); } }
@@ -53,11 +57,11 @@ final class CompressScreen extends Screen {
         if (r.length > 0 && r[0] == PackageManager.PERMISSION_GRANTED) showGrid();
         else {
             askedOnce = true;
-            boolean again = c.a.shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_IMAGES);
+            boolean again = c.a.shouldShowRequestPermissionRationale(PERM);
             show(Ui.state(c, Icon.Kind.IMAGE, "Fotoğraflara erişim gerekli", "Sıkıştırılacak fotoğrafı seçebilmek için izin ver.",
                 again ? "İzin ver" : "Ayarları aç", () -> {
-                    if (c.a.shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_IMAGES))
-                        c.a.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, 1);
+                    if (c.a.shouldShowRequestPermissionRationale(PERM))
+                        c.a.requestPermissions(new String[]{PERM}, 1);
                     else c.a.startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         Uri.fromParts("package", c.a.getPackageName(), null)));
                 }));

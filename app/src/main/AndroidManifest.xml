@@ -12,7 +12,8 @@
     <!-- "Dosyalar" (file manager): all-files access on Android 11+ (the app is distributed via GitHub, not Play);
          Android 10 uses the classic storage permissions with legacy storage. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
+    <!-- READ_EXTERNAL_STORAGE also up to Android 12 for "Fotoğraf Sıkıştır" (READ_MEDIA_IMAGES exists only from 13). -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
     <!-- "Dosyalar": long copy/move jobs (also to/from Samba servers) keep running with the screen off: a dataSync foreground
          service with a progress notification, plus a partial wake lock and a Wi-Fi lock only while a job runs. -->
