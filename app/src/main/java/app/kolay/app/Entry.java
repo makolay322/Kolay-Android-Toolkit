@@ -92,8 +92,15 @@ public final class Entry {
             android.net.Uri u = in.getData();
             String t = in.getType();
             in.setAction(Intent.ACTION_MAIN);
-            c.nav.push(Viewer.external(u, t));
+            if (!privateFile(u)) c.nav.push(Viewer.external(u, t));
         }
+    }
+
+    /** A file:// link from another app into app-private storage (/data/…): never opened, so no app can make Kolay show its own files. */
+    private static boolean privateFile(android.net.Uri u) {
+        if (!"file".equalsIgnoreCase(u.getScheme())) return false;
+        try { return u.getPath() == null || new java.io.File(u.getPath()).getCanonicalPath().startsWith("/data/"); }
+        catch (java.io.IOException e) { return true; }
     }
 
     public void onResume() {
