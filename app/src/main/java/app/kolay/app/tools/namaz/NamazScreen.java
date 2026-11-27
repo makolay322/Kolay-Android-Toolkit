@@ -1,6 +1,7 @@
 package app.kolay.app.tools.namaz;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.content.Context;
 import android.content.Intent;
@@ -9,6 +10,8 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.Looper;
 import android.provider.Settings;
 import android.view.*;
 import android.widget.*;
@@ -34,6 +37,7 @@ final class NamazScreen extends Screen {
     private long[] today, tomorrow;
     private long nextAt;                // the instant the countdown runs to
     private boolean destroyed, ticking, showingTimes, awaitingSettings;
+    private android.location.LocationListener single;   // pending Android 10 one-shot request
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             if (destroyed || !ticking) return;
@@ -64,7 +68,10 @@ final class NamazScreen extends Screen {
         else if (awaitingSettings && hasLocationPermission()) { awaitingSettings = false; locate(false); }
     }
     @Override public void onPause() { ticking = false; c.ui.removeCallbacks(tick); }
-    @Override public void onDestroy() { destroyed = true; ticking = false; c.ui.removeCallbacks(tick); }
+    @Override public void onDestroy() {
+        destroyed = true; ticking = false; c.ui.removeCallbacks(tick);
+        if (single != null) { ((LocationManager) c.a.getSystemService(Context.LOCATION_SERVICE)).removeUpdates(single); single = null; }
+    }
 
     // ---- flow ---------------------------------------------------------------------------------
 
@@ -95,6 +102,7 @@ final class NamazScreen extends Screen {
     }
 
     /** Takes the most recent known position, or asks the system for a fresh one. {@code quiet}: no error message when it fails. */
+    @SuppressLint("MissingPermission")   // callers check hasLocationPermission(); SecurityException is caught below
     private void locate(boolean quiet) {
         if (!showingTimes) {   // nothing on screen yet: show that we are looking
             body.removeAllViews();
@@ -112,12 +120,33 @@ final class NamazScreen extends Screen {
             }
             if (best != null) { apply(best, quiet); return; }
             String pv = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ? LocationManager.NETWORK_PROVIDER : null;
-            if (pv == null || Build.VERSION.SDK_INT < 30) { if (!quiet) fail(); return; }
+            if (pv == null) { if (!quiet) fail(); return; }
+            if (Build.VERSION.SDK_INT < 30) { requestOnce(lm, pv, quiet); return; }
             lm.getCurrentLocation(pv, null, c.a.getMainExecutor(), loc -> {
                 if (destroyed) return;
                 if (loc != null) apply(loc, quiet); else if (!quiet) fail();
             });
         } catch (Throwable t) { if (!quiet) fail(); }
+    }
+
+    /** Android 10: no getCurrentLocation, so ask for one update; gives up after 30 s like getCurrentLocation does. */
+    @SuppressWarnings("deprecation")
+    @SuppressLint("MissingPermission")
+    private void requestOnce(LocationManager lm, String pv, boolean quiet) {
+        if (single != null) lm.removeUpdates(single);
+        single = new android.location.LocationListener() {
+            @Override public void onLocationChanged(Location loc) { single = null; if (!destroyed) apply(loc, quiet); }
+            @Override public void onStatusChanged(String p, int s, Bundle b) { }
+            @Override public void onProviderEnabled(String p) { }
+            @Override public void onProviderDisabled(String p) { if (!destroyed && !quiet) fail(); }
+        };
+        android.location.LocationListener mine = single;
+        lm.requestSingleUpdate(pv, mine, Looper.getMainLooper());
+        c.ui.postDelayed(() -> {
+            if (destroyed || single != mine) return;
+            lm.removeUpdates(mine); single = null;
+            if (!quiet) fail();
+        }, 30_000);
     }
 
     private void fail() {

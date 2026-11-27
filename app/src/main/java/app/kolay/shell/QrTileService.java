@@ -1,5 +1,6 @@
 package app.kolay.shell;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Build;
@@ -18,6 +19,7 @@ public class QrTileService extends TileService {
         t.updateTile();
     }
 
+    @SuppressLint("StartActivityAndCollapseDeprecated")   // the Intent overload is used only below API 34
     @Override public void onClick() {
         Intent i = new Intent(this, MainActivity.class).setAction(ACTION_QR)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

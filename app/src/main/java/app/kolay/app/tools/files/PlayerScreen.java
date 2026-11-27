@@ -1,5 +1,6 @@
 package app.kolay.app.tools.files;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -353,6 +354,7 @@ final class PlayerScreen extends Screen {
     }
 
     /** System bars hidden (swipe shows them for a moment) or back as before. */
+    @SuppressLint("WrongConstant")   // origBehavior is a value read back from getSystemBarsBehavior()
     private void immersive(boolean on) {
         Window w = c.a.getWindow();
         if (Build.VERSION.SDK_INT >= 30) {
