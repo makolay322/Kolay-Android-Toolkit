@@ -62,7 +62,7 @@ public final class LocalSource implements FileSource {
 
     @Override public void delete(String path) throws IOException {
         File f = new File(path);
-        if (!f.delete() && f.exists()) throw new IOException("Silinemedi: " + f.getName());
+        if (!f.delete() && (f.exists() || isLink(path))) throw new IOException("Silinemedi: " + f.getName());   // exists() is false for a broken link
     }
 
     @Override public boolean isLink(String path) {
