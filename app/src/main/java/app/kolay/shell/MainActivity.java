@@ -21,6 +21,7 @@ public class MainActivity extends Activity {
     private static final String TAG = "Kolay";
     /** True while the activity is resumed; the background updater installs only when this is false. */
     static volatile boolean foreground;
+    private Runnable myReady;   // this activity's update banner hook; a popup closing must not clear the main window's
 
     private SecretStore secrets;
     private Entry ui;
@@ -91,7 +92,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> done.accept(s));
             }, "update-check").start();
         }
-        @Override public void onUpdateReady(Runnable r) { Updater.onReady = r; }
+        @Override public void onUpdateReady(Runnable r) { myReady = r; Updater.onReady = r; }
         @Override public void installUpdate(Consumer<String> progress) {
             if (!getPackageManager().canRequestPackageInstalls()) {
                 startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
@@ -139,7 +140,7 @@ public class MainActivity extends Activity {
     @Override public void onBackPressed() { if (!ui.onBackPressed()) super.onBackPressed(); }
 
     @Override protected void onDestroy() {
-        Updater.onReady = null;
+        if (Updater.onReady == myReady) Updater.onReady = null;
         ui.onDestroy();
         super.onDestroy();
     }
