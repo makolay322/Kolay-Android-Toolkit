@@ -252,7 +252,7 @@ public final class Ops {
     public static Result delete(FileSource s, List<String> paths, Progress p) {
         Ops o = new Ops(p);
         try {
-            for (String path : paths) { long[] m = measure(s, path, p::cancelled); o.total += m[1] + m[2]; }
+            for (String path : paths) { long[] m = measure(s, path, p::cancelled, false); o.total += m[1] + m[2]; }
             for (String path : paths) {
                 FileItem it = s.stat(path);
                 if (it == null) continue;
@@ -388,21 +388,24 @@ public final class Ops {
     // ---------------------------------------------------------------- helpers
 
     /** {bytes, files, folders} under {@code path} (the path itself included). */
-    public static long[] measure(FileSource s, String path, BooleanSupplier cancelled) throws Cancelled {
+    public static long[] measure(FileSource s, String path, BooleanSupplier cancelled) throws Cancelled { return measure(s, path, cancelled, true); }
+
+    /** {@code follow}: false counts a link to a folder as one entry (delete), so link loops cannot blow up the walk. */
+    private static long[] measure(FileSource s, String path, BooleanSupplier cancelled, boolean follow) throws Cancelled {
         long[] m = new long[3];
         try {
             FileItem it = s.stat(path);
-            if (it != null) measure(s, it, cancelled, m, 0);
+            if (it != null) measure(s, it, cancelled, m, 0, follow);
         } catch (Cancelled e) { throw e; } catch (IOException ignored) { }
         return m;
     }
 
-    private static void measure(FileSource s, FileItem it, BooleanSupplier cancelled, long[] m, int depth) throws Cancelled {
+    private static void measure(FileSource s, FileItem it, BooleanSupplier cancelled, long[] m, int depth, boolean follow) throws Cancelled {
         if (cancelled.getAsBoolean()) throw new Cancelled();
         if (!it.dir) { m[0] += it.size; m[1]++; return; }
         m[2]++;
-        if (depth > MAX_DEPTH) return;
-        try { for (FileItem ch : s.list(it.path)) measure(s, ch, cancelled, m, depth + 1); } catch (Cancelled e) { throw e; } catch (IOException ignored) { }
+        if (depth > MAX_DEPTH || (!follow && s.isLink(it.path))) return;
+        try { for (FileItem ch : s.list(it.path)) measure(s, ch, cancelled, m, depth + 1, follow); } catch (Cancelled e) { throw e; } catch (IOException ignored) { }
     }
 
     /** Names in {@code dir} (subfolders too if {@code recursive}) containing {@code query}, case-insensitive; reports each hit. */
