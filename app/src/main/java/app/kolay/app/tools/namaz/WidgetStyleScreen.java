@@ -95,7 +95,7 @@ public final class WidgetStyleScreen extends Screen {
             chip.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.CLOCK_TICK); opacity = 100 - PRESETS[k]; bar.setProgress(PRESETS[k]); refresh(true); });
             Ui.press(chip);
             presets[i] = chip;
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, c.dp(36), 1);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, c.dp(44), 1);
             if (i > 0) lp.setMarginStart(c.dp(6));
             chips.addView(chip, lp);
         }

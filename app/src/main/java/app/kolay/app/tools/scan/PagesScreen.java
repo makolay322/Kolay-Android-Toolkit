@@ -193,7 +193,7 @@ public final class PagesScreen extends Screen {
                 s.filterAll(f);   // refreshes through onChange
             });
             Ui.press(t);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, c.dp(40));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, c.dp(44));
             if (i > 0) lp.setMarginStart(c.dp(8));
             chooser.addView(t, lp);
         }
@@ -263,7 +263,7 @@ public final class PagesScreen extends Screen {
             f.setOnClickListener(v -> { Ui.haptic(v, HapticFeedbackConstants.CLOCK_TICK); action.run(); });
             Ui.press(f);
         }
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, c.dp(36), 1);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, c.dp(44), 1);
         if (gap) lp.setMarginStart(c.dp(4));
         f.setLayoutParams(lp);
         return f;

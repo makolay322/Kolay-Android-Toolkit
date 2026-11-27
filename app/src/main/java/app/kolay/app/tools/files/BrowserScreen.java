@@ -157,7 +157,7 @@ final class BrowserScreen extends Screen {
                 TextView stop = Ui.button(c, "Durdur", Ui.Style.GHOST, null);
                 stop.setTextSize(14);
                 stop.setOnClickListener(v -> stopSearch());
-                t.addView(stop, new LinearLayout.LayoutParams(-2, c.dp(40)));
+                t.addView(stop, new LinearLayout.LayoutParams(-2, c.dp(44)));
             }
             t.addView(gap(Ui.iconButton(c, Icon.Kind.SEARCH, "Ara", this::openSearch)));
             t.addView(gap(Ui.iconButton(c, Icon.Kind.MORE, "Seçenekler", this::folderMenu)));

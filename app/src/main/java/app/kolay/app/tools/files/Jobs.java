@@ -78,7 +78,7 @@ public final class Jobs {
             @Override public void onViewDetachedFromWindow(View v) { unlisten(refresh); }
         });
         t.setOnClickListener(v -> { if (cur != null) cur.showSheet(c); });
-        t.setLayoutParams(Ui.lp(-1, c.dp(40), c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), c.dp(8)));
+        t.setLayoutParams(Ui.lp(-1, c.dp(44), c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), c.dp(8)));
         return t;
     }
 

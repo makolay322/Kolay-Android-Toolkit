@@ -107,7 +107,7 @@ final class CameraScreen extends Screen implements DocCamera.Listener {
             paintAuto();
         });
         Ui.press(autoChip);
-        FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(-2, c.dp(36), Gravity.TOP | Gravity.START);
+        FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(-2, c.dp(44), Gravity.TOP | Gravity.START);
         al.setMargins(c.dp(12), c.dp(12), 0, 0);
         cameraCard.addView(autoChip, al);
         paintAuto();
