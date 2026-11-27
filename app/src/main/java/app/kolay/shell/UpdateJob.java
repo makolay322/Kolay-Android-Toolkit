@@ -4,6 +4,7 @@ import android.app.job.*;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
+import app.kolay.app.tools.files.TransferService;
 
 /**
  * Periodic background check: downloads a new release and, while the app is not on screen, installs it (Android 12+
@@ -17,7 +18,8 @@ public class UpdateJob extends JobService {
             JobScheduler js = c.getSystemService(JobScheduler.class);
             if (js == null || js.getPendingJob(ID) != null) return;
             js.schedule(new JobInfo.Builder(ID, new ComponentName(c, UpdateJob.class))
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPeriodic(12L * 3600 * 1000).build());
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPeriodic(12L * 3600 * 1000)
+                .setPersisted(true).build());   // survives a reboot (RECEIVE_BOOT_COMPLETED is declared)
         } catch (Throwable ignored) { }
     }
 
@@ -26,7 +28,7 @@ public class UpdateJob extends JobService {
             try {
                 Context c = getApplicationContext();
                 Updater.check(c, false);
-                if (Build.VERSION.SDK_INT >= 31 && !MainActivity.foreground && Updater.ready(c)
+                if (Build.VERSION.SDK_INT >= 31 && !MainActivity.foreground && !TransferService.running() && Updater.ready(c)
                         && c.getPackageManager().canRequestPackageInstalls()) Updater.install(c, true);
             } catch (Throwable ignored) { }
             jobFinished(p, false);

@@ -39,6 +39,9 @@ public final class TransferService extends Service {
         catch (RuntimeException ignored) { }   // not allowed right now (e.g. app already in the background): the job still runs
     }
 
+    /** A Dosyalar job (copy, move, Samba transfer…) is running; the background self-update waits, since installing kills the process. */
+    public static boolean running() { return active; }
+
     /** Progress from the UI thread (already throttled by Jobs). */
     static void progress(String name, long done, long total) {
         line = name == null ? "" : name;
