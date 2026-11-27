@@ -93,6 +93,7 @@ public final class Entry {
             String t = in.getType();
             in.setAction(Intent.ACTION_MAIN);
             if (!privateFile(u)) c.nav.push(Viewer.external(u, t));
+            else Ui.toastLong(c, "Bu dosya açılamadı: bir uygulamanın kendi iç klasöründe. Dosyayı o uygulamadan “Paylaş” ile gönder.");
         }
     }
 
