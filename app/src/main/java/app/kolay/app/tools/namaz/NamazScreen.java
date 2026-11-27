@@ -118,6 +118,8 @@ final class NamazScreen extends Screen {
                     if (l != null && (best == null || l.getTime() > best.getTime())) best = l;
                 } catch (SecurityException | IllegalArgumentException ignored) { }   // GPS needs the fine permission
             }
+            // Updating a saved location explicitly wants a fresh fix: a last-known position older than 10 min is not reused.
+            if (best != null && !quiet && c.host.prayerLocation() != null && android.os.SystemClock.elapsedRealtimeNanos() - best.getElapsedRealtimeNanos() > 600_000_000_000L) best = null;
             if (best != null) { apply(best, quiet); return; }
             String pv = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ? LocationManager.NETWORK_PROVIDER : null;
             if (pv == null) { if (!quiet) fail(); return; }
