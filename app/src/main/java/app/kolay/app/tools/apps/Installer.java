@@ -1,5 +1,6 @@
 package app.kolay.app.tools.apps;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,6 +14,7 @@ import android.os.Build;
 import android.webkit.CookieManager;
 import app.kolay.shell.Host;
 import java.io.*;
+import java.security.SecureRandom;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -31,6 +33,15 @@ final class Installer {
     private Installer() {}
 
     static final String ACTION = "app.kolay.app.APP_UPDATE_RESULT";
+    /** Random per-process token carried by our own result PendingIntent. Below Android 13 a runtime receiver cannot be made
+     *  non-exported, so any app could send ACTION with a forged confirmation intent; without this token such a broadcast is ignored. */
+    private static final String TOKEN = newToken();
+
+    private static String newToken() {
+        byte[] b = new byte[16]; new SecureRandom().nextBytes(b);
+        StringBuilder sb = new StringBuilder(); for (byte x : b) sb.append(String.format(Locale.ROOT, "%02x", x));
+        return sb.toString();
+    }
     private static final long MAX_BYTES = 2_000_000_000L;
 
     static File workDir(Context ctx) { return new File(ctx.getCacheDir(), "app-updates"); }
@@ -181,7 +192,7 @@ final class Installer {
                     s.fsync(o);
                 }
             }
-            Intent cb = new Intent(ACTION).setPackage(ctx.getPackageName()).putExtra("pkg", pkg);
+            Intent cb = new Intent(ACTION).setPackage(ctx.getPackageName()).putExtra("pkg", pkg).putExtra("tok", TOKEN);
             // Mutable on purpose: the system fills in the status extras.
             PendingIntent pend = PendingIntent.getBroadcast(ctx, id, cb, PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
             s.commit(pend.getIntentSender());
@@ -195,9 +206,11 @@ final class Installer {
     interface Outcome { void done(String pkg, String error); }
 
     /** Registers the result receiver; the confirmation screen is opened from it when Android asks for one. */
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")   // below 33 there is no flag; the token check guards it
     static BroadcastReceiver receiver(Context ctx, Consumer<Intent> confirm, Outcome out) {
         BroadcastReceiver r = new BroadcastReceiver() {
             @Override public void onReceive(Context c, Intent i) {
+                if (!TOKEN.equals(i.getStringExtra("tok"))) return;   // not from our own install session
                 String pkg = i.getStringExtra("pkg");
                 int st = i.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
                 if (st == PackageInstaller.STATUS_PENDING_USER_ACTION) {
