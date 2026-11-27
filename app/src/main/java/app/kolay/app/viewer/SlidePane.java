@@ -71,7 +71,7 @@ final class SlidePane extends FrameLayout {
         if (s != null || broken.contains(i) || !loading.add(i)) return s;
         c.io.execute(() -> {
             Pptx.Slide out = null;
-            try { if (!closed) out = deck.slide(i); } catch (Exception | OutOfMemoryError ignored) {}
+            try { if (!closed) out = deck.slide(i); } catch (Exception | OutOfMemoryError | StackOverflowError ignored) {}
             Pptx.Slide done = out;
             c.ui.post(() -> {
                 loading.remove(i);

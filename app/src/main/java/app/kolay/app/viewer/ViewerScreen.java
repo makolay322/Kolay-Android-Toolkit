@@ -100,7 +100,7 @@ final class ViewerScreen extends Screen {
             fail("Dosyaya erişilemedi", "Dosyayı paylaşan uygulama okuma izni vermedi. Dosyayı oradan yeniden açmayı dene.");
         } catch (java.io.FileNotFoundException e) {
             fail("Dosya bulunamadı", "Dosya taşınmış, silinmiş ya da artık erişilemiyor olabilir.");
-        } catch (Exception | OutOfMemoryError e) {
+        } catch (Exception | OutOfMemoryError | StackOverflowError e) {   // StackOverflowError: deeply nested tables/groups in a crafted file
             if (destroyed) return;
             if (closer != null) post(() -> Ui.toastLong(c, "Belgenin bir kısmı okunamadı."));
             else fail("Belge açılamadı", "Dosya bozuk, parolalı ya da desteklenmeyen bir sürümde olabilir.");

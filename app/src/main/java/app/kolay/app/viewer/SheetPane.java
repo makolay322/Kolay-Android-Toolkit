@@ -96,7 +96,7 @@ final class SheetPane extends LinearLayout {
                     if (full.truncated) Ui.toastLong(c, "Çok büyük sayfa: yalnızca ilk kısmı gösteriliyor.");
                     if (grid.getTag() != full) grid.setSheet(full);
                 });
-            } catch (Exception | OutOfMemoryError e) {
+            } catch (Exception | OutOfMemoryError | StackOverflowError e) {
                 c.ui.post(() -> { if (gen == generation && !closed) message("Bu sayfa okunamadı."); });
             }
         });
