@@ -9,6 +9,14 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Yeni / Düzeltildi — Küçük kolaylıklar ve kalan riskler
+- **Belge tarayıcı:** Kaydedilen PDF'nin yanında artık **Aç** düğmesi var: belge Kolay'ın görüntüleyicisinde açılır, geri tuşu kayıt ekranına döner.
+- **Metne çevir:** Sonuç metninin bir kısmı (dosya numarası, tarih, telefon) seçilip kopyalanabilir. Tıbbi raporda yalnızca "Kopyala" düğmesi kopyalar, böylece pano kaydı hassas olarak işaretli kalır.
+- **PDF düzenle:** Asıl dosyanın üzerine yazma yarıda kalır ve yeni dosya olarak kaydetmek de başarısız olursa, düzenlenmiş hâl bir kez daha asıl dosyaya yazılmayı dener. O da olmazsa düzenleme kaybolmaz: düzenleyici açık ve kaydedilmemiş olarak kalır, açık bir uyarı çıkar.
+- **Dosyalar:** Hedefi silinmiş (kırık) bir kısayol bağlantısı doğrudan seçilip silinince artık gerçekten silinir (önceden sessizce atlanıyordu).
+- **Birlikte aç:** Başka bir uygulamanın iç klasörüne giden `file://` bağlantısı yine açılmaz, ama artık ana ekrana sessizce dönmek yerine kısa bir açıklama gösterilir.
+- Cihazda denenmedi (derleme, lint 0 hata ve masaüstü JVM sınaması yapıldı).
+
 ### Düzeltildi — Genel denetim (hatalar, güvenlik, kullanılabilirlik)
 - **Güvenlik:** Android 12 ve öncesinde başka bir uygulama "Uygulama Güncelle"nin kurulum sonucu yayınını taklit edip Kolay'a kendi seçtiği bir ekranı açtırabiliyordu; artık yalnızca Kolay'ın kendi kurulum oturumundan gelen (rastgele belirteçli) sonuç işlenir. Başka uygulamadan gelen ve Kolay'ın özel klasörlerine işaret eden `file://` "Birlikte aç" bağlantıları açılmaz.
 - **Dosyalar:** Klasöre giden bir kısayol bağlantısı (symlink) silinince artık yalnızca bağlantı silinir; hedef klasörün içeriği silinmez; kendine dönen bağlantılar içeren bir klasörü silmek takılmaz. Kopyalama sırasında çakışma sorusu ekranı kaybolursa (tema değişimi, bildirimden İptal) iş kuyruğu artık sonsuza kadar takılı kalmaz. Samba formunda "Yine de kaydet" yalnızca test edilen adres için geçerli; adres değişince yeniden denetlenir. Akışla açılan Samba bağlantılarından en uzun süredir okunmayanı düşer (oynayan video değil). "Kolay'a kaydet" sunucuya o an ulaşılamayınca hatırlanan Samba klasörünü silmez.
