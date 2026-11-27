@@ -82,12 +82,12 @@ public final class SaveShareScreen extends Screen {
         SmbSource sm = SmbServers.source(found);
         src = sm; dir = nd;
         c.io.execute(() -> {   // network: never on the UI thread
-            boolean ok;
-            try { FileItem it = sm.stat(nd); ok = it != null && it.dir; } catch (IOException | RuntimeException e) { ok = false; }
-            boolean fok = ok;
+            boolean ok, gone;   // gone: the server answered and the folder is not there any more
+            try { FileItem it = sm.stat(nd); ok = it != null && it.dir; gone = !ok; } catch (IOException | RuntimeException e) { ok = false; gone = false; }
+            boolean fok = ok, fgone = gone;
             c.ui.post(() -> {
                 if (fok || src != sm) return;   // reachable, or the user already picked something else
-                forgetNet();
+                if (fgone) forgetNet();   // only unreachable right now (Wi-Fi off…): keep the choice for next time
                 src = LocalSource.INSTANCE; dir = startDir();
                 Ui.toast(c, "Sunucuya ulaşılamadı; İndirilenler'e dönüldü");
                 if (col != null && !saved) build();
@@ -178,7 +178,7 @@ public final class SaveShareScreen extends Screen {
     private void save() {
         long total = totalSize();
         if (total > 0 && !net()) {   // free space is known for the phone only
-            try { if (new StatFs(dir).getAvailableBytes() < total) { Ui.toast(c, "Yeterli boş alan yok"); return; } }
+            try { if (new StatFs(dir).getAvailableBytes() < total) { Ui.toast(c, "Telefonda yeterli boş yer yok"); return; } }
             catch (IllegalArgumentException ignored) { }   // unreadable target: the copy reports it
         }
         String target = dir;
