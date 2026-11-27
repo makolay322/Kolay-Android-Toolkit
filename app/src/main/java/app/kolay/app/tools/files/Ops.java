@@ -255,6 +255,7 @@ public final class Ops {
             for (String path : paths) { long[] m = measure(s, path, p::cancelled, false); o.total += m[1] + m[2]; }
             for (String path : paths) {
                 FileItem it = s.stat(path);
+                if (it == null && s.isLink(path)) { it = new FileItem(path, false, 0, 0); o.total++; }   // broken link: stat() follows it and finds nothing
                 if (it == null) continue;
                 if (o.deleteTree(s, it, 0)) o.res.done++;
             }
