@@ -16,7 +16,9 @@ public class UpdateJob extends JobService {
     static void schedule(Context c) {
         try {
             JobScheduler js = c.getSystemService(JobScheduler.class);
-            if (js == null || js.getPendingJob(ID) != null) return;
+            if (js == null) return;
+            JobInfo cur = js.getPendingJob(ID);
+            if (cur != null && cur.isPersisted()) return;   // a job from an older version is not persisted: replace it once
             js.schedule(new JobInfo.Builder(ID, new ComponentName(c, UpdateJob.class))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPeriodic(12L * 3600 * 1000)
                 .setPersisted(true).build());   // survives a reboot (RECEIVE_BOOT_COMPLETED is declared)
