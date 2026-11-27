@@ -9,6 +9,18 @@ Biçim: [Keep a Changelog](https://keepachangelog.com/tr/). Sürümler `main`'e 
 
 ## 1.001 ve sonrası (numaralandırma yeniden başladı)
 Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `versionCode` artmaya devam eder; 1.033 kurulu telefonlar 1.001'i normal güncelleme olarak alır. Eski Release'ler silindi.
+### Düzeltildi — Genel denetim (hatalar, güvenlik, kullanılabilirlik)
+- **Güvenlik:** Android 12 ve öncesinde başka bir uygulama "Uygulama Güncelle"nin kurulum sonucu yayınını taklit edip Kolay'a kendi seçtiği bir ekranı açtırabiliyordu; artık yalnızca Kolay'ın kendi kurulum oturumundan gelen (rastgele belirteçli) sonuç işlenir. Başka uygulamadan gelen ve Kolay'ın özel klasörlerine işaret eden `file://` "Birlikte aç" bağlantıları açılmaz.
+- **Dosyalar:** Klasöre giden bir kısayol bağlantısı (symlink) silinince artık yalnızca bağlantı silinir; hedef klasörün içeriği silinmez. Kopyalama sırasında çakışma sorusu ekranı kaybolursa (tema değişimi, bildirimden İptal) iş kuyruğu artık sonsuza kadar takılı kalmaz. Samba formunda "Yine de kaydet" yalnızca test edilen adres için geçerli; adres değişince yeniden denetlenir. Akışla açılan Samba bağlantılarından en uzun süredir okunmayanı düşer (oynayan video değil). "Kolay'a kaydet" sunucuya o an ulaşılamayınca hatırlanan Samba klasörünü silmez.
+- **Güncelleme:** Arka plan güncellemesi bir Dosyalar işi (kopyalama/taşıma) sürerken kurulmaz (kurulum uygulamayı kapatıp işi yarıda keserdi); periyodik denetim telefon yeniden başlayınca da sürer. Paylaşım/YouTube açılır pencereleri kapanınca ana pencerenin "güncelleme hazır" bildirimi artık kopmaz.
+- **Fotoğraf Sıkıştır:** Android 10–12'de izin hiç verilemiyordu (yalnızca Android 13+'ta olan izin isteniyordu); artık o sürümlerde depolama izni istenir. Kopya özgünden küçük çıkmazsa bunu söyler.
+- **PDF düzenle:** Başka uygulamanın sağladığı dosyanın üzerine yazarken yazma yarıda kalırsa düzenleme kaybolmaz: yeni dosya olarak `Documents/Kolay`'a kaydedilir ve açıkça uyarılır.
+- **Belge görüntüleyici:** Kasıtlı olarak çok derin iç içe tablo/grup içeren bir Word/PowerPoint dosyası uygulamayı çökertmez, "Belge açılamadı" gösterir.
+- **Namaz vakitleri:** Android 10'da kayıtlı son konum yoksa konum artık bir kez isteniyor (önceden doğrudan "Konum alınamadı"); en çok 30 sn beklenir. Kayıtlı konumu elle güncellerken 10 dakikadan eski konum kullanılmaz.
+- **Hata metinleri:** Cilalama, YouTube özeti, sohbet ve helal denetiminde internet yoksa / zaman aşımında / güvenli bağlantı kurulamazsa İngilizce sistem metni yerine Türkçe kısa mesaj çıkar.
+- **Dokunma hedefleri:** Belge tarayıcıdaki "Otomatik" çipi, sayfa kartı düğmeleri (Döndür/Kırp/Sil), toplu filtre çipleri, widget saydamlık çipleri, Dosyalar iş çipi ve aramadaki "Durdur" en az 44 dp.
+- Cihazda denenmedi (derleme, lint 0 hata ve masaüstü JVM sınaması yapıldı).
+
 ### Yeni — Video oynatıcı
 - Dosyalar'da bir videoya dokununca artık **Kolay'ın kendi oynatıcısında** açılır (telefondaki dosyalar ve Samba'dakiler; Samba videosu indirilmeden akışla oynar). Oynatıcı telefonun kendi çözücülerini kullanır; telefonun desteklemediği bir biçimse açık bir mesaj ve **Birlikte aç** düğmesi çıkar. "Birlikte aç" menüsü eskisi gibi başka uygulamayla (Samba'da akışla) açar.
 - Tam ekran (yön videoya göre döner, çıkınca eski hâline döner), oynarken ekran kapanmaz. Dokununca denetimler: oynat/duraklat, ilerleme çubuğu ve süre, ±10 sn, kilit, görüntü oranı (Sığdır / Doldur / Uzat), hız (0,5–2×), birden fazla ses parçası ya da altyazı varsa seçim. Hareketler: yatay kaydır = ileri/geri sar (hedef süre gösterilir), solda yukarı/aşağı = parlaklık (yalnızca oynatıcıda), sağda = ses, çift dokunma solda/sağda = 10 sn geri/ileri.

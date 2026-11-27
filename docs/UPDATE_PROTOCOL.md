@@ -47,7 +47,7 @@ Herhangi bir adım başarısızsa dosya atılır, 30 dk sonra tekrar denenir (ba
 - Tek `PackageInstaller` oturumu; Android 12+'da `USER_ACTION_NOT_REQUIRED` istenir. Android bir uygulamanın **kendini** güncellemesine
   genellikle onaysız izin verir; izin vermezse kendi onay ekranını gösterir (`InstallResultReceiver`).
 - Ön planda: kullanıcı banda / “Şimdi kur”a dokununca. Kurulum uygulamayı kapatır; yeniden açınca yeni sürüm çalışır.
-- Arka planda (`UpdateJob`, 12 saatte bir): uygulama ekranda değilken indirilmiş sürüm kendiliğinden kurulur. Android onay isterse
+- Arka planda (`UpdateJob`, 12 saatte bir): uygulama ekranda değilken ve Dosyalar'da bir kopyalama/taşıma işi sürmüyorken indirilmiş sürüm kendiliğinden kurulur (iş yeniden başlatmada da sürer). Android onay isterse
   ekran açılamadığı için "Kolay güncellemesi hazır" bildirimi çıkar; dokununca uygulama açılır ve bant kurulumu yapar.
 - "Bilinmeyen kaynaklardan yükleme" izni yoksa ön planda ayar sayfası açılır; arka planda kurulum denenmez.
 

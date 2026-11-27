@@ -29,7 +29,7 @@ onCreate
  ├─ Updater.cleanupLegacy()   eski düzenin artıkları (files/payloads, "registry" tercihleri) bir kez silinir
  ├─ ensureTessdata()          files/tessdata/ hazırlanır; yalnızca yarım kalmış eski indirmeler silinir (yüklü veriye dokunulmaz)
  ├─ new Entry().onCreate(host) arayüz: tema, gezinme, ana sayfa; QR kutucuğu / paylaşım hedefi eylemleri
- ├─ UpdateJob.schedule()      12 saatte bir arka plan denetimi (+ ekran kapalıyken kurulum)
+ ├─ UpdateJob.schedule()      12 saatte bir arka plan denetimi (+ ekran kapalıyken kurulum; Dosyalar işi sürerken kurmaz; yeniden başlatmada kalıcı)
  └─ Updater.checkAsync()      en çok 6 saatte bir; yeni sürüm indirilirse ana sayfada "Yeni sürüm hazır" bandı
 ```
 Etkinlik ömür döngüsünü (`onResume/onPause/izin sonucu/geri tuşu/onDestroy`) `Entry`'ye iletir; `Entry` en üstteki ekrana dağıtır.
