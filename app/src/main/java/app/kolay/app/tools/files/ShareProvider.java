@@ -39,7 +39,7 @@ public final class ShareProvider extends ContentProvider {
     private static final int MAX_TOKENS = 64;
     private static final int READ_AHEAD = 2 << 20;
     private static final java.security.SecureRandom RNG = new java.security.SecureRandom();
-    private static final Map<String, Remote> REMOTES = new LinkedHashMap<String, Remote>() {
+    private static final Map<String, Remote> REMOTES = new LinkedHashMap<String, Remote>(16, 0.75f, true) {   // access order: a link still being read is not evicted first
         @Override protected boolean removeEldestEntry(Map.Entry<String, Remote> e) { return size() > MAX_TOKENS; }
     };
     private static HandlerThread thread;
