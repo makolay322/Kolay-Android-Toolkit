@@ -140,7 +140,7 @@ final class NamazScreen extends Screen {
             @Override public void onLocationChanged(Location loc) { single = null; if (!destroyed) apply(loc, quiet); }
             @Override public void onStatusChanged(String p, int s, Bundle b) { }
             @Override public void onProviderEnabled(String p) { }
-            @Override public void onProviderDisabled(String p) { if (!destroyed && !quiet) fail(); }
+            @Override public void onProviderDisabled(String p) { if (single == this) { lm.removeUpdates(this); single = null; } if (!destroyed && !quiet) fail(); }
         };
         android.location.LocationListener mine = single;
         lm.requestSingleUpdate(pv, mine, Looper.getMainLooper());

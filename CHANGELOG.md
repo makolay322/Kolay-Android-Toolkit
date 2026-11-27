@@ -15,7 +15,7 @@ Görünen sürüm adı 1.033'ten sonra **1.001**'den yeniden başladı. Dahili `
 - **Güncelleme:** Arka plan güncellemesi bir Dosyalar işi (kopyalama/taşıma) sürerken kurulmaz (kurulum uygulamayı kapatıp işi yarıda keserdi); periyodik denetim telefon yeniden başlayınca da sürer. Paylaşım/YouTube açılır pencereleri kapanınca ana pencerenin "güncelleme hazır" bildirimi artık kopmaz.
 - **Fotoğraf Sıkıştır:** Android 10–12'de izin hiç verilemiyordu (yalnızca Android 13+'ta olan izin isteniyordu); artık o sürümlerde depolama izni istenir. Kopya özgünden küçük çıkmazsa bunu söyler.
 - **PDF düzenle:** Başka uygulamanın sağladığı dosyanın üzerine yazarken yazma yarıda kalırsa düzenleme kaybolmaz: yeni dosya olarak `Documents/Kolay`'a kaydedilir ve açıkça uyarılır.
-- **Belge görüntüleyici:** Kasıtlı olarak çok derin iç içe tablo/grup içeren bir Word/PowerPoint dosyası uygulamayı çökertmez, "Belge açılamadı" gösterir.
+- **Belge görüntüleyici:** Kasıtlı olarak çok derin iç içe tablo/grup içeren bir Word/Excel/PowerPoint dosyası uygulamayı çökertmez, "Belge açılamadı" gösterir.
 - **Namaz vakitleri:** Android 10'da kayıtlı son konum yoksa konum artık bir kez isteniyor (önceden doğrudan "Konum alınamadı"); en çok 30 sn beklenir. Kayıtlı konumu elle güncellerken 10 dakikadan eski konum kullanılmaz.
 - **Hata metinleri:** Cilalama, YouTube özeti, sohbet ve helal denetiminde internet yoksa / zaman aşımında / güvenli bağlantı kurulamazsa İngilizce sistem metni yerine Türkçe kısa mesaj çıkar.
 - **Dokunma hedefleri:** Belge tarayıcıdaki "Otomatik" çipi, sayfa kartı düğmeleri (Döndür/Kırp/Sil), toplu filtre çipleri, widget saydamlık çipleri, Dosyalar iş çipi ve aramadaki "Durdur" en az 44 dp.
