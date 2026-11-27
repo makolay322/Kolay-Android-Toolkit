@@ -291,7 +291,12 @@ final class ExportScreen extends Screen {
         acts.setPadding(c.dp(Ui.GUTTER), 0, c.dp(Ui.GUTTER), 0);
         TextView share = Ui.button(c, "Paylaş", Ui.Style.PRIMARY, Icon.Kind.SHARE);
         share.setOnClickListener(v -> share(asPdf));
-        acts.addView(share, Ui.lp(-1, c.dp(Ui.H_BTN)));
+        if (asPdf && n == 1) {   // look at the saved PDF in the built-in viewer; Back returns here
+            TextView open = Ui.button(c, "Aç", Ui.Style.TONAL, Icon.Kind.DOC);
+            Uri saved = outputs.get(0);
+            open.setOnClickListener(v -> app.kolay.app.viewer.Viewer.open(c, saved, "application/pdf"));
+            acts.addView(Ui.pair(c, open, share, Ui.H_BTN));
+        } else acts.addView(share, Ui.lp(-1, c.dp(Ui.H_BTN)));
         if (withOcr) {
             if (text.isEmpty()) {
                 TextView none = Ui.text(c, "Sayfalarda metin bulunamadı.", 13, p.muted, 400);
