@@ -24,6 +24,8 @@ public interface FileSource {
     void delete(String path) throws IOException;
     /** Renames/moves inside this source; fails if {@code to} exists or the move is not possible in one step (e.g. across volumes). */
     void rename(String from, String to) throws IOException;
+    /** True if {@code path} is a symbolic link: deleting a tree removes the link itself, never what it points to. */
+    default boolean isLink(String path) { return false; }
 
     static String parent(String path) {
         int i = path.lastIndexOf('/');

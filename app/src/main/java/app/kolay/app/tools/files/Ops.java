@@ -268,7 +268,7 @@ public final class Ops {
         try {
             if (depth > MAX_DEPTH) throw new IOException("klasör çok derin");
             boolean ok = true;
-            if (it.dir) for (FileItem ch : s.list(it.path)) ok &= deleteTree(s, ch, depth + 1);
+            if (it.dir && !s.isLink(it.path)) for (FileItem ch : s.list(it.path)) ok &= deleteTree(s, ch, depth + 1);   // a link to a folder: only the link goes
             if (ok) s.delete(it.path);
             pr.update(it.name, ++done, total);
             return ok;

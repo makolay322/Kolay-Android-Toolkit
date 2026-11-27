@@ -65,6 +65,10 @@ public final class LocalSource implements FileSource {
         if (!f.delete() && f.exists()) throw new IOException("Silinemedi: " + f.getName());
     }
 
+    @Override public boolean isLink(String path) {
+        try { return Files.isSymbolicLink(new File(path).toPath()); } catch (RuntimeException e) { return false; }
+    }
+
     @Override public void rename(String from, String to) throws IOException {
         File t = new File(to);
         if (t.exists()) throw new IOException("Hedef zaten var: " + t.getName());   // renameTo would silently overwrite a file
